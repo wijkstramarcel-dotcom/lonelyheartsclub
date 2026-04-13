@@ -84,7 +84,7 @@ function SplashScreen({ onNext }) {
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px", opacity: vis ? 1 : 0, transition: "opacity 0.8s ease" }}>
         <OrnateBox color={T.gold} style={{ width: "100%", padding: "28px 20px", background: `radial-gradient(ellipse at 50% 30%, #2a0f4a, ${T.bg})`, textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 5, color: T.cyan, marginBottom: 10, fontWeight: 700 }}>SGT. PEPPER'S</div>
+          <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 5, color: T.cyan, marginBottom: 10, fontWeight: 700 }}>EST. 2026</div>
           <h1 style={{ fontFamily: F.display, fontSize: 32, fontWeight: 900, color: T.cream, margin: "0 0 4px", lineHeight: 1.1, textShadow: `2px 3px 0 ${T.magenta}80` }}>LONELY HEARTS</h1>
           <h1 style={{ fontFamily: F.display, fontSize: 32, fontWeight: 900, color: T.gold, margin: "0 0 16px", lineHeight: 1.1 }}>CLUB</h1>
           <OrnamentDivider color={T.gold} />
