@@ -1,362 +1,571 @@
 import { useState, useEffect } from "react";
 
-// Google Fonts
 const fontLink = document.createElement("link");
-fontLink.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Lora:ital@0;1&family=DM+Sans:wght@400;500;700&display=swap";
+fontLink.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@400;500;700&display=swap";
 fontLink.rel = "stylesheet";
 document.head.appendChild(fontLink);
 
-const T = {
-  bg:       "#0f0820",
-  bgCard:   "#1a1030",
-  magenta:  "#e8126a",
-  gold:     "#d4a843",
-  cream:    "#f5ede0",
-  creamDim: "#a89070",
-  cyan:     "#00b8c4",
-  green:    "#2ecc71",
-  white:    "#ffffff",
-  muted:    "#4a3a5a",
+const C = {
+  bg:      "#0a0614",
+  card:    "#130920",
+  magenta: "#d4145a",
+  gold:    "#c9963a",
+  cream:   "#f0e6d3",
+  dim:     "#7a6a5a",
+  muted:   "#2a1a3a",
+  green:   "#27ae60",
+  white:   "#ffffff",
 };
 
-const F = {
-  display: "'Playfair Display', Georgia, serif",
-  body:    "'Lora', Georgia, serif",
-  ui:      "'DM Sans', sans-serif",
-};
+const serif  = "'Playfair Display', Georgia, serif";
+const sans   = "'DM Sans', sans-serif";
 
-const OrnamentDivider = ({ color = T.gold }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0" }}>
-    <div style={{ flex: 1, height: 1, background: `${color}40` }} />
-    <span style={{ color, fontSize: 10, letterSpacing: 3 }}>✦ ✦ ✦</span>
-    <div style={{ flex: 1, height: 1, background: `${color}40` }} />
+// ── TINY COMPONENTS ──────────────────────────────────────────────────────────
+
+const Rule = ({ color = C.gold }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
+    <div style={{ flex: 1, height: 1, background: `${color}30` }} />
+    <span style={{ color: `${color}80`, fontSize: 9, letterSpacing: 4 }}>✦</span>
+    <div style={{ flex: 1, height: 1, background: `${color}30` }} />
   </div>
 );
 
-const OrnateBox = ({ children, color = T.gold, style = {} }) => (
-  <div style={{ border: `1px solid ${color}50`, position: "relative", ...style }}>
-    {[[{top:-4,left:-4}],[{top:-4,right:-4}],[{bottom:-4,left:-4}],[{bottom:-4,right:-4}]].map((pos, i) => (
-      <div key={i} style={{
-        position: "absolute", width: 7, height: 7,
-        border: `1px solid ${color}`, background: T.bg,
-        transform: "rotate(45deg)", ...pos[0],
-      }} />
-    ))}
-    {children}
-  </div>
+const Tag = ({ children, active, color = C.gold }) => (
+  <span style={{
+    padding: "5px 14px", fontSize: 11,
+    border: `1px solid ${active ? color : color + "30"}`,
+    color: active ? color : C.dim,
+    background: active ? `${color}12` : "transparent",
+    fontFamily: sans, letterSpacing: 1,
+    cursor: "pointer",
+  }}>{children}</span>
 );
 
-const PrimaryBtn = ({ onClick, children, color = T.magenta }) => (
-  <button onClick={onClick} style={{
-    width: "100%", padding: "15px 20px",
-    background: color, border: `1px solid ${T.gold}60`,
-    borderRadius: 2, color: T.gold,
-    fontSize: 11, fontWeight: 700, fontFamily: F.ui,
-    letterSpacing: 3, textTransform: "uppercase",
-    cursor: "pointer", boxShadow: `0 4px 24px ${color}40`,
-  }}
-    onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
-    onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
-  >{children}</button>
-);
-
-const TopBanner = ({ label, title, color = T.magenta }) => (
-  <div style={{
-    background: `linear-gradient(135deg, ${color}ee, ${color}bb)`,
-    padding: "10px 24px", borderBottom: `1px solid ${T.gold}40`,
-    display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0,
-  }}>
-    <div>
-      <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 4, color: T.gold, fontWeight: 700, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontFamily: F.display, fontSize: 15, color: T.white, fontWeight: 700 }}>{title}</div>
-    </div>
-    <div style={{ fontFamily: F.display, fontSize: 18, color: `${T.gold}80` }}>♥</div>
-  </div>
-);
-
-function SplashScreen({ onNext }) {
+// ── WAITLIST SCREEN ───────────────────────────────────────────────────────────
+function WaitlistScreen({ onNext }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
   const [vis, setVis] = useState(false);
-  useEffect(() => { setTimeout(() => setVis(true), 100); }, []);
+
+  useEffect(() => { setTimeout(() => setVis(true), 80); }, []);
+
+  const submit = () => {
+    if (email.includes("@")) { setSent(true); }
+  };
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: `radial-gradient(ellipse at 50% 0%, #2a0840 0%, ${T.bg} 60%)`, overflow: "hidden" }}>
-      <div style={{ background: T.magenta, padding: "8px 0", textAlign: "center", borderBottom: `1px solid ${T.gold}60`, flexShrink: 0 }}>
-        <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 5, color: T.gold, fontWeight: 700 }}>★ &nbsp; LONELYHEARTSCLUB.NL &nbsp; ★</div>
+    <div style={{
+      flex: 1, display: "flex", flexDirection: "column",
+      background: `radial-gradient(ellipse at 50% -10%, #2a0840 0%, ${C.bg} 55%)`,
+      overflow: "hidden",
+    }}>
+      {/* Top bar */}
+      <div style={{
+        background: C.magenta,
+        padding: "9px 0", textAlign: "center",
+        borderBottom: `1px solid ${C.gold}40`,
+        flexShrink: 0,
+      }}>
+        <span style={{ fontFamily: sans, fontSize: 8, letterSpacing: 5, color: C.gold, fontWeight: 700 }}>
+          LONELYHEARTSCLUB.NL
+        </span>
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px", opacity: vis ? 1 : 0, transition: "opacity 0.8s ease" }}>
-        <OrnateBox color={T.gold} style={{ width: "100%", padding: "28px 20px", background: `radial-gradient(ellipse at 50% 30%, #2a0f4a, ${T.bg})`, textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 5, color: T.cyan, marginBottom: 10, fontWeight: 700 }}>EST. 2026</div>
-          <h1 style={{ fontFamily: F.display, fontSize: 32, fontWeight: 900, color: T.cream, margin: "0 0 4px", lineHeight: 1.1, textShadow: `2px 3px 0 ${T.magenta}80` }}>LONELY HEARTS</h1>
-          <h1 style={{ fontFamily: F.display, fontSize: 32, fontWeight: 900, color: T.gold, margin: "0 0 16px", lineHeight: 1.1 }}>CLUB</h1>
-          <OrnamentDivider color={T.gold} />
-          <p style={{ fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: T.creamDim, margin: 0, lineHeight: 1.7 }}>"De mooiste liefde begint<br />met een stem"</p>
-        </OrnateBox>
+
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column",
+        alignItems: "center", padding: "32px 28px 24px",
+        opacity: vis ? 1 : 0, transition: "opacity 0.7s ease",
+        overflowY: "auto",
+      }}>
+
+        {/* Logo mark */}
+        <div style={{
+          width: 64, height: 64, borderRadius: "50%",
+          border: `1px solid ${C.gold}50`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 28, color: C.magenta, marginBottom: 24,
+          background: `radial-gradient(circle, #1a0830, ${C.bg})`,
+          boxShadow: `0 0 40px ${C.magenta}20`,
+        }}>♥</div>
+
+        {/* Title */}
+        <h1 style={{
+          fontFamily: serif, fontSize: 30, fontWeight: 900,
+          color: C.cream, textAlign: "center",
+          margin: "0 0 6px", lineHeight: 1.15,
+          letterSpacing: 1,
+        }}>Lonely Hearts<br />Club</h1>
+
+        <p style={{
+          fontFamily: serif, fontSize: 13, fontStyle: "italic",
+          color: C.gold, textAlign: "center", margin: "0 0 24px",
+        }}>De Nederlandse datingapp zonder foto's</p>
+
+        <Rule />
+
+        {/* Concept */}
+        <p style={{
+          fontFamily: sans, fontSize: 13, color: C.dim,
+          textAlign: "center", lineHeight: 1.8,
+          margin: "0 0 24px",
+        }}>
+          Bij ons leer je iemand kennen van<br />
+          binnenuit. Eerst een stem, dan een gezicht.
+        </p>
+
+        {/* Steps */}
         <div style={{ width: "100%", marginBottom: 28 }}>
           {[
-            { n: "I",   icon: "✦", text: "Profiel zonder foto",  color: T.cyan    },
-            { n: "II",  icon: "☎", text: "Anoniem bellen",       color: T.gold    },
-            { n: "III", icon: "◉", text: "Videogesprek",         color: T.magenta },
-            { n: "IV",  icon: "♥", text: "Echte afspraak",       color: T.green   },
+            { n: "01", text: "Profiel zonder foto",  color: C.gold    },
+            { n: "02", text: "Anoniem bellen",        color: C.magenta },
+            { n: "03", text: "Videogesprek",          color: "#7b5ea7" },
+            { n: "04", text: "Echte afspraak",        color: C.green   },
           ].map((s, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 14px", marginBottom: 6, borderLeft: `3px solid ${s.color}`, background: `${s.color}08`, opacity: vis ? 1 : 0, transition: `opacity 0.5s ease ${0.2 + i * 0.1}s` }}>
-              <span style={{ fontFamily: F.display, fontWeight: 900, color: s.color, fontSize: 10, width: 22, flexShrink: 0 }}>{s.n}</span>
-              <span style={{ fontSize: 14, color: s.color, width: 16 }}>{s.icon}</span>
-              <span style={{ fontFamily: F.body, fontSize: 13, color: T.cream }}>{s.text}</span>
+            <div key={i} style={{
+              display: "flex", alignItems: "center", gap: 16,
+              padding: "11px 16px", marginBottom: 4,
+              borderLeft: `2px solid ${s.color}`,
+              background: `${s.color}08`,
+              opacity: vis ? 1 : 0,
+              transition: `opacity 0.4s ease ${i * 0.1 + 0.3}s`,
+            }}>
+              <span style={{ fontFamily: sans, fontSize: 9, color: s.color, fontWeight: 700, letterSpacing: 1, width: 20, flexShrink: 0 }}>{s.n}</span>
+              <span style={{ fontFamily: sans, fontSize: 13, color: C.cream, fontWeight: 500 }}>{s.text}</span>
             </div>
           ))}
         </div>
-        <PrimaryBtn onClick={onNext}>★ &nbsp; Word lid &nbsp; ★</PrimaryBtn>
+
+        <Rule color={C.magenta} />
+
+        {/* Waitlist form */}
+        {!sent ? (
+          <div style={{ width: "100%" }}>
+            <p style={{
+              fontFamily: sans, fontSize: 11, color: C.dim,
+              textAlign: "center", marginBottom: 14, letterSpacing: 1,
+              textTransform: "uppercase",
+            }}>
+              Schrijf je in voor vroege toegang
+            </p>
+
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="jouw@emailadres.nl"
+              onKeyDown={e => e.key === "Enter" && submit()}
+              style={{
+                width: "100%", padding: "13px 16px",
+                background: C.card,
+                border: `1px solid ${C.gold}30`,
+                color: C.cream, fontSize: 14,
+                fontFamily: sans,
+                outline: "none", marginBottom: 10,
+                boxSizing: "border-box",
+              }}
+            />
+
+            <button onClick={submit} style={{
+              width: "100%", padding: "14px",
+              background: C.magenta,
+              border: `1px solid ${C.gold}50`,
+              color: C.gold, fontSize: 11,
+              fontFamily: sans, fontWeight: 700,
+              letterSpacing: 3, textTransform: "uppercase",
+              cursor: "pointer",
+              boxShadow: `0 4px 24px ${C.magenta}40`,
+            }}>
+              Zet mij op de lijst →
+            </button>
+
+            <p style={{
+              fontFamily: sans, fontSize: 10, color: C.muted,
+              textAlign: "center", marginTop: 10,
+            }}>
+              Geen spam. Alleen een bericht als we live gaan.
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            width: "100%", padding: "24px",
+            border: `1px solid ${C.green}40`,
+            background: `${C.green}08`,
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>♥</div>
+            <h3 style={{ fontFamily: serif, fontSize: 18, color: C.cream, margin: "0 0 8px" }}>
+              Je staat op de lijst
+            </h3>
+            <p style={{ fontFamily: sans, fontSize: 12, color: C.dim, margin: 0 }}>
+              We sturen je een bericht zodra<br />we live gaan.
+            </p>
+          </div>
+        )}
+
+        <div style={{ marginTop: 24 }}>
+          <button onClick={onNext} style={{
+            background: "none", border: "none",
+            fontFamily: sans, fontSize: 11,
+            color: C.dim, cursor: "pointer",
+            letterSpacing: 1, textDecoration: "underline",
+            textUnderlineOffset: 3,
+          }}>
+            Bekijk het prototype →
+          </button>
+        </div>
       </div>
-      <div style={{ background: "#0a0518", padding: "8px 0", borderTop: `1px solid ${T.gold}20`, textAlign: "center", flexShrink: 0 }}>
-        <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 3, color: T.muted, fontWeight: 500 }}>EST. 2026 · NEDERLAND · GRATIS</div>
+
+      {/* Bottom bar */}
+      <div style={{
+        padding: "8px 0", textAlign: "center",
+        borderTop: `1px solid ${C.gold}15`,
+        background: "#050310", flexShrink: 0,
+      }}>
+        <span style={{ fontFamily: sans, fontSize: 8, letterSpacing: 3, color: C.muted }}>
+          EST. 2026 · NEDERLAND · GRATIS
+        </span>
       </div>
     </div>
   );
 }
 
+// ── PROFILE SCREEN ────────────────────────────────────────────────────────────
 function ProfileScreen({ onNext }) {
   const [step, setStep] = useState(0);
   const steps = [
-    { label: "Naam",     q: "Wat is je voornaam?",         val: "Marcel",                                        type: "input" },
-    { label: "Leeftijd", q: "Hoe oud ben je?",             val: "48",                                            type: "input" },
-    { label: "Verhaal",  q: "Omschrijf jezelf in één zin", val: "Avontuurlijk, eerlijk, op zoek naar verbinding.", type: "area"  },
-    { label: "Passies",  q: "Wat zijn je passies?",        val: "Hardlopen, schilderen, reizen.",                 type: "area"  },
+    { label: "Naam",     q: "Wat is je voornaam?",          val: "Marcel", type: "input" },
+    { label: "Leeftijd", q: "Hoe oud ben je?",              val: "48",     type: "input" },
+    { label: "Verhaal",  q: "Omschrijf jezelf in één zin",  val: "Avontuurlijk, eerlijk, op zoek naar echte verbinding.", type: "area" },
+    { label: "Passies",  q: "Wat zijn je passies?",         val: "Hardlopen, schilderen, reizen.", type: "area" },
   ];
-  const colors = [T.cyan, T.gold, T.magenta, T.green];
-  const s = steps[step]; const c = colors[step];
+  const accent = [C.gold, "#7b5ea7", C.magenta, C.green];
+  const s = steps[step];
+  const a = accent[step];
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bg }}>
-      <TopBanner label="Jouw profiel" title="Vertel je verhaal" color="#1a0828" />
-      <div style={{ display: "flex", padding: "14px 24px 0", gap: 6 }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg }}>
+      {/* Header */}
+      <div style={{ background: C.card, padding: "12px 24px", borderBottom: `1px solid ${C.gold}20`, flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: C.gold, fontWeight: 700 }}>JOUW PROFIEL</div>
+          <div style={{ fontFamily: serif, fontSize: 16, color: C.cream, fontWeight: 700, marginTop: 2 }}>Vertel je verhaal</div>
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 11, color: C.dim }}>{step + 1} / {steps.length}</div>
+      </div>
+
+      {/* Progress */}
+      <div style={{ display: "flex", gap: 4, padding: "12px 24px 0" }}>
         {steps.map((_, i) => (
-          <div key={i} style={{ flex: i === step ? 3 : 1, height: 3, borderRadius: 2, background: i < step ? T.gold : i === step ? c : `${T.white}15`, transition: "all 0.3s ease" }} />
+          <div key={i} style={{ flex: i === step ? 3 : 1, height: 2, background: i < step ? C.gold : i === step ? a : C.muted, transition: "all 0.3s ease" }} />
         ))}
       </div>
-      <div style={{ flex: 1, padding: "16px 24px", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "10px 14px", marginBottom: 16, border: `1px dashed ${T.gold}40`, display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={{ fontFamily: F.display, fontSize: 16, color: T.gold }}>♦</span>
-          <span style={{ fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: T.creamDim }}>Geen foto. Jij bent meer dan een plaatje.</span>
+
+      <div style={{ flex: 1, padding: "20px 24px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        {/* No photo */}
+        <div style={{ padding: "10px 14px", marginBottom: 18, border: `1px dashed ${C.gold}25`, display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ color: C.gold, fontSize: 13 }}>♦</span>
+          <span style={{ fontFamily: sans, fontSize: 12, color: C.dim, fontStyle: "italic" }}>Geen foto. Jij bent meer dan een plaatje.</span>
         </div>
-        <OrnateBox color={c} style={{ padding: "18px", marginBottom: 14 }}>
-          <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 4, color: c, marginBottom: 8, fontWeight: 700 }}>{s.label.toUpperCase()}</div>
-          <h3 style={{ fontFamily: F.display, fontSize: 17, color: T.cream, margin: "0 0 14px", fontWeight: 700 }}>{s.q}</h3>
+
+        {/* Question */}
+        <div style={{ border: `1px solid ${a}30`, padding: "18px", marginBottom: 16, background: `${a}06` }}>
+          <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: a, marginBottom: 10, fontWeight: 700 }}>{s.label.toUpperCase()}</div>
+          <h3 style={{ fontFamily: serif, fontSize: 17, color: C.cream, margin: "0 0 14px", fontWeight: 700 }}>{s.q}</h3>
           {s.type === "input" ? (
-            <input defaultValue={s.val} style={{ width: "100%", background: `${c}10`, border: `1px solid ${c}40`, borderRadius: 2, color: T.cream, fontSize: 20, padding: "10px 12px", fontFamily: F.display, outline: "none", boxSizing: "border-box" }} />
+            <input defaultValue={s.val} style={{ width: "100%", background: `${a}08`, border: `1px solid ${a}30`, color: C.cream, fontSize: 18, padding: "10px 12px", fontFamily: serif, outline: "none", boxSizing: "border-box" }} />
           ) : (
-            <textarea defaultValue={s.val} rows={3} style={{ width: "100%", background: `${c}10`, border: `1px solid ${c}40`, borderRadius: 2, color: T.cream, fontSize: 13, padding: "10px 12px", fontFamily: F.body, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7 }} />
+            <textarea defaultValue={s.val} rows={3} style={{ width: "100%", background: `${a}08`, border: `1px solid ${a}30`, color: C.cream, fontSize: 13, padding: "10px 12px", fontFamily: sans, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7 }} />
           )}
-        </OrnateBox>
+        </div>
+
         {step === 3 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-            {[["Hardlopen", true], ["Kunst", true], ["Reizen", true], ["Lezen", false], ["Wijn", false], ["Muziek", false]].map(([tag, active], i) => (
-              <span key={i} style={{ padding: "5px 12px", borderRadius: 2, border: `1px solid ${active ? T.gold : T.muted}`, background: active ? `${T.gold}15` : "transparent", color: active ? T.gold : T.muted, fontFamily: F.ui, fontSize: 11, cursor: "pointer" }}>{tag}</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+            {[["Hardlopen", true], ["Kunst", true], ["Reizen", true], ["Lezen", false], ["Wijn", false], ["Muziek", false]].map(([t, active], i) => (
+              <Tag key={i} active={active}>{t}</Tag>
             ))}
           </div>
         )}
+
         <div style={{ flex: 1 }} />
+
         <div style={{ display: "flex", gap: 8 }}>
           {step > 0 && (
-            <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "13px", background: "transparent", border: `1px solid ${T.white}15`, borderRadius: 2, color: T.muted, fontFamily: F.ui, fontSize: 11, letterSpacing: 2, cursor: "pointer" }}>← Terug</button>
+            <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "13px", background: "transparent", border: `1px solid ${C.white}10`, color: C.dim, fontFamily: sans, fontSize: 11, letterSpacing: 2, cursor: "pointer" }}>← Terug</button>
           )}
-          <div style={{ flex: step > 0 ? 3 : 1 }}>
-            <PrimaryBtn onClick={() => step < steps.length - 1 ? setStep(s => s + 1) : onNext()} color={c}>
-              {step < steps.length - 1 ? "Verder →" : "Opslaan ✓"}
-            </PrimaryBtn>
-          </div>
+          <button onClick={() => step < steps.length - 1 ? setStep(s => s + 1) : onNext()} style={{ flex: step > 0 ? 3 : 1, padding: "14px", background: a, border: "none", color: C.bg, fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer" }}>
+            {step < steps.length - 1 ? "Verder →" : "Opslaan ✓"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+// ── DISCOVER SCREEN ───────────────────────────────────────────────────────────
 function DiscoverScreen({ onNext }) {
   const [idx, setIdx] = useState(0);
   const profiles = [
     { name: "Sarah", age: 42, tagline: "Dromer met beide voeten op de grond", bio: "Op zoek naar echte gesprekken. Ik hou van natuur, stille ochtenden en eerlijke mensen.", tags: ["Natuur", "Lezen", "Koken"], match: 94 },
     { name: "Linda", age: 45, tagline: "Nieuwsgierig naar het leven en naar jou", bio: "Moeder, reiziger, yogalerares. De mooiste liefde begint bij een goed gesprek.", tags: ["Yoga", "Reizen", "Theater"], match: 87 },
-    { name: "Anke",  age: 39, tagline: "Avontuurlijk maar ook gewoon thuis", bio: "Werk in de zorg, hou van muziek. Zoek iemand die net zo goed kan luisteren als praten.", tags: ["Muziek", "Wijn", "Honden"], match: 81 },
+    { name: "Anke",  age: 39, tagline: "Avontuurlijk maar ook gewoon thuis", bio: "Werk in de zorg, hou van muziek. Iemand die net zo goed kan luisteren als praten.", tags: ["Muziek", "Wijn", "Honden"], match: 81 },
   ];
   const p = profiles[idx];
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bg }}>
-      <TopBanner label="Nieuwe leden" title="Ontdek matches" />
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg }}>
+      <div style={{ background: C.card, padding: "12px 24px", borderBottom: `1px solid ${C.gold}20`, flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: C.gold, fontWeight: 700 }}>NIEUWE LEDEN</div>
+          <div style={{ fontFamily: serif, fontSize: 16, color: C.cream, fontWeight: 700, marginTop: 2 }}>Ontdek matches</div>
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 11, color: C.dim }}>{idx + 1} / {profiles.length}</div>
+      </div>
+
       <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column" }}>
-        <OrnateBox color={T.gold} style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column", background: T.bgCard, marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-            <div style={{ width: 60, height: 60, borderRadius: "50%", background: `radial-gradient(circle, #2a0840, ${T.bg})`, border: `2px solid ${T.gold}60`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F.display, fontSize: 22, color: T.gold }}>?</div>
+        <div style={{ flex: 1, background: C.card, border: `1px solid ${C.gold}20`, padding: "22px", marginBottom: 12, display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: `radial-gradient(circle, #2a0840, ${C.bg})`, border: `1px solid ${C.gold}30`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 20, color: C.gold }}>?</div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: F.display, fontSize: 24, fontWeight: 900, color: T.gold }}>{p.match}%</div>
-              <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 3, color: T.muted, fontWeight: 700 }}>MATCH</div>
+              <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 900, color: C.gold, lineHeight: 1 }}>{p.match}%</div>
+              <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 2, color: C.dim, fontWeight: 700 }}>MATCH</div>
             </div>
           </div>
-          <h3 style={{ fontFamily: F.display, fontSize: 22, fontWeight: 700, color: T.cream, margin: "0 0 4px" }}>{p.name}, {p.age}</h3>
-          <p style={{ fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: T.gold, margin: "0 0 14px" }}>{p.tagline}</p>
-          <OrnamentDivider />
-          <p style={{ fontFamily: F.body, fontSize: 13, color: T.creamDim, lineHeight: 1.7, flex: 1 }}>{p.bio}</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-            {p.tags.map((tag, i) => (
-              <span key={i} style={{ padding: "4px 10px", border: `1px solid ${T.gold}30`, fontFamily: F.ui, fontSize: 10, color: T.creamDim, letterSpacing: 1 }}>{tag}</span>
-            ))}
+
+          <h3 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, color: C.cream, margin: "0 0 4px" }}>{p.name}, {p.age}</h3>
+          <p style={{ fontFamily: sans, fontSize: 12, fontStyle: "italic", color: C.gold, margin: "0 0 16px" }}>{p.tagline}</p>
+
+          <Rule />
+
+          <p style={{ fontFamily: sans, fontSize: 13, color: C.dim, lineHeight: 1.7, flex: 1 }}>{p.bio}</p>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 16 }}>
+            {p.tags.map((t, i) => <Tag key={i}>{t}</Tag>)}
           </div>
-          <div style={{ marginTop: 14, padding: "8px 12px", border: `1px dashed ${T.gold}25`, display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ color: T.gold, fontSize: 11 }}>♦</span>
-            <span style={{ fontFamily: F.ui, fontSize: 10, color: T.muted, letterSpacing: 1 }}>FOTO ZICHTBAAR NA EERSTE GESPREK</span>
+
+          <div style={{ marginTop: 14, padding: "8px 12px", border: `1px dashed ${C.gold}20`, display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ color: C.gold, fontSize: 10 }}>♦</span>
+            <span style={{ fontFamily: sans, fontSize: 10, color: C.dim, letterSpacing: 1 }}>FOTO ZICHTBAAR NA EERSTE GESPREK</span>
           </div>
-        </OrnateBox>
+        </div>
+
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setIdx(i => Math.min(i + 1, profiles.length - 1))} style={{ flex: 1, padding: "13px", background: "transparent", border: `1px solid ${T.white}15`, borderRadius: 2, color: T.muted, fontSize: 18, cursor: "pointer" }}>✕</button>
-          <div style={{ flex: 3 }}><PrimaryBtn onClick={onNext}>♥ &nbsp; Interesse</PrimaryBtn></div>
-          <button style={{ flex: 1, padding: "13px", background: `${T.gold}10`, border: `1px solid ${T.gold}40`, borderRadius: 2, color: T.gold, fontSize: 18, cursor: "pointer" }}>★</button>
+          <button onClick={() => setIdx(i => Math.min(i + 1, profiles.length - 1))} style={{ flex: 1, padding: "13px", background: "transparent", border: `1px solid ${C.white}10`, color: C.dim, fontSize: 18, cursor: "pointer" }}>✕</button>
+          <button onClick={onNext} style={{ flex: 3, padding: "13px", background: C.magenta, border: "none", color: C.cream, fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", boxShadow: `0 4px 20px ${C.magenta}40` }}>♥ &nbsp; Interesse</button>
+          <button style={{ flex: 1, padding: "13px", background: `${C.gold}10`, border: `1px solid ${C.gold}30`, color: C.gold, fontSize: 18, cursor: "pointer" }}>★</button>
         </div>
       </div>
     </div>
   );
 }
 
+// ── MATCH SCREEN ──────────────────────────────────────────────────────────────
 function MatchScreen({ onNext }) {
   const [scale, setScale] = useState(1);
-  useEffect(() => { const t = setInterval(() => setScale(s => s === 1 ? 1.12 : 1), 1000); return () => clearInterval(t); }, []);
+  useEffect(() => { const t = setInterval(() => setScale(s => s === 1 ? 1.1 : 1), 1100); return () => clearInterval(t); }, []);
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: `radial-gradient(ellipse at 50% 30%, #2a0840, ${T.bg})` }}>
-      <div style={{ background: T.magenta, padding: "10px 0", borderBottom: `1px solid ${T.gold}40`, textAlign: "center", flexShrink: 0 }}>
-        <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 5, color: T.gold, fontWeight: 700 }}>★ &nbsp; HET IS WEDERZIJDS &nbsp; ★</div>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: `radial-gradient(ellipse at 50% 20%, #2a0840, ${C.bg})` }}>
+      <div style={{ background: C.magenta, padding: "10px 0", textAlign: "center", borderBottom: `1px solid ${C.gold}30`, flexShrink: 0 }}>
+        <span style={{ fontFamily: sans, fontSize: 8, letterSpacing: 5, color: C.gold, fontWeight: 700 }}>HET IS WEDERZIJDS</span>
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-        <div style={{ fontSize: 72, marginBottom: 20, color: T.magenta, transform: `scale(${scale})`, transition: "transform 0.5s ease", filter: `drop-shadow(0 0 24px ${T.magenta}80)` }}>♥</div>
-        <OrnateBox color={T.gold} style={{ width: "100%", padding: "20px", textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 4, color: T.gold, marginBottom: 8, fontWeight: 700 }}>JULLIE HEBBEN EEN KLIK</div>
-          <h2 style={{ fontFamily: F.display, fontSize: 26, fontWeight: 900, color: T.cream, margin: "0 0 6px" }}>Jij & Sarah</h2>
-          <p style={{ fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: T.creamDim, margin: 0 }}>Beiden tonen interesse</p>
-        </OrnateBox>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "28px" }}>
+        <div style={{ fontSize: 68, marginBottom: 24, color: C.magenta, transform: `scale(${scale})`, transition: "transform 0.5s ease", filter: `drop-shadow(0 0 20px ${C.magenta}60)` }}>♥</div>
+
+        <div style={{ width: "100%", padding: "20px", border: `1px solid ${C.gold}30`, background: C.card, textAlign: "center", marginBottom: 24 }}>
+          <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: C.gold, marginBottom: 10, fontWeight: 700 }}>JULLIE HEBBEN EEN KLIK</div>
+          <h2 style={{ fontFamily: serif, fontSize: 24, fontWeight: 900, color: C.cream, margin: "0 0 6px" }}>Jij & Sarah</h2>
+          <p style={{ fontFamily: sans, fontSize: 12, color: C.dim, margin: 0 }}>Beiden tonen interesse</p>
+        </div>
+
         {[
-          { n: "I",   label: "Anoniem bellen", sub: "10 min · Nu beschikbaar", active: true,  color: T.cyan  },
-          { n: "II",  label: "Videobel",        sub: "Na 3 gesprekken",         active: false, color: T.gold  },
-          { n: "III", label: "Afspreken",        sub: "Na videogesprek",         active: false, color: T.green },
+          { n: "I",   label: "Anoniem bellen", sub: "10 min · Nu beschikbaar", active: true,  color: C.gold    },
+          { n: "II",  label: "Videobel",        sub: "Na 3 gesprekken",         active: false, color: "#7b5ea7" },
+          { n: "III", label: "Afspreken",        sub: "Na videogesprek",         active: false, color: C.green   },
         ].map(s => (
-          <div key={s.n} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", marginBottom: 8, borderLeft: `3px solid ${s.active ? s.color : s.color + "30"}`, background: s.active ? `${s.color}10` : "transparent", opacity: s.active ? 1 : 0.4 }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${s.active ? s.color : s.color + "40"}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F.display, fontSize: 10, fontWeight: 900, color: s.active ? s.color : s.color + "40", flexShrink: 0 }}>{s.n}</div>
+          <div key={s.n} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", marginBottom: 6, borderLeft: `2px solid ${s.active ? s.color : s.color + "30"}`, background: s.active ? `${s.color}10` : "transparent", opacity: s.active ? 1 : 0.4 }}>
+            <div style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${s.active ? s.color : s.color + "40"}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 9, fontWeight: 900, color: s.active ? s.color : C.dim, flexShrink: 0 }}>{s.n}</div>
             <div>
-              <div style={{ fontFamily: F.display, fontSize: 13, fontWeight: 700, color: s.active ? T.cream : T.muted }}>{s.label}</div>
-              <div style={{ fontFamily: F.ui, fontSize: 9, color: s.active ? s.color : T.muted, letterSpacing: 1 }}>{s.sub}</div>
+              <div style={{ fontFamily: sans, fontSize: 13, fontWeight: 600, color: s.active ? C.cream : C.dim }}>{s.label}</div>
+              <div style={{ fontFamily: sans, fontSize: 10, color: s.active ? s.color : C.muted }}>{s.sub}</div>
             </div>
-            {s.active && <div style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: T.green }} />}
+            {s.active && <div style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: C.green }} />}
           </div>
         ))}
-        <div style={{ width: "100%", marginTop: 16 }}><PrimaryBtn onClick={onNext}>☎ &nbsp; Bel Sarah nu</PrimaryBtn></div>
+
+        <button onClick={onNext} style={{ width: "100%", marginTop: 20, padding: "14px", background: C.magenta, border: "none", color: C.cream, fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", boxShadow: `0 4px 24px ${C.magenta}40` }}>
+          ☎ &nbsp; Bel Sarah nu
+        </button>
       </div>
     </div>
   );
 }
 
+// ── CALL SCREEN ───────────────────────────────────────────────────────────────
 function CallScreen({ onNext }) {
   const [secs, setSecs] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [bars, setBars] = useState(Array(16).fill(4));
+  const [bars, setBars] = useState(Array(18).fill(4));
   useEffect(() => {
-    const t = setInterval(() => { setSecs(s => s + 1); setBars(b => b.map(() => Math.floor(Math.random() * 12) + 2)); }, 1000);
+    const t = setInterval(() => { setSecs(s => s + 1); setBars(b => b.map(() => Math.floor(Math.random() * 10) + 2)); }, 1000);
     return () => clearInterval(t);
   }, []);
   const fmt = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bg }}>
-      <div style={{ background: T.green, padding: "8px 24px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.white }} />
-        <span style={{ fontFamily: F.ui, fontSize: 9, letterSpacing: 3, color: "#0a0518", fontWeight: 700 }}>ANONIEM GESPREK ACTIEF</span>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg }}>
+      <div style={{ background: C.green, padding: "8px 24px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.white }} />
+        <span style={{ fontFamily: sans, fontSize: 9, letterSpacing: 3, color: "#0a1a0a", fontWeight: 700 }}>ANONIEM GESPREK ACTIEF</span>
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-around", padding: "24px" }}>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-around", padding: "28px 24px" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: 96, height: 96, borderRadius: "50%", background: `radial-gradient(circle, #2a0840, ${T.bg})`, border: `2px solid ${T.magenta}60`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F.display, fontSize: 36, color: T.magenta, margin: "0 auto 14px", boxShadow: `0 0 32px ${T.magenta}30` }}>?</div>
-          <h2 style={{ fontFamily: F.display, fontSize: 20, fontWeight: 700, color: T.cream, margin: "0 0 4px" }}>Sarah, 42</h2>
-          <p style={{ fontFamily: F.body, fontSize: 11, fontStyle: "italic", color: T.muted, margin: 0 }}>Nummers verborgen voor beiden</p>
+          <div style={{ width: 88, height: 88, borderRadius: "50%", background: `radial-gradient(circle, #2a0840, ${C.bg})`, border: `1px solid ${C.magenta}40`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 32, color: C.magenta, margin: "0 auto 14px", boxShadow: `0 0 28px ${C.magenta}25` }}>?</div>
+          <h2 style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, color: C.cream, margin: "0 0 4px" }}>Sarah, 42</h2>
+          <p style={{ fontFamily: sans, fontSize: 11, color: C.dim, margin: 0 }}>Nummers verborgen voor beiden</p>
         </div>
-        <OrnateBox color={T.gold} style={{ padding: "14px 28px", textAlign: "center" }}>
-          <div style={{ fontFamily: F.ui, fontSize: 36, fontWeight: 700, color: T.gold, letterSpacing: 4, textShadow: `0 0 20px ${T.gold}50` }}>{fmt(secs)}</div>
-          <div style={{ fontFamily: F.ui, fontSize: 9, color: T.muted, letterSpacing: 2, marginTop: 4 }}>{Math.max(0, 600 - secs)}S RESTEREND</div>
-        </OrnateBox>
-        <div style={{ display: "flex", gap: 3, alignItems: "center", height: 32 }}>
+
+        <div style={{ padding: "14px 28px", border: `1px solid ${C.gold}30`, textAlign: "center", background: C.card }}>
+          <div style={{ fontFamily: sans, fontSize: 34, fontWeight: 700, color: C.gold, letterSpacing: 4 }}>{fmt(secs)}</div>
+          <div style={{ fontFamily: sans, fontSize: 9, color: C.dim, letterSpacing: 2, marginTop: 4 }}>{Math.max(0, 600 - secs)}S RESTEREND</div>
+        </div>
+
+        <div style={{ display: "flex", gap: 3, alignItems: "center", height: 28 }}>
           {bars.map((h, i) => (
-            <div key={i} style={{ width: 3, borderRadius: 2, height: h * 2.2, background: i % 2 === 0 ? T.magenta : T.gold, opacity: 0.7, transition: "height 0.25s ease" }} />
+            <div key={i} style={{ width: 3, borderRadius: 2, height: h * 2, background: i % 2 === 0 ? C.magenta : C.gold, opacity: 0.6, transition: "height 0.2s ease" }} />
           ))}
         </div>
-        <OrnateBox color={`${T.cyan}60`} style={{ width: "100%", padding: "14px" }}>
-          <div style={{ fontFamily: F.ui, fontSize: 8, letterSpacing: 4, color: T.cyan, marginBottom: 8, fontWeight: 700 }}>GESPREKSSTARTER</div>
-          <p style={{ fontFamily: F.body, fontSize: 12, fontStyle: "italic", color: T.creamDim, margin: 0, lineHeight: 1.6 }}>"Wat is het mooiste moment dat je ooit hebt meegemaakt op reis?"</p>
-        </OrnateBox>
+
+        <div style={{ width: "100%", padding: "14px", border: `1px solid ${C.gold}20`, background: C.card }}>
+          <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: C.gold, marginBottom: 8, fontWeight: 700 }}>GESPREKSSTARTER</div>
+          <p style={{ fontFamily: sans, fontSize: 12, fontStyle: "italic", color: C.dim, margin: 0, lineHeight: 1.6 }}>
+            "Wat is het mooiste moment dat je ooit hebt meegemaakt op reis?"
+          </p>
+        </div>
+
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-          <button onClick={() => setMuted(m => !m)} style={{ width: 52, height: 52, borderRadius: "50%", background: muted ? `${T.magenta}20` : `${T.white}08`, border: `1px solid ${muted ? T.magenta : T.white + "20"}`, color: muted ? T.magenta : T.creamDim, fontSize: 18, cursor: "pointer" }}>{muted ? "✕" : "♪"}</button>
-          <button onClick={onNext} style={{ width: 64, height: 64, borderRadius: "50%", background: "#c0392b", border: `2px solid ${T.gold}60`, color: T.white, fontSize: 20, cursor: "pointer", boxShadow: "0 4px 20px rgba(192,57,43,0.5)" }}>✕</button>
-          <button style={{ width: 52, height: 52, borderRadius: "50%", background: `${T.white}08`, border: `1px solid ${T.white}20`, color: T.creamDim, fontSize: 18, cursor: "pointer" }}>◎</button>
+          <button onClick={() => setMuted(m => !m)} style={{ width: 50, height: 50, borderRadius: "50%", background: muted ? `${C.magenta}20` : `${C.white}06`, border: `1px solid ${muted ? C.magenta : C.white + "15"}`, color: muted ? C.magenta : C.dim, fontSize: 16, cursor: "pointer" }}>{muted ? "✕" : "♪"}</button>
+          <button onClick={onNext} style={{ width: 62, height: 62, borderRadius: "50%", background: "#c0392b", border: `1px solid ${C.gold}40`, color: C.white, fontSize: 20, cursor: "pointer", boxShadow: "0 4px 20px rgba(192,57,43,0.4)" }}>✕</button>
+          <button style={{ width: 50, height: 50, borderRadius: "50%", background: `${C.white}06`, border: `1px solid ${C.white}15`, color: C.dim, fontSize: 16, cursor: "pointer" }}>◎</button>
         </div>
       </div>
     </div>
   );
 }
 
+// ── AFTER CALL ────────────────────────────────────────────────────────────────
 function AfterCallScreen({ onNext }) {
   const [stars, setStars] = useState(4);
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bg }}>
-      <TopBanner label="Gesprek afgerond" title="Jouw beoordeling" color="#1a0828" />
-      <div style={{ flex: 1, padding: "24px", display: "flex", flexDirection: "column" }}>
-        <h2 style={{ fontFamily: F.display, fontSize: 22, fontWeight: 700, color: T.cream, margin: "0 0 6px" }}>Hoe was het met Sarah?</h2>
-        <p style={{ fontFamily: F.body, fontSize: 13, fontStyle: "italic", color: T.creamDim, margin: "0 0 20px", lineHeight: 1.6 }}>Jouw eerlijke terugkoppeling helpt ons betere matches te maken.</p>
-        <OrnamentDivider />
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", margin: "20px 0 28px" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg }}>
+      <div style={{ background: C.card, padding: "12px 24px", borderBottom: `1px solid ${C.gold}20`, flexShrink: 0 }}>
+        <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: C.gold, fontWeight: 700 }}>GESPREK AFGEROND</div>
+        <div style={{ fontFamily: serif, fontSize: 16, color: C.cream, fontWeight: 700, marginTop: 2 }}>Jouw beoordeling</div>
+      </div>
+
+      <div style={{ flex: 1, padding: "24px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        <h2 style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, color: C.cream, margin: "0 0 6px" }}>Hoe was het met Sarah?</h2>
+        <p style={{ fontFamily: sans, fontSize: 12, color: C.dim, margin: "0 0 24px", lineHeight: 1.6 }}>
+          Jouw eerlijke terugkoppeling helpt ons betere matches te maken.
+        </p>
+
+        <Rule />
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", margin: "20px 0 28px" }}>
           {[1, 2, 3, 4, 5].map(i => (
-            <span key={i} onClick={() => setStars(i)} style={{ fontSize: 34, cursor: "pointer", color: i <= stars ? T.gold : T.muted, transition: "all 0.2s ease", filter: i <= stars ? `drop-shadow(0 0 8px ${T.gold}80)` : "none", display: "inline-block", transform: i <= stars ? "scale(1.1)" : "scale(1)" }}>★</span>
+            <span key={i} onClick={() => setStars(i)} style={{ fontSize: 32, cursor: "pointer", color: i <= stars ? C.gold : C.muted, transition: "all 0.2s ease", display: "inline-block", transform: i <= stars ? "scale(1.08)" : "scale(1)" }}>★</span>
           ))}
         </div>
-        <OrnateBox color={T.cyan} style={{ padding: "16px", marginBottom: 24 }}>
+
+        <div style={{ padding: "16px", border: `1px solid ${C.gold}20`, background: C.card, marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ fontFamily: F.ui, fontSize: 9, letterSpacing: 2, color: T.creamDim, fontWeight: 700 }}>NAAR VIDEOGESPREK</span>
-            <span style={{ fontFamily: F.display, fontSize: 13, fontWeight: 700, color: T.cyan }}>1 / 3</span>
+            <span style={{ fontFamily: sans, fontSize: 9, letterSpacing: 2, color: C.dim, fontWeight: 700 }}>VOORTGANG NAAR VIDEO</span>
+            <span style={{ fontFamily: serif, fontSize: 13, fontWeight: 700, color: C.gold }}>1 / 3</span>
           </div>
-          <div style={{ height: 4, background: `${T.white}10`, borderRadius: 2, marginBottom: 10 }}>
-            <div style={{ width: "33%", height: "100%", borderRadius: 2, background: `linear-gradient(90deg, ${T.cyan}, ${T.gold})` }} />
+          <div style={{ height: 3, background: C.muted, marginBottom: 10 }}>
+            <div style={{ width: "33%", height: "100%", background: `linear-gradient(90deg, ${C.gold}, ${C.magenta})` }} />
           </div>
-          <p style={{ fontFamily: F.ui, fontSize: 9, color: T.muted, margin: 0, letterSpacing: 1 }}>NOG 2 GESPREKKEN VOORDAT VIDEO BESCHIKBAAR WORDT</p>
-        </OrnateBox>
+          <p style={{ fontFamily: sans, fontSize: 9, color: C.dim, margin: 0, letterSpacing: 1 }}>
+            NOG 2 GESPREKKEN VOORDAT VIDEO BESCHIKBAAR WORDT
+          </p>
+        </div>
+
         <div style={{ flex: 1 }} />
-        <OrnamentDivider color={T.magenta} />
+        <Rule color={C.magenta} />
+
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button onClick={onNext} style={{ flex: 1, padding: "13px", background: "transparent", border: `1px solid ${T.white}15`, borderRadius: 2, color: T.muted, fontFamily: F.ui, fontSize: 11, letterSpacing: 2, cursor: "pointer" }}>← Terug</button>
-          <div style={{ flex: 2 }}><PrimaryBtn onClick={onNext}>Opslaan ★</PrimaryBtn></div>
+          <button onClick={onNext} style={{ flex: 1, padding: "13px", background: "transparent", border: `1px solid ${C.white}10`, color: C.dim, fontFamily: sans, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>← Terug</button>
+          <button onClick={onNext} style={{ flex: 2, padding: "13px", background: C.magenta, border: "none", color: C.cream, fontFamily: sans, fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer" }}>Opslaan ★</button>
         </div>
       </div>
     </div>
   );
 }
 
+// ── APP SHELL ─────────────────────────────────────────────────────────────────
 const SCREENS = [
-  { id: "start",   label: "Start",   C: SplashScreen    },
-  { id: "profiel", label: "Profiel", C: ProfileScreen   },
-  { id: "ontdek",  label: "Ontdek",  C: DiscoverScreen  },
-  { id: "match",   label: "Match",   C: MatchScreen     },
-  { id: "bellen",  label: "Bellen",  C: CallScreen      },
-  { id: "review",  label: "Review",  C: AfterCallScreen },
+  { id: "wachtlijst", label: "Home",    C: WaitlistScreen  },
+  { id: "profiel",    label: "Profiel", C: ProfileScreen   },
+  { id: "ontdek",     label: "Ontdek",  C: DiscoverScreen  },
+  { id: "match",      label: "Match",   C: MatchScreen     },
+  { id: "bellen",     label: "Bellen",  C: CallScreen      },
+  { id: "review",     label: "Review",  C: AfterCallScreen },
 ];
 
 export default function App() {
   const [idx, setIdx] = useState(0);
   const { C: Screen } = SCREENS[idx];
   const next = () => setIdx(i => Math.min(i + 1, SCREENS.length - 1));
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: `radial-gradient(ellipse at 30% 20%, ${T.magenta}15, transparent 50%), radial-gradient(ellipse at 70% 80%, #2a0840 0%, transparent 50%), #070512`, padding: "20px 0" }}>
-      <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap", justifyContent: "center" }}>
+    <div style={{
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      background: `radial-gradient(ellipse at 30% 10%, ${C.magenta}18, transparent 45%), radial-gradient(ellipse at 70% 90%, #2a0840 0%, transparent 50%), #040210`,
+      padding: "20px 0",
+    }}>
+      {/* Nav tabs */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 14, flexWrap: "wrap", justifyContent: "center" }}>
         {SCREENS.map((s, i) => (
-          <button key={s.id} onClick={() => setIdx(i)} style={{ padding: "5px 12px", borderRadius: 2, background: i === idx ? T.magenta : "transparent", border: `1px solid ${i === idx ? T.gold + "80" : T.white + "15"}`, color: i === idx ? T.gold : T.muted, fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer" }}>{s.label}</button>
+          <button key={s.id} onClick={() => setIdx(i)} style={{
+            padding: "5px 12px",
+            background: i === idx ? C.magenta : "transparent",
+            border: `1px solid ${i === idx ? C.gold + "60" : C.white + "10"}`,
+            color: i === idx ? C.gold : C.dim,
+            fontFamily: sans, fontSize: 9, fontWeight: 700,
+            letterSpacing: 2, textTransform: "uppercase",
+            cursor: "pointer",
+          }}>{s.label}</button>
         ))}
       </div>
-      <div style={{ width: 375, height: 750, borderRadius: 40, border: `1px solid ${T.gold}30`, overflow: "hidden", display: "flex", flexDirection: "column", background: T.bg, boxShadow: `0 0 80px ${T.magenta}20, 0 0 0 1px ${T.gold}10, 0 40px 80px rgba(0,0,0,0.6)` }}>
-        <div style={{ padding: "10px 24px 6px", display: "flex", justifyContent: "space-between", fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: T.muted, flexShrink: 0 }}>
+
+      {/* Phone */}
+      <div style={{
+        width: 375, height: 750,
+        borderRadius: 38,
+        border: `1px solid ${C.gold}20`,
+        overflow: "hidden",
+        display: "flex", flexDirection: "column",
+        background: C.bg,
+        boxShadow: `0 0 60px ${C.magenta}18, 0 0 0 1px ${C.gold}08, 0 32px 64px rgba(0,0,0,0.7)`,
+      }}>
+        {/* Status bar */}
+        <div style={{ padding: "10px 24px 6px", display: "flex", justifyContent: "space-between", fontFamily: sans, fontSize: 10, color: C.dim, flexShrink: 0 }}>
           <span>9:41</span>
-          <span style={{ color: T.gold, letterSpacing: 2, fontWeight: 700 }}>♥ LHC</span>
+          <span style={{ color: C.gold, letterSpacing: 2, fontWeight: 700 }}>♥ LHC</span>
           <span>●●●</span>
         </div>
+
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <Screen onNext={next} />
         </div>
       </div>
-      <p style={{ marginTop: 14, fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: T.muted, letterSpacing: 2 }}>LONELYHEARTSCLUB.NL · KLIK OP DE TABS</p>
+
+      <p style={{ marginTop: 12, fontFamily: sans, fontSize: 9, color: C.dim, letterSpacing: 2 }}>
+        LONELYHEARTSCLUB.NL · KLIK OP DE TABS
+      </p>
     </div>
   );
 }
