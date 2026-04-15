@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  "https://kdkccffbvdrgqnvfkcqd.supabase.co",
+  "sb_publishable_vJkfyqOYDdAx7d0ggyERHA_nL6c8K0U"
+);
 
 const C = {
   bg: "#FBF6EF",
@@ -117,7 +123,7 @@ function GlassCard({ children, style = {} }) {
   );
 }
 
-function DesktopLanding({ onPrototype, onPrivacy }) {
+function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [vis, setVis] = useState(false);
@@ -148,6 +154,17 @@ function DesktopLanding({ onPrototype, onPrivacy }) {
         <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
           <a href="#hoe" style={{ color: C.textMid, fontSize: 13, textDecoration: "none" }}>Hoe het werkt</a>
           <a href="#waarom" style={{ color: C.textMid, fontSize: 13, textDecoration: "none" }}>Waarom anders</a>
+          {user ? (
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <span style={{ fontFamily: sans, fontSize: 13, color: C.textMid }}>{user.email}</span>
+              <button onClick={onLogout} style={{ padding: "9px 18px", background: "transparent", border: `1.5px solid ${C.border}`, color: C.textMid, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Uitloggen</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={onLogin} style={{ padding: "9px 18px", background: "transparent", border: `1.5px solid ${C.border}`, color: C.textMid, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 600, letterSpacing: 1, cursor: "pointer" }}>Inloggen</button>
+              <button onClick={onLogin} style={{ padding: "9px 18px", background: `linear-gradient(180deg, ${C.terra}, ${C.terraDeep})`, border: "none", color: C.white, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer", boxShadow: "0 6px 16px rgba(196,86,44,0.25)" }}>Registreer gratis</button>
+            </div>
+          )}
           <button onClick={onPrototype} style={{ padding: "9px 18px", background: "transparent", border: `1.5px solid ${C.terra}`, color: C.terra, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer" }}>Bekijk prototype</button>
         </div>
       </nav>
@@ -629,11 +646,94 @@ function PrivacyPage({ onBack }) {
   );
 }
 
+// ── AUTH SCREEN ───────────────────────────────────────────────────────────────
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState("login"); // login | signup
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setSuccess("Check je e-mail voor een bevestigingslink!");
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        onAuth(data.user);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <LHCLogo size={80} />
+          <h1 style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, color: C.text, margin: "16px 0 6px" }}>
+            {mode === "login" ? "Welkom terug" : "Word lid"}
+          </h1>
+          <p style={{ fontFamily: sans, fontSize: 14, color: C.textDim, margin: 0 }}>
+            {mode === "login" ? "Log in op je account" : "Maak een gratis account aan"}
+          </p>
+        </div>
+
+        <GlassCard style={{ padding: 24 }}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.textMid, letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 6 }}>E-mailadres</label>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="jouw@emailadres.nl"
+              style={{ width: "100%", padding: "13px 16px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: C.textMid, letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Wachtwoord</label>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="Minimaal 6 tekens"
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              style={{ width: "100%", padding: "13px 16px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+
+          {error && <p style={{ fontFamily: sans, fontSize: 13, color: "#C0392B", marginBottom: 14, padding: "10px 14px", background: "rgba(192,57,43,0.08)", borderRadius: 10 }}>{error}</p>}
+          {success && <p style={{ fontFamily: sans, fontSize: 13, color: C.green, marginBottom: 14, padding: "10px 14px", background: "rgba(45,106,79,0.08)", borderRadius: 10 }}>✓ {success}</p>}
+
+          <PrimaryBtn onClick={handleSubmit} style={{ opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Even wachten..." : mode === "login" ? "Inloggen →" : "Account aanmaken →"}
+          </PrimaryBtn>
+        </GlassCard>
+
+        <p style={{ textAlign: "center", fontFamily: sans, fontSize: 13, color: C.textDim, marginTop: 16 }}>
+          {mode === "login" ? "Nog geen account? " : "Al een account? "}
+          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setSuccess(""); }}
+            style={{ background: "none", border: "none", color: C.terra, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
+            {mode === "login" ? "Registreer hier" : "Log hier in"}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   useFonts();
   const [isMobile, setIsMobile] = useState(false);
   const [showPrototype, setShowPrototype] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [user, setUser] = useState(null);
   const [cookieAccepted, setCookieAccepted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -642,7 +742,21 @@ export default function App() {
     const compute = () => setIsMobile(window.innerWidth < 768);
     compute();
     window.addEventListener("resize", compute);
-    return () => window.removeEventListener("resize", compute);
+
+    // Check if user is already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setUser(session.user);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      window.removeEventListener("resize", compute);
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -654,9 +768,21 @@ export default function App() {
     setCookieAccepted(true);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
   if (!hydrated) return <div style={{ minHeight: "100vh", background: C.bg }} />;
   if (showPrivacy) return <PrivacyPage onBack={() => setShowPrivacy(false)} />;
+  if (showAuth) return <AuthScreen onAuth={(u) => { setUser(u); setShowAuth(false); }} />;
+
+  // Logged in on mobile → show app
+  if (isMobile && user) return (<><MobileApp user={user} onLogout={handleLogout} />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
+
+  // Not logged in on mobile → show landing
   if (isMobile) return (<><MobileApp />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
+
   if (showPrototype) {
     return (
       <div style={{ minHeight: "100vh", background: C.bgSoft, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
@@ -668,5 +794,17 @@ export default function App() {
       </div>
     );
   }
-  return (<><DesktopLanding onPrototype={() => setShowPrototype(true)} onPrivacy={() => setShowPrivacy(true)} />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
+
+  return (
+    <>
+      <DesktopLanding
+        onPrototype={() => setShowPrototype(true)}
+        onPrivacy={() => setShowPrivacy(true)}
+        onLogin={() => setShowAuth(true)}
+        user={user}
+        onLogout={handleLogout}
+      />
+      {!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}
+    </>
+  );
 }
