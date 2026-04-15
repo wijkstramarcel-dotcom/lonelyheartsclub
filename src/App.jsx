@@ -124,11 +124,8 @@ function GlassCard({ children, style = {} }) {
 }
 
 function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
   const [vis, setVis] = useState(false);
   useEffect(() => { const t = setTimeout(() => setVis(true), 80); return () => clearTimeout(t); }, []);
-  const submit = () => { if (email.includes("@")) setSent(true); };
 
   const sectionChip = {
     display: "inline-flex", alignItems: "center", gap: 8,
@@ -176,18 +173,24 @@ function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
             Dating begint<br />met een <em style={{ color: C.terra, fontStyle: "italic" }}>stem</em>,<br />niet een gezicht.
           </h1>
           <p style={{ fontSize: 17, color: C.textMid, lineHeight: 1.9, margin: "0 0 34px", maxWidth: 470 }}>Bij Lonely Hearts Club leer je iemand kennen van binnenuit. Eerst een anoniem gesprek, dan pas een gezicht. Rustiger, veiliger en veel persoonlijker.</p>
-          {!sent ? (
-            <GlassCard style={{ padding: 14, maxWidth: 520 }}>
-              <div style={{ display: "flex" }}>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jouw@emailadres.nl" onKeyDown={e => e.key === "Enter" && submit()} style={{ flex: 1, padding: "15px 18px", background: "rgba(255,255,255,0.9)", border: `1px solid ${C.border}`, borderRight: "none", borderRadius: "18px 0 0 18px", color: C.text, fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box" }} />
-                <button onClick={submit} style={{ padding: "15px 22px", background: `linear-gradient(180deg, ${C.terra}, ${C.terraDeep})`, border: "none", borderRadius: "0 18px 18px 0", color: C.white, fontSize: 12, fontFamily: sans, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 10px 22px rgba(196, 86, 44, 0.2)" }}>Schrijf me in →</button>
+          {!user ? (
+            <div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <PrimaryBtn onClick={onLogin} style={{ width: "auto", padding: "15px 32px", fontSize: 14 }}>
+                  Word lid — gratis →
+                </PrimaryBtn>
+                <button onClick={onLogin} style={{ padding: "15px 24px", background: "transparent", border: `1.5px solid ${C.border}`, borderRadius: 999, color: C.textMid, fontFamily: sans, fontSize: 14, cursor: "pointer" }}>
+                  Inloggen
+                </button>
               </div>
-              <p style={{ fontSize: 11, color: C.textDim, margin: "10px 4px 0" }}>Geen spam. Alleen een bericht als we live gaan.</p>
-            </GlassCard>
+              <p style={{ fontSize: 12, color: C.textDim, marginTop: 12 }}>
+                Gratis · Je staat eerst op een wachtlijst · Geen foto's vereist
+              </p>
+            </div>
           ) : (
-            <div style={{ padding: "16px 20px", border: `1.5px solid ${C.green}33`, background: "rgba(45,106,79,0.10)", borderRadius: 18, display: "flex", alignItems: "center", gap: 12, maxWidth: 420 }}>
+            <div style={{ padding: "16px 20px", border: `1.5px solid ${C.green}33`, background: "rgba(45,106,79,0.08)", borderRadius: 18, display: "inline-flex", alignItems: "center", gap: 12 }}>
               <span style={{ color: C.green, fontSize: 18 }}>✓</span>
-              <span style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>Je staat op de lijst!</span>
+              <span style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>Je bent ingelogd als {user.email}</span>
             </div>
           )}
         </div>
@@ -250,17 +253,10 @@ function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
           <LHCLogo size={84} />
           <h2 style={{ fontFamily: serif, fontSize: 42, fontWeight: 700, color: C.white, margin: "26px 0 16px", letterSpacing: -0.4 }}>Klaar voor een echte verbinding?</h2>
           <p style={{ fontFamily: sans, fontSize: 15, color: "#A89A8D", marginBottom: 32, lineHeight: 1.8 }}>Schrijf je in en ontvang een bericht als we live gaan.</p>
-          {!sent ? (
-            <div style={{ display: "flex", maxWidth: 460, margin: "0 auto" }}>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jouw@emailadres.nl" onKeyDown={e => e.key === "Enter" && submit()} style={{ flex: 1, padding: "15px 18px", background: "#2A221D", border: `1.5px solid #3A2F28`, borderRight: "none", borderRadius: "18px 0 0 18px", color: C.white, fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box" }} />
-              <button onClick={submit} style={{ padding: "15px 22px", background: `linear-gradient(180deg, ${C.terra}, ${C.terraDeep})`, border: "none", borderRadius: "0 18px 18px 0", color: C.white, fontSize: 12, fontFamily: sans, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>Schrijf me in →</button>
-            </div>
-          ) : (
-            <div style={{ padding: "16px 24px", border: `1.5px solid ${C.green}66`, background: "rgba(45,106,79,0.16)", borderRadius: 18, display: "inline-flex", alignItems: "center", gap: 12 }}>
-              <span style={{ color: C.green }}>✓</span>
-              <span style={{ fontSize: 14, color: "#92C9A5", fontWeight: 700 }}>Je staat op de lijst!</span>
-            </div>
-          )}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <PrimaryBtn onClick={onLogin} style={{ width: "auto", padding: "15px 32px", fontSize: 14 }}>Word lid — gratis →</PrimaryBtn>
+          </div>
+          <p style={{ fontFamily: sans, fontSize: 12, color: "#6A5A52", marginTop: 14 }}>Je staat eerst op een wachtlijst totdat we genoeg leden hebben.</p>
         </div>
       </section>
 
@@ -647,23 +643,24 @@ function PrivacyPage({ onBack }) {
 }
 
 // ── AUTH SCREEN ───────────────────────────────────────────────────────────────
-function AuthScreen({ onAuth }) {
-  const [mode, setMode] = useState("login"); // login | signup
+function AuthScreen({ onAuth, onBack }) {
+  const [mode, setMode] = useState("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [onWaitlist, setOnWaitlist] = useState(false);
 
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
-    setSuccess("");
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setSuccess("Check je e-mail voor een bevestigingslink!");
+        // Save to waitlist table
+        await supabase.from("waitlist").upsert({ email });
+        setOnWaitlist(true);
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -675,16 +672,60 @@ function AuthScreen({ onAuth }) {
     setLoading(false);
   };
 
+  // Waitlist confirmation screen
+  if (onWaitlist) {
+    return (
+      <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          <LHCLogo size={100} />
+          <h1 style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, color: C.text, margin: "20px 0 12px" }}>
+            Je staat op de lijst! 🎉
+          </h1>
+          <p style={{ fontFamily: sans, fontSize: 16, color: C.textMid, lineHeight: 1.8, margin: "0 0 28px", maxWidth: 380, marginLeft: "auto", marginRight: "auto" }}>
+            Welkom bij Lonely Hearts Club. We bouwen op dit moment de app en laten je weten zodra je toegang krijgt.
+          </p>
+          <GlassCard style={{ padding: 24, marginBottom: 24, textAlign: "left" }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 16 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.terra, display: "flex", alignItems: "center", justifyContent: "center", color: C.white, fontSize: 14, flexShrink: 0 }}>1</div>
+              <div>
+                <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>Account aangemaakt</div>
+                <div style={{ fontFamily: sans, fontSize: 13, color: C.textDim }}>Check je e-mail voor een bevestigingslink</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 16 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.border, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: 14, flexShrink: 0 }}>2</div>
+              <div>
+                <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.textMid, marginBottom: 2 }}>Wachten op toegang</div>
+                <div style={{ fontFamily: sans, fontSize: 13, color: C.textDim }}>We openen de app stapsgewijs — jij bent er vroeg bij</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.border, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: 14, flexShrink: 0 }}>3</div>
+              <div>
+                <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.textMid, marginBottom: 2 }}>Jouw eerste gesprek</div>
+                <div style={{ fontFamily: sans, fontSize: 13, color: C.textDim }}>Leer iemand kennen via stem — zonder foto</div>
+              </div>
+            </div>
+          </GlassCard>
+          <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 13, color: C.textDim, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
+            ← Terug naar de site
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 420 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 13, color: C.textDim, cursor: "pointer", marginBottom: 24, display: "flex", alignItems: "center", gap: 6 }}>← Terug</button>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <LHCLogo size={80} />
           <h1 style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, color: C.text, margin: "16px 0 6px" }}>
             {mode === "login" ? "Welkom terug" : "Word lid"}
           </h1>
           <p style={{ fontFamily: sans, fontSize: 14, color: C.textDim, margin: 0 }}>
-            {mode === "login" ? "Log in op je account" : "Maak een gratis account aan"}
+            {mode === "login" ? "Log in op je account" : "Schrijf je in — helemaal gratis"}
           </p>
         </div>
 
@@ -708,16 +749,21 @@ function AuthScreen({ onAuth }) {
           </div>
 
           {error && <p style={{ fontFamily: sans, fontSize: 13, color: "#C0392B", marginBottom: 14, padding: "10px 14px", background: "rgba(192,57,43,0.08)", borderRadius: 10 }}>{error}</p>}
-          {success && <p style={{ fontFamily: sans, fontSize: 13, color: C.green, marginBottom: 14, padding: "10px 14px", background: "rgba(45,106,79,0.08)", borderRadius: 10 }}>✓ {success}</p>}
 
           <PrimaryBtn onClick={handleSubmit} style={{ opacity: loading ? 0.7 : 1 }}>
-            {loading ? "Even wachten..." : mode === "login" ? "Inloggen →" : "Account aanmaken →"}
+            {loading ? "Even wachten..." : mode === "login" ? "Inloggen →" : "Word lid →"}
           </PrimaryBtn>
+
+          {mode === "signup" && (
+            <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
+              Door je aan te melden ga je akkoord met onze privacyverklaring. Je staat eerst op een wachtlijst totdat we genoeg leden hebben.
+            </p>
+          )}
         </GlassCard>
 
         <p style={{ textAlign: "center", fontFamily: sans, fontSize: 13, color: C.textDim, marginTop: 16 }}>
           {mode === "login" ? "Nog geen account? " : "Al een account? "}
-          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setSuccess(""); }}
+          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}
             style={{ background: "none", border: "none", color: C.terra, fontFamily: sans, fontSize: 13, fontWeight: 700, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
             {mode === "login" ? "Registreer hier" : "Log hier in"}
           </button>
@@ -775,7 +821,7 @@ export default function App() {
 
   if (!hydrated) return <div style={{ minHeight: "100vh", background: C.bg }} />;
   if (showPrivacy) return <PrivacyPage onBack={() => setShowPrivacy(false)} />;
-  if (showAuth) return <AuthScreen onAuth={(u) => { setUser(u); setShowAuth(false); }} />;
+  if (showAuth) return <AuthScreen onAuth={(u) => { setUser(u); setShowAuth(false); }} onBack={() => setShowAuth(false)} />;
 
   // Logged in on mobile → show app
   if (isMobile && user) return (<><MobileApp user={user} onLogout={handleLogout} />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
