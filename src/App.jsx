@@ -275,8 +275,6 @@ function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
 function MobileApp() {
   const [idx, setIdx] = useState(0);
   const screens = ["Home", "Profiel", "Ontdek", "Match", "Bellen", "Review"];
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
   const [step, setStep] = useState(0);
   const [profileIdx, setProfileIdx] = useState(0);
   const [secs, setSecs] = useState(0);
@@ -301,7 +299,6 @@ function MobileApp() {
   const p = profiles[profileIdx] || profiles[0];
   const ps = profileSteps[step];
   const pa = accent[step];
-  const submit = () => { if (email.includes("@")) setSent(true); };
 
   useEffect(() => {
     if (idx !== 4) return;
@@ -342,37 +339,27 @@ function MobileApp() {
             <div style={{ background: C.terra, padding: "8px 0", textAlign: "center" }}>
               <span style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: C.white, fontWeight: 700 }}>LONELYHEARTSCLUB.NL</span>
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 20px 20px", overflowY: "auto" }}>
-              <div style={{ filter: "drop-shadow(0 18px 36px rgba(28,24,20,0.12))" }}><LHCLogo size={150} /></div>
-              <p style={{ fontFamily: sans, fontSize: 13, color: C.terra, textAlign: "center", margin: "12px 0 16px" }}>Dating begint met een stem</p>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 16px", overflowY: "auto" }}>
+              <div style={{ filter: "drop-shadow(0 18px 36px rgba(28,24,20,0.12))" }}><LHCLogo size={120} /></div>
+              <p style={{ fontFamily: sans, fontSize: 13, color: C.terra, textAlign: "center", margin: "10px 0 12px" }}>Dating begint met een stem</p>
               <Rule />
-              <div style={{ width: "100%", marginBottom: 24 }}>
+              <div style={{ width: "100%", marginBottom: 20 }}>
                 {[
                   { n: "01", text: "Profiel zonder foto", color: C.bronze },
                   { n: "02", text: "Anoniem bellen", color: C.terra },
                   { n: "03", text: "Videogesprek", color: "#6B4E8A" },
                   { n: "04", text: "Echte afspraak", color: C.green },
                 ].map((s, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "11px 14px", marginBottom: 6, borderLeft: `2px solid ${s.color}`, background: `${s.color}12`, borderRadius: 14 }}>
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "9px 14px", marginBottom: 5, borderLeft: `2px solid ${s.color}`, background: `${s.color}12`, borderRadius: 14 }}>
                     <span style={{ fontFamily: sans, fontSize: 9, color: s.color, fontWeight: 700, width: 20 }}>{s.n}</span>
                     <span style={{ fontFamily: sans, fontSize: 13, color: C.text }}>{s.text}</span>
                   </div>
                 ))}
               </div>
-              {!sent ? (
-                <div style={{ width: "100%" }}>
-                  <p style={{ fontFamily: sans, fontSize: 10, color: C.textDim, textAlign: "center", marginBottom: 10, letterSpacing: 1, textTransform: "uppercase" }}>Vroege toegang</p>
-                  <GlassCard style={{ padding: 12 }}>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jouw@emailadres.nl" style={{ width: "100%", padding: "13px 14px", background: "rgba(255,255,255,0.92)", border: `1px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: sans, outline: "none", marginBottom: 8, boxSizing: "border-box", borderRadius: 14 }} />
-                    <PrimaryBtn onClick={submit}>Zet mij op de lijst →</PrimaryBtn>
-                  </GlassCard>
-                </div>
-              ) : (
-                <div style={{ width: "100%", padding: 16, border: `1.5px solid ${C.green}55`, background: "rgba(45,106,79,0.10)", textAlign: "center", borderRadius: 18 }}>
-                  <p style={{ fontFamily: sans, fontSize: 13, color: C.green, margin: 0, fontWeight: 700 }}>✓ Je staat op de lijst!</p>
-                </div>
-              )}
-              <button onClick={next} style={{ marginTop: 16, background: "none", border: "none", fontFamily: sans, fontSize: 12, color: C.textDim, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>Bekijk het prototype →</button>
+              <div style={{ width: "100%" }}>
+                <PrimaryBtn onClick={next}>Word lid — gratis →</PrimaryBtn>
+                <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 8 }}>Je staat eerst op een wachtlijst · Geen foto's vereist</p>
+              </div>
             </div>
           </div>
         )}
@@ -383,12 +370,12 @@ function MobileApp() {
             <div style={{ display: "flex", gap: 4, padding: "12px 20px 0" }}>
               {profileSteps.map((_, i) => (<div key={i} style={{ flex: i === step ? 3 : 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
             </div>
-            <div style={{ flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-              <GlassCard style={{ padding: "10px 14px", marginBottom: 14, display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ flex: 1, padding: "12px 18px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+              <GlassCard style={{ padding: "8px 14px", marginBottom: 10, display: "flex", gap: 10, alignItems: "center" }}>
                 <span style={{ color: C.terra }}>◆</span>
                 <span style={{ fontFamily: sans, fontSize: 12, color: C.textMid, fontStyle: "italic" }}>Geen foto. Jij bent meer dan een plaatje.</span>
               </GlassCard>
-              <GlassCard style={{ border: `1.5px solid ${pa}40`, padding: 16, marginBottom: 14 }}>
+              <GlassCard style={{ border: `1.5px solid ${pa}40`, padding: 14, marginBottom: 10 }}>
                 <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: pa, marginBottom: 8, fontWeight: 700, textTransform: "uppercase" }}>{ps.label}</div>
                 <h3 style={{ fontFamily: serif, fontSize: 18, color: C.text, margin: "0 0 12px", fontWeight: 700, lineHeight: 1.1 }}>{ps.q}</h3>
                 {ps.type === "input" ? (
