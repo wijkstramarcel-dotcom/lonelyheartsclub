@@ -283,14 +283,20 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
   const [scale, setScale] = useState(1);
   const [stars, setStars] = useState(4);
 
+  const [geslacht, setGeslacht] = useState("");
+  const [zoekt, setZoekt] = useState("");
+  const [voorkeurConsent, setVoorkeurConsent] = useState(false);
+
   const profileSteps = useMemo(() => [
-    { label: "Naam", q: "Wat is je voornaam?", val: "Marcel", type: "input" },
-    { label: "Leeftijd", q: "Hoe oud ben je?", val: "48", type: "input" },
-    { label: "Verhaal", q: "Omschrijf jezelf in één zin", val: "Avontuurlijk, eerlijk, op zoek naar verbinding.", type: "area" },
-    { label: "Passies", q: "Wat zijn je passies?", val: "Hardlopen, schilderen, reizen.", type: "area" },
+    { label: "Naam",     q: "Wat is je voornaam?",          val: "Marcel",                                         type: "input" },
+    { label: "Leeftijd", q: "Hoe oud ben je?",              val: "48",                                             type: "input" },
+    { label: "Geslacht", q: "Wat is je geslacht?",          val: "",                                               type: "geslacht" },
+    { label: "Voorkeur", q: "Wie zoek je?",                 val: "",                                               type: "voorkeur" },
+    { label: "Verhaal",  q: "Omschrijf jezelf in één zin",  val: "Avontuurlijk, eerlijk, op zoek naar verbinding.", type: "area" },
+    { label: "Passies",  q: "Wat zijn je passies?",         val: "Hardlopen, schilderen, reizen.",                  type: "area" },
   ], []);
 
-  const accent = [C.bronze, "#6B4E8A", C.terra, C.green];
+  const accent = [C.bronze, "#6B4E8A", C.terra, C.terra, C.green, C.bronze];
   const profiles = useMemo(() => [
     { name: "Sarah", age: 42, tagline: "Dromer met beide voeten op de grond", bio: "Op zoek naar echte gesprekken en verbinding. Ik hou van natuur en eerlijke mensen.", tags: ["Natuur", "Lezen", "Koken"], match: 94 },
     { name: "Linda", age: 45, tagline: "Nieuwsgierig naar het leven", bio: "Moeder, reiziger, yogalerares. De mooiste liefde begint bij een goed gesprek.", tags: ["Yoga", "Reizen", "Theater"], match: 87 },
@@ -400,13 +406,43 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
               <GlassCard style={{ border: `1.5px solid ${pa}40`, padding: 14, marginBottom: 10 }}>
                 <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: pa, marginBottom: 8, fontWeight: 700, textTransform: "uppercase" }}>{ps.label}</div>
                 <h3 style={{ fontFamily: serif, fontSize: 18, color: C.text, margin: "0 0 12px", fontWeight: 700, lineHeight: 1.1 }}>{ps.q}</h3>
-                {ps.type === "input" ? (
+                {ps.type === "input" && (
                   <input defaultValue={ps.val} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 18, padding: "12px 12px", fontFamily: serif, outline: "none", boxSizing: "border-box", borderRadius: 14 }} />
-                ) : (
+                )}
+                {ps.type === "area" && (
                   <textarea defaultValue={ps.val} rows={3} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, padding: "12px 12px", fontFamily: sans, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7, borderRadius: 14 }} />
                 )}
+                {ps.type === "geslacht" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {["Man", "Vrouw", "Anders"].map(opt => (
+                      <button key={opt} onClick={() => setGeslacht(opt)} style={{ padding: "12px 16px", borderRadius: 14, border: `1.5px solid ${geslacht === opt ? pa : C.border}`, background: geslacht === opt ? `${pa}12` : "transparent", color: geslacht === opt ? pa : C.textMid, fontFamily: sans, fontSize: 14, fontWeight: geslacht === opt ? 700 : 400, cursor: "pointer", textAlign: "left" }}>
+                        {geslacht === opt ? "✓ " : ""}{opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {ps.type === "voorkeur" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {["Ik zoek mannen", "Ik zoek vrouwen", "Ik zoek iedereen"].map(opt => (
+                      <button key={opt} onClick={() => setZoekt(opt)} style={{ padding: "12px 16px", borderRadius: 14, border: `1.5px solid ${zoekt === opt ? pa : C.border}`, background: zoekt === opt ? `${pa}12` : "transparent", color: zoekt === opt ? pa : C.textMid, fontFamily: sans, fontSize: 14, fontWeight: zoekt === opt ? 700 : 400, cursor: "pointer", textAlign: "left" }}>
+                        {zoekt === opt ? "✓ " : ""}{opt}
+                      </button>
+                    ))}
+                    <div style={{ marginTop: 8, padding: "12px 14px", background: "rgba(196,86,44,0.04)", borderRadius: 14, border: `1px solid ${C.border}` }}>
+                      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
+                        <input type="checkbox" checked={voorkeurConsent} onChange={e => setVoorkeurConsent(e.target.checked)} style={{ marginTop: 2, accentColor: pa, width: 16, height: 16, flexShrink: 0 }} />
+                        <span style={{ fontFamily: sans, fontSize: 11, color: C.textMid, lineHeight: 1.5 }}>
+                          Ik geef toestemming voor het verwerken van mijn seksuele voorkeur conform de{" "}
+                          <span style={{ color: C.terra, textDecoration: "underline" }}>privacyverklaring</span>
+                          {" "}(AVG artikel 9)
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </GlassCard>
-              {step === 3 && (
+              {step === 5 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
                   {[["Hardlopen", true], ["Kunst", true], ["Reizen", true], ["Lezen", false], ["Wijn", false]].map(([t, active], i) => (
                     <span key={i} style={{ padding: "5px 14px", fontSize: 12, border: `1px solid ${active ? C.terra : C.border}`, color: active ? C.terra : C.textDim, background: active ? "#FDF0EC" : "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 999 }}>{t}</span>
@@ -417,7 +453,10 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
               {/* Pinned button - always visible */}
               <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, background: "rgba(255,255,255,0.9)", display: "flex", gap: 8 }}>
                 {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "13px", background: "rgba(255,255,255,0.86)", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 12, cursor: "pointer", borderRadius: 999 }}>← Terug</button>}
-                <PrimaryBtn onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()} style={{ flex: step > 0 ? 3 : 1, background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})` }}>
+                <PrimaryBtn
+                  onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()}
+                  style={{ flex: step > 0 ? 3 : 1, background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})`, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1 }}
+                >
                   {step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}
                 </PrimaryBtn>
               </div>
