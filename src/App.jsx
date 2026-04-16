@@ -272,7 +272,7 @@ function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
   );
 }
 
-function MobileApp() {
+function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
   const [idx, setIdx] = useState(0);
   const screens = ["Home", "Profiel", "Ontdek", "Match", "Bellen", "Review"];
   const [step, setStep] = useState(0);
@@ -357,8 +357,17 @@ function MobileApp() {
                 ))}
               </div>
               <div style={{ width: "100%" }}>
-                <PrimaryBtn onClick={next}>Word lid — gratis →</PrimaryBtn>
-                <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 8 }}>Je staat eerst op een wachtlijst · Geen foto's vereist</p>
+                {!isPrototype && (
+                  <>
+                    <PrimaryBtn onClick={onLogin}>Word lid — gratis →</PrimaryBtn>
+                    <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 8 }}>Je staat eerst op een wachtlijst · Geen foto's vereist</p>
+                  </>
+                )}
+                {isPrototype && (
+                  <button onClick={next} style={{ width: "100%", padding: "13px", background: "transparent", border: `1.5px solid ${C.terra}`, borderRadius: 999, color: C.terra, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: 1 }}>
+                    Bekijk de app →
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -370,7 +379,8 @@ function MobileApp() {
             <div style={{ display: "flex", gap: 4, padding: "12px 20px 0" }}>
               {profileSteps.map((_, i) => (<div key={i} style={{ flex: i === step ? 3 : 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
             </div>
-            <div style={{ flex: 1, padding: "12px 18px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+            <div style={{ flex: 1, padding: "12px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div style={{ flex: 1, overflowY: "auto" }}>
               <GlassCard style={{ padding: "8px 14px", marginBottom: 10, display: "flex", gap: 10, alignItems: "center" }}>
                 <span style={{ color: C.terra }}>◆</span>
                 <span style={{ fontFamily: sans, fontSize: 12, color: C.textMid, fontStyle: "italic" }}>Geen foto. Jij bent meer dan een plaatje.</span>
@@ -391,8 +401,9 @@ function MobileApp() {
                   ))}
                 </div>
               )}
-              <div style={{ flex: 1 }} />
-              <div style={{ display: "flex", gap: 8 }}>
+              </div>
+              {/* Pinned button - always visible */}
+              <div style={{ paddingTop: 10, display: "flex", gap: 8 }}>
                 {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "13px", background: "rgba(255,255,255,0.86)", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 12, cursor: "pointer", borderRadius: 999 }}>← Terug</button>}
                 <PrimaryBtn onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()} style={{ flex: step > 0 ? 3 : 1, background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})` }}>
                   {step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}
@@ -811,17 +822,17 @@ export default function App() {
   if (showAuth) return <AuthScreen onAuth={(u) => { setUser(u); setShowAuth(false); }} onBack={() => setShowAuth(false)} />;
 
   // Logged in on mobile → show app
-  if (isMobile && user) return (<><MobileApp user={user} onLogout={handleLogout} />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
+  if (isMobile && user) return (<><MobileApp user={user} onLogout={handleLogout} onLogin={() => setShowAuth(true)} />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
 
   // Not logged in on mobile → show landing
-  if (isMobile) return (<><MobileApp />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
+  if (isMobile) return (<><MobileApp onLogin={() => setShowAuth(true)} />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
 
   if (showPrototype) {
     return (
       <div style={{ minHeight: "100vh", background: C.bgSoft, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
         <button onClick={() => setShowPrototype(false)} style={{ marginBottom: 18, background: "rgba(255,255,255,0.7)", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 12, padding: "9px 18px", cursor: "pointer", letterSpacing: 1, borderRadius: 999 }}>← Terug naar site</button>
         <div style={{ width: 375, height: 750, borderRadius: 38, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 24px 70px rgba(28,24,20,0.16)", background: C.bg }}>
-          <MobileApp />
+          <MobileApp isPrototype={true} />
         </div>
         {!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}
       </div>
