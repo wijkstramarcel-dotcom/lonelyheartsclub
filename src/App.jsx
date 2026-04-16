@@ -394,11 +394,17 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
         {idx === 1 && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg }}>
             <Header label="Jouw profiel" title="Vertel je verhaal" />
-            <div style={{ display: "flex", gap: 4, padding: "12px 20px 0" }}>
-              {profileSteps.map((_, i) => (<div key={i} style={{ flex: i === step ? 3 : 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
+            {/* Navigation toolbar - always visible at top */}
+            <div style={{ display: "flex", gap: 8, padding: "8px 18px", borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.9)", flexShrink: 0 }}>
+              {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "9px", background: "transparent", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 11, cursor: "pointer", borderRadius: 999 }}>← Terug</button>}
+              <div style={{ display: "flex", gap: 4, flex: 3, alignItems: "center" }}>
+                {profileSteps.map((_, i) => (<div key={i} style={{ flex: i === step ? 3 : 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
+              </div>
+              <button onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()} style={{ flex: 1, padding: "9px 14px", background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})`, border: "none", color: C.white, fontFamily: sans, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 999, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1, whiteSpace: "nowrap" }}>
+                {step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}
+              </button>
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
               <GlassCard style={{ padding: "8px 14px", marginBottom: 10, display: "flex", gap: 10, alignItems: "center" }}>
                 <span style={{ color: C.terra }}>◆</span>
                 <span style={{ fontFamily: sans, fontSize: 12, color: C.textMid, fontStyle: "italic" }}>Geen foto. Jij bent meer dan een plaatje.</span>
@@ -449,16 +455,6 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
                   ))}
                 </div>
               )}
-              </div>
-              {/* Pinned button - always visible */}
-              <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, background: "rgba(255,255,255,0.9)", display: "flex", gap: 8 }}>
-                {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "13px", background: "rgba(255,255,255,0.86)", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 12, cursor: "pointer", borderRadius: 999 }}>← Terug</button>}
-                <PrimaryBtn
-                  onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()}
-                  style={{ flex: step > 0 ? 3 : 1, background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})`, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1 }}
-                >
-                  {step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}
-                </PrimaryBtn>
               </div>
             </div>
           </div>
