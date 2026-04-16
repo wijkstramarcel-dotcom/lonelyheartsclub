@@ -332,7 +332,7 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 18% 18%, rgba(196,86,44,0.08), transparent 34%), radial-gradient(circle at 82% 22%, rgba(142,107,31,0.08), transparent 30%), ${C.bg}`, display: "flex", flexDirection: "column", fontFamily: sans }}>
+    <div style={{ height: "100%", flex: 1, background: `radial-gradient(circle at 18% 18%, rgba(196,86,44,0.08), transparent 34%), radial-gradient(circle at 82% 22%, rgba(142,107,31,0.08), transparent 30%), ${C.bg}`, display: "flex", flexDirection: "column", fontFamily: sans, overflow: "hidden" }}>
       <div style={{ padding: "10px 20px 6px", display: "flex", justifyContent: "space-between", fontFamily: sans, fontSize: 10, color: C.textDim, flexShrink: 0, background: "rgba(255,255,255,0.78)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${C.border}` }}>
         <span>9:41</span>
         <span style={{ color: C.terra, letterSpacing: 1, fontWeight: 700 }}>Lonely Hearts Club</span>
@@ -882,8 +882,10 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: C.bgSoft, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
         <button onClick={() => setShowPrototype(false)} style={{ marginBottom: 18, background: "rgba(255,255,255,0.7)", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 12, padding: "9px 18px", cursor: "pointer", letterSpacing: 1, borderRadius: 999 }}>← Terug naar site</button>
-        <div style={{ width: 375, height: 750, borderRadius: 38, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 24px 70px rgba(28,24,20,0.16)", background: C.bg }}>
-          <MobileApp isPrototype={true} />
+        <div style={{ width: 375, height: 750, borderRadius: 38, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: "0 24px 70px rgba(28,24,20,0.16)", background: C.bg, display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <MobileApp isPrototype={true} />
+          </div>
         </div>
         {!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}
       </div>
