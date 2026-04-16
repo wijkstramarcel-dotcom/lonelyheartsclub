@@ -370,8 +370,8 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
                   <>
                     <PrimaryBtn onClick={onLogin}>Word lid — gratis →</PrimaryBtn>
                     <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 8 }}>Je staat eerst op een wachtlijst · Geen foto's vereist</p>
-                    <button onClick={next} style={{ width: "100%", marginTop: 10, padding: "11px", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 999, color: C.textDim, fontFamily: sans, fontSize: 12, cursor: "pointer" }}>
-                      Bekijk het prototype →
+                    <button onClick={next} style={{ width: "100%", marginTop: 10, padding: "13px", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(10px)", border: `1.5px solid ${C.terra}55`, borderRadius: 999, color: C.terra, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: 1 }}>
+                      Bekijk prototype →
                     </button>
                   </>
                 ) : (
