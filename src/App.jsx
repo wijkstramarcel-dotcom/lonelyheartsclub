@@ -357,13 +357,25 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
                 ))}
               </div>
               <div style={{ width: "100%" }}>
-                {!isPrototype && (
+                {user ? (
+                  // Already logged in
+                  <>
+                    <div style={{ padding: "12px 16px", border: `1.5px solid ${C.green}55`, background: "rgba(45,106,79,0.08)", borderRadius: 18, textAlign: "center", marginBottom: 10 }}>
+                      <p style={{ fontFamily: sans, fontSize: 13, color: C.green, margin: 0, fontWeight: 700 }}>✓ Ingelogd als {user.email}</p>
+                    </div>
+                    <PrimaryBtn onClick={next}>Ga naar de app →</PrimaryBtn>
+                  </>
+                ) : !isPrototype ? (
+                  // Not logged in, real mobile
                   <>
                     <PrimaryBtn onClick={onLogin}>Word lid — gratis →</PrimaryBtn>
                     <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 8 }}>Je staat eerst op een wachtlijst · Geen foto's vereist</p>
+                    <button onClick={next} style={{ width: "100%", marginTop: 10, padding: "11px", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 999, color: C.textDim, fontFamily: sans, fontSize: 12, cursor: "pointer" }}>
+                      Bekijk het prototype →
+                    </button>
                   </>
-                )}
-                {isPrototype && (
+                ) : (
+                  // Prototype mode on desktop
                   <button onClick={next} style={{ width: "100%", padding: "13px", background: "transparent", border: `1.5px solid ${C.terra}`, borderRadius: 999, color: C.terra, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: 1 }}>
                     Bekijk de app →
                   </button>
@@ -379,8 +391,8 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
             <div style={{ display: "flex", gap: 4, padding: "12px 20px 0" }}>
               {profileSteps.map((_, i) => (<div key={i} style={{ flex: i === step ? 3 : 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
             </div>
-            <div style={{ flex: 1, padding: "12px 18px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              <div style={{ flex: 1, overflowY: "auto" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
               <GlassCard style={{ padding: "8px 14px", marginBottom: 10, display: "flex", gap: 10, alignItems: "center" }}>
                 <span style={{ color: C.terra }}>◆</span>
                 <span style={{ fontFamily: sans, fontSize: 12, color: C.textMid, fontStyle: "italic" }}>Geen foto. Jij bent meer dan een plaatje.</span>
@@ -403,7 +415,7 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
               )}
               </div>
               {/* Pinned button - always visible */}
-              <div style={{ paddingTop: 10, display: "flex", gap: 8 }}>
+              <div style={{ padding: "10px 18px", borderTop: `1px solid ${C.border}`, background: "rgba(255,255,255,0.9)", display: "flex", gap: 8 }}>
                 {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "13px", background: "rgba(255,255,255,0.86)", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 12, cursor: "pointer", borderRadius: 999 }}>← Terug</button>}
                 <PrimaryBtn onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()} style={{ flex: step > 0 ? 3 : 1, background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})` }}>
                   {step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}
