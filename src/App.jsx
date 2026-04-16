@@ -394,16 +394,25 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
         {idx === 1 && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg }}>
             <Header label="Jouw profiel" title="Vertel je verhaal" />
-            {/* Navigation toolbar - always visible at top */}
-            <div style={{ display: "flex", gap: 8, padding: "8px 18px", borderBottom: `1px solid ${C.border}`, background: "rgba(255,255,255,0.9)", flexShrink: 0 }}>
-              {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "9px", background: "transparent", border: `1px solid ${C.border}`, color: C.textMid, fontFamily: sans, fontSize: 11, cursor: "pointer", borderRadius: 999 }}>← Terug</button>}
-              <div style={{ display: "flex", gap: 4, flex: 3, alignItems: "center" }}>
-                {profileSteps.map((_, i) => (<div key={i} style={{ flex: i === step ? 3 : 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
-              </div>
-              <button onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()} style={{ flex: 1, padding: "9px 14px", background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})`, border: "none", color: C.white, fontFamily: sans, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 999, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1, whiteSpace: "nowrap" }}>
-                {step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}
-              </button>
+
+            {/* ALWAYS VISIBLE NAV - simpel en duidelijk */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 18px", background: C.white, borderBottom: `2px solid ${C.terra}22`, flexShrink: 0, gap: 10 }}>
+              <button
+                onClick={() => step > 0 && setStep(s => s - 1)}
+                style={{ padding: "8px 16px", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 999, color: step > 0 ? C.textMid : "transparent", fontFamily: sans, fontSize: 12, cursor: step > 0 ? "pointer" : "default", flexShrink: 0 }}
+              >← Terug</button>
+              <span style={{ fontFamily: sans, fontSize: 11, color: C.textDim }}>{step + 1} / {profileSteps.length}</span>
+              <button
+                onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()}
+                style={{ padding: "8px 20px", background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})`, border: "none", borderRadius: 999, color: C.white, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1 }}
+              >{step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}</button>
             </div>
+
+            {/* Progress bar */}
+            <div style={{ display: "flex", gap: 3, padding: "8px 18px 0", flexShrink: 0 }}>
+              {profileSteps.map((_, i) => (<div key={i} style={{ flex: 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
+            </div>
+
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
               <GlassCard style={{ padding: "8px 14px", marginBottom: 10, display: "flex", gap: 10, alignItems: "center" }}>
                 <span style={{ color: C.terra }}>◆</span>
