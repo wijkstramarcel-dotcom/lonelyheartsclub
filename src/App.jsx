@@ -738,6 +738,178 @@ function PrivacyPage({ onBack }) {
   );
 }
 
+// ── ONBOARDING WIZARD ─────────────────────────────────────────────────────────
+function OnboardingWizard({ user, onComplete }) {
+  const [step, setStep] = useState(0);
+  const [naam, setNaam] = useState("");
+  const [leeftijd, setLeeftijd] = useState("");
+  const [geslacht, setGeslacht] = useState("");
+  const [zoekt, setZoekt] = useState("");
+  const [voorkeurConsent, setVoorkeurConsent] = useState(false);
+  const [verhaal, setVerhaal] = useState("");
+  const [passies, setPassies] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const steps = [
+    { label: "Naam",     title: "Wat is je voornaam?",         type: "input",    hint: "Alleen je voornaam — geen achternaam nodig." },
+    { label: "Leeftijd", title: "Hoe oud ben je?",             type: "number",   hint: "Je leeftijd is zichtbaar voor andere leden." },
+    { label: "Geslacht", title: "Wat is je geslacht?",         type: "geslacht", hint: "Dit helpt ons je beter te matchen." },
+    { label: "Voorkeur", title: "Wie zoek je?",                type: "voorkeur", hint: "Je kunt dit later altijd aanpassen." },
+    { label: "Verhaal",  title: "Omschrijf jezelf in één zin", type: "area",     hint: "Wat maakt jou uniek?" },
+    { label: "Passies",  title: "Wat zijn je passies?",        type: "area",     hint: "Gescheiden door komma's, bijv: hardlopen, lezen, reizen" },
+  ];
+
+  const accent = [C.bronze, "#6B4E8A", C.terra, C.terra, C.green, C.bronze];
+  const pa = accent[step];
+  const ps = steps[step];
+
+  const canNext = () => {
+    if (ps.type === "voorkeur") return zoekt !== "" && voorkeurConsent;
+    if (ps.type === "geslacht") return geslacht !== "";
+    if (ps.label === "Naam") return naam.trim() !== "";
+    if (ps.label === "Leeftijd") return leeftijd !== "" && parseInt(leeftijd) >= 18;
+    return true;
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        voornaam: naam.trim(),
+        leeftijd: parseInt(leeftijd),
+        geslacht,
+        zoekt,
+        verhaal: verhaal.trim(),
+        passies: passies.split(",").map(p => p.trim()).filter(Boolean),
+        actief: true,
+      });
+      if (error) throw error;
+      onComplete();
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleNext = () => {
+    if (!canNext()) return;
+    if (step < steps.length - 1) {
+      setStep(s => s + 1);
+    } else {
+      handleSave();
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, fontFamily: sans }}>
+
+      {/* Header */}
+      <div style={{ background: "rgba(255,255,255,0.9)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${C.border}`, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <LHCLogo size={32} />
+          <span style={{ fontFamily: serif, fontSize: 16, fontWeight: 700, color: C.text }}>Jouw profiel</span>
+        </div>
+        <span style={{ fontFamily: sans, fontSize: 12, color: C.textDim }}>{step + 1} van {steps.length}</span>
+      </div>
+
+      {/* Progress */}
+      <div style={{ display: "flex", gap: 4, padding: "0 24px", background: "rgba(255,255,255,0.9)", paddingBottom: 12 }}>
+        {steps.map((_, i) => (
+          <div key={i} style={{ flex: 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ maxWidth: 540, margin: "0 auto", padding: "40px 24px" }}>
+
+        <div style={{ marginBottom: 8, fontFamily: sans, fontSize: 10, letterSpacing: 4, color: pa, fontWeight: 700, textTransform: "uppercase" }}>{ps.label}</div>
+        <h1 style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, color: C.text, margin: "0 0 8px", lineHeight: 1.15 }}>{ps.title}</h1>
+        <p style={{ fontFamily: sans, fontSize: 14, color: C.textDim, margin: "0 0 28px" }}>{ps.hint}</p>
+
+        <GlassCard style={{ padding: 20, marginBottom: 16 }}>
+          {(ps.label === "Naam") && (
+            <input
+              autoFocus value={naam} onChange={e => setNaam(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleNext()}
+              placeholder="Jouw voornaam"
+              style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 22, padding: "14px 16px", fontFamily: serif, outline: "none", boxSizing: "border-box", borderRadius: 14 }}
+            />
+          )}
+          {(ps.label === "Leeftijd") && (
+            <input
+              autoFocus value={leeftijd} onChange={e => setLeeftijd(e.target.value)} type="number" min="18" max="99"
+              onKeyDown={e => e.key === "Enter" && handleNext()}
+              placeholder="Bijv. 34"
+              style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 22, padding: "14px 16px", fontFamily: serif, outline: "none", boxSizing: "border-box", borderRadius: 14 }}
+            />
+          )}
+          {ps.type === "geslacht" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {["Man", "Vrouw", "Anders"].map(opt => (
+                <button key={opt} onClick={() => setGeslacht(opt)} style={{ padding: "14px 18px", borderRadius: 14, border: `1.5px solid ${geslacht === opt ? pa : C.border}`, background: geslacht === opt ? `${pa}12` : "transparent", color: geslacht === opt ? pa : C.textMid, fontFamily: sans, fontSize: 15, fontWeight: geslacht === opt ? 700 : 400, cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                  {geslacht === opt ? "✓ " : ""}{opt}
+                </button>
+              ))}
+            </div>
+          )}
+          {ps.type === "voorkeur" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {["Ik zoek mannen", "Ik zoek vrouwen", "Ik zoek iedereen"].map(opt => (
+                <button key={opt} onClick={() => setZoekt(opt)} style={{ padding: "14px 18px", borderRadius: 14, border: `1.5px solid ${zoekt === opt ? pa : C.border}`, background: zoekt === opt ? `${pa}12` : "transparent", color: zoekt === opt ? pa : C.textMid, fontFamily: sans, fontSize: 15, fontWeight: zoekt === opt ? 700 : 400, cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                  {zoekt === opt ? "✓ " : ""}{opt}
+                </button>
+              ))}
+              <div style={{ marginTop: 8, padding: "14px 16px", background: "rgba(196,86,44,0.04)", borderRadius: 14, border: `1px solid ${C.border}` }}>
+                <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer" }}>
+                  <input type="checkbox" checked={voorkeurConsent} onChange={e => setVoorkeurConsent(e.target.checked)} style={{ marginTop: 2, accentColor: pa, width: 18, height: 18, flexShrink: 0 }} />
+                  <span style={{ fontFamily: sans, fontSize: 12, color: C.textMid, lineHeight: 1.6 }}>
+                    Ik geef toestemming voor het verwerken van mijn seksuele voorkeur conform de <span style={{ color: C.terra }}>privacyverklaring</span> (AVG artikel 9)
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+          {(ps.label === "Verhaal") && (
+            <textarea
+              autoFocus value={verhaal} onChange={e => setVerhaal(e.target.value)} rows={4}
+              placeholder="Bijv. Avontuurlijk, eerlijk en op zoek naar echte verbinding."
+              style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 15, padding: "14px 16px", fontFamily: sans, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7, borderRadius: 14 }}
+            />
+          )}
+          {(ps.label === "Passies") && (
+            <textarea
+              autoFocus value={passies} onChange={e => setPassies(e.target.value)} rows={3}
+              placeholder="Hardlopen, lezen, reizen, koken..."
+              style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 15, padding: "14px 16px", fontFamily: sans, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7, borderRadius: 14 }}
+            />
+          )}
+        </GlassCard>
+
+        {error && <p style={{ fontFamily: sans, fontSize: 13, color: "#C0392B", marginBottom: 16, padding: "10px 14px", background: "rgba(192,57,43,0.08)", borderRadius: 10 }}>⚠ {error}</p>}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          {step > 0 && (
+            <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "14px", background: "rgba(255,255,255,0.8)", border: `1px solid ${C.border}`, borderRadius: 999, color: C.textMid, fontFamily: sans, fontSize: 13, cursor: "pointer" }}>← Terug</button>
+          )}
+          <PrimaryBtn
+            onClick={handleNext}
+            style={{ flex: step > 0 ? 3 : 1, background: canNext() ? `linear-gradient(180deg, ${pa}, ${C.terraDeep})` : C.border, cursor: canNext() ? "pointer" : "default" }}
+          >
+            {loading ? "Opslaan..." : step < steps.length - 1 ? "Verder →" : "Profiel opslaan ✓"}
+          </PrimaryBtn>
+        </div>
+
+        <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 14 }}>
+          Ingelogd als {user.email} · <button onClick={() => { supabase.auth.signOut(); }} style={{ background: "none", border: "none", color: C.textDim, fontFamily: sans, fontSize: 11, cursor: "pointer", textDecoration: "underline" }}>Uitloggen</button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── AUTH SCREEN ───────────────────────────────────────────────────────────────
 function AuthScreen({ onAuth, onBack }) {
   const [mode, setMode] = useState("signup");
@@ -875,6 +1047,7 @@ export default function App() {
   const [showPrototype, setShowPrototype] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [user, setUser] = useState(null);
   const [cookieAccepted, setCookieAccepted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -885,12 +1058,10 @@ export default function App() {
     compute();
     window.addEventListener("resize", compute);
 
-    // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setUser(session.user);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -913,11 +1084,26 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setShowOnboarding(false);
+  };
+
+  const handleAuth = (u) => {
+    setUser(u);
+    setShowAuth(false);
+    setShowOnboarding(true); // Na registratie → profielwizard
   };
 
   if (!hydrated) return <div style={{ minHeight: "100vh", background: C.bg }} />;
   if (showPrivacy) return <PrivacyPage onBack={() => setShowPrivacy(false)} />;
-  if (showAuth) return <AuthScreen onAuth={(u) => { setUser(u); setShowAuth(false); }} onBack={() => setShowAuth(false)} />;
+  if (showAuth) return <AuthScreen onAuth={handleAuth} onBack={() => setShowAuth(false)} />;
+
+  // Na registratie → onboarding profielwizard
+  if (showOnboarding && user) return (
+    <OnboardingWizard
+      user={user}
+      onComplete={() => setShowOnboarding(false)}
+    />
+  );
 
   // Logged in on mobile → show app
   if (isMobile && user) return (<><MobileApp user={user} onLogout={handleLogout} onLogin={() => setShowAuth(true)} />{!cookieAccepted && <CookieNotice onAccept={acceptCookie} />}</>);
