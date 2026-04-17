@@ -159,7 +159,7 @@ function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
           ) : (
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={onLogin} style={{ padding: "9px 18px", background: "transparent", border: `1.5px solid ${C.border}`, color: C.textMid, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 600, letterSpacing: 1, cursor: "pointer" }}>Inloggen</button>
-              <button onClick={onLogin} style={{ padding: "9px 18px", background: `linear-gradient(180deg, ${C.terra}, ${C.terraDeep})`, border: "none", color: C.white, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer", boxShadow: "0 6px 16px rgba(196,86,44,0.25)" }}>Registreer gratis</button>
+              <button onClick={onLogin} style={{ padding: "9px 18px", background: `linear-gradient(180deg, ${C.terra}, ${C.terraDeep})`, border: "none", color: C.white, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer", boxShadow: "0 6px 16px rgba(196,86,44,0.25)" }}>Schrijf je in →</button>
             </div>
           )}
           <button onClick={onPrototype} style={{ padding: "9px 18px", background: "transparent", border: `1.5px solid ${C.terra}`, color: C.terra, borderRadius: 999, fontFamily: sans, fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer" }}>Bekijk prototype</button>
@@ -177,7 +177,7 @@ function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
             <div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <PrimaryBtn onClick={onLogin} style={{ width: "auto", padding: "15px 32px", fontSize: 14 }}>
-                  Word lid — gratis →
+                  Schrijf je in — gratis →
                 </PrimaryBtn>
                 <button onClick={onLogin} style={{ padding: "15px 24px", background: "transparent", border: `1.5px solid ${C.border}`, borderRadius: 999, color: C.textMid, fontFamily: sans, fontSize: 14, cursor: "pointer" }}>
                   Inloggen
@@ -254,7 +254,7 @@ function DesktopLanding({ onPrototype, onPrivacy, onLogin, user, onLogout }) {
           <h2 style={{ fontFamily: serif, fontSize: 42, fontWeight: 700, color: C.white, margin: "26px 0 16px", letterSpacing: -0.4 }}>Klaar voor een echte verbinding?</h2>
           <p style={{ fontFamily: sans, fontSize: 15, color: "#A89A8D", marginBottom: 32, lineHeight: 1.8 }}>Schrijf je in en ontvang een bericht als we live gaan.</p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <PrimaryBtn onClick={onLogin} style={{ width: "auto", padding: "15px 32px", fontSize: 14 }}>Word lid — gratis →</PrimaryBtn>
+            <PrimaryBtn onClick={onLogin} style={{ width: "auto", padding: "15px 32px", fontSize: 14 }}>Schrijf je in — gratis →</PrimaryBtn>
           </div>
           <p style={{ fontFamily: sans, fontSize: 12, color: "#6A5A52", marginTop: 14 }}>Je staat eerst op een wachtlijst totdat we genoeg leden hebben.</p>
         </div>
@@ -403,7 +403,7 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
                 ) : !isPrototype ? (
                   // Not logged in, real mobile
                   <>
-                    <PrimaryBtn onClick={onLogin}>Word lid — gratis →</PrimaryBtn>
+                    <PrimaryBtn onClick={onLogin}>Schrijf je in — gratis →</PrimaryBtn>
                     <p style={{ fontFamily: sans, fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 8 }}>Je staat eerst op een wachtlijst · Geen foto's vereist</p>
                     <button onClick={next} style={{ width: "100%", marginTop: 10, padding: "13px", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(10px)", border: `1.5px solid ${C.terra}55`, borderRadius: 999, color: C.terra, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: 1 }}>
                       Bekijk prototype →
@@ -957,12 +957,11 @@ function AuthScreen({ onAuth, onBack }) {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         await supabase.from("waitlist").upsert({ email });
-        // Direct door naar onboarding wizard
-        if (data.user) onAuth(data.user);
+        if (data.user) onAuth(data.user, true); // nieuw account → wizard
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        onAuth(data.user);
+        onAuth(data.user, false); // bestaand account → check profiel
       }
     } catch (err) {
       // Vertaal foutmeldingen naar Nederlands
@@ -979,48 +978,7 @@ function AuthScreen({ onAuth, onBack }) {
     setLoading(false);
   };
 
-  // Waitlist confirmation screen
-  if (onWaitlist) {
-    return (
-      <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
-        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
-          <LHCLogo size={100} />
-          <h1 style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, color: C.text, margin: "20px 0 12px" }}>
-            Je staat op de lijst! 🎉
-          </h1>
-          <p style={{ fontFamily: sans, fontSize: 16, color: C.textMid, lineHeight: 1.8, margin: "0 0 28px", maxWidth: 380, marginLeft: "auto", marginRight: "auto" }}>
-            Welkom bij Lonely Hearts Club. We bouwen op dit moment de app en laten je weten zodra je toegang krijgt.
-          </p>
-          <GlassCard style={{ padding: 24, marginBottom: 24, textAlign: "left" }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 16 }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.terra, display: "flex", alignItems: "center", justifyContent: "center", color: C.white, fontSize: 14, flexShrink: 0 }}>1</div>
-              <div>
-                <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>Account aangemaakt</div>
-                <div style={{ fontFamily: sans, fontSize: 13, color: C.textDim }}>Check je e-mail voor een bevestigingslink</div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 16 }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.border, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: 14, flexShrink: 0 }}>2</div>
-              <div>
-                <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.textMid, marginBottom: 2 }}>Wachten op toegang</div>
-                <div style={{ fontFamily: sans, fontSize: 13, color: C.textDim }}>We openen de app stapsgewijs — jij bent er vroeg bij</div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.border, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: 14, flexShrink: 0 }}>3</div>
-              <div>
-                <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: C.textMid, marginBottom: 2 }}>Jouw eerste gesprek</div>
-                <div style={{ fontFamily: sans, fontSize: 13, color: C.textDim }}>Leer iemand kennen via stem — zonder foto</div>
-              </div>
-            </div>
-          </GlassCard>
-          <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 13, color: C.textDim, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
-            ← Terug naar de site
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Waitlist confirmation screen - verwijderd, zit nu in OnboardingWizard
 
   return (
     <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
@@ -1058,7 +1016,7 @@ function AuthScreen({ onAuth, onBack }) {
           {error && <p style={{ fontFamily: sans, fontSize: 13, color: "#C0392B", marginBottom: 14, padding: "10px 14px", background: "rgba(192,57,43,0.08)", borderRadius: 10 }}>{error}</p>}
 
           <PrimaryBtn onClick={handleSubmit} style={{ opacity: loading ? 0.7 : 1 }}>
-            {loading ? "Even wachten..." : mode === "login" ? "Inloggen →" : "Word lid →"}
+            {loading ? "Even wachten..." : mode === "login" ? "Inloggen →" : "Schrijf je in →"}
           </PrimaryBtn>
 
           {mode === "signup" && (
@@ -1146,10 +1104,15 @@ export default function App() {
     setShowOnboarding(false);
   };
 
-  const handleAuth = (u) => {
+  const handleAuth = (u, isNewUser = false) => {
     setUser(u);
     setShowAuth(false);
-    checkProfile(u); // Check of profiel al bestaat
+    if (isNewUser) {
+      setShowOnboarding(true); // Nieuw account → altijd wizard
+      setCheckingProfile(false);
+    } else {
+      checkProfile(u); // Bestaand account → check of profiel bestaat
+    }
   };
 
   if (!hydrated || checkingProfile) return <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><LHCLogo size={60} /></div>;
