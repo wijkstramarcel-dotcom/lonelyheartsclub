@@ -1087,6 +1087,22 @@ export default function App() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(false);
+
+  const checkProfile = async (u) => {
+    setCheckingProfile(true);
+    try {
+      const { data } = await supabase.from("profiles").select("id").eq("id", u.id).single();
+      if (!data) {
+        setShowOnboarding(true); // Geen profiel → wizard
+      } else {
+        setShowOnboarding(false); // Profiel bestaat → app in
+      }
+    } catch {
+      setShowOnboarding(true); // Bij twijfel → wizard
+    }
+    setCheckingProfile(false);
+  };
   const [user, setUser] = useState(null);
   const [cookieAccepted, setCookieAccepted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -1098,11 +1114,15 @@ export default function App() {
     window.addEventListener("resize", compute);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setUser(session.user);
+      if (session) {
+        setUser(session.user);
+        checkProfile(session.user);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (!session) setShowOnboarding(false);
     });
 
     return () => {
@@ -1129,10 +1149,10 @@ export default function App() {
   const handleAuth = (u) => {
     setUser(u);
     setShowAuth(false);
-    setShowOnboarding(true); // Na registratie → profielwizard
+    checkProfile(u); // Check of profiel al bestaat
   };
 
-  if (!hydrated) return <div style={{ minHeight: "100vh", background: C.bg }} />;
+  if (!hydrated || checkingProfile) return <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><LHCLogo size={60} /></div>;
   if (showPrivacy) return <PrivacyPage onBack={() => setShowPrivacy(false)} />;
   if (showAuth) return <AuthScreen onAuth={handleAuth} onBack={() => setShowAuth(false)} />;
 
