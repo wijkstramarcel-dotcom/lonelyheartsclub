@@ -286,6 +286,35 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
   const [geslacht, setGeslacht] = useState("");
   const [zoekt, setZoekt] = useState("");
   const [voorkeurConsent, setVoorkeurConsent] = useState(false);
+  const [profielNaam, setProfielNaam] = useState("Marcel");
+  const [profielLeeftijd, setProfielLeeftijd] = useState("48");
+  const [profielVerhaal, setProfielVerhaal] = useState("Avontuurlijk, eerlijk, op zoek naar verbinding.");
+  const [profielPassies, setProfielPassies] = useState("Hardlopen, schilderen, reizen.");
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const saveProfile = async () => {
+    if (!user) return;
+    setSaveLoading(true);
+    setSaveError("");
+    try {
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        voornaam: profielNaam,
+        leeftijd: parseInt(profielLeeftijd) || 0,
+        geslacht: geslacht,
+        zoekt: zoekt,
+        verhaal: profielVerhaal,
+        passies: profielPassies.split(",").map(p => p.trim()).filter(Boolean),
+        actief: true,
+      });
+      if (error) throw error;
+      next();
+    } catch (err) {
+      setSaveError(err.message);
+    }
+    setSaveLoading(false);
+  };
 
   const profileSteps = useMemo(() => [
     { label: "Naam",     q: "Wat is je voornaam?",          val: "Marcel",                                         type: "input" },
@@ -407,13 +436,22 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
               <button
                 onClick={() => {
                   if (ps.type === "voorkeur" && !voorkeurConsent) return;
-                  step < profileSteps.length - 1 ? setStep(s => s + 1) : next();
+                  if (step < profileSteps.length - 1) {
+                    setStep(s => s + 1);
+                  } else {
+                    saveProfile();
+                  }
                 }}
                 style={{ padding: "7px 18px", background: C.white, border: "none", borderRadius: 999, color: C.terra, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1 }}
-              >{step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}</button>
+              >{saveLoading ? "Opslaan..." : step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}</button>
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
+              {saveError && (
+                <div style={{ padding: "10px 14px", background: "rgba(192,57,43,0.08)", borderRadius: 10, marginBottom: 10 }}>
+                  <p style={{ fontFamily: sans, fontSize: 12, color: "#C0392B", margin: 0 }}>⚠ {saveError}</p>
+                </div>
+              )}
               <GlassCard style={{ padding: "8px 14px", marginBottom: 10, display: "flex", gap: 10, alignItems: "center" }}>
                 <span style={{ color: C.terra }}>◆</span>
                 <span style={{ fontFamily: sans, fontSize: 12, color: C.textMid, fontStyle: "italic" }}>Geen foto. Jij bent meer dan een plaatje.</span>
@@ -421,11 +459,17 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
               <GlassCard style={{ border: `1.5px solid ${pa}40`, padding: 14, marginBottom: 10 }}>
                 <div style={{ fontFamily: sans, fontSize: 8, letterSpacing: 4, color: pa, marginBottom: 8, fontWeight: 700, textTransform: "uppercase" }}>{ps.label}</div>
                 <h3 style={{ fontFamily: serif, fontSize: 18, color: C.text, margin: "0 0 12px", fontWeight: 700, lineHeight: 1.1 }}>{ps.q}</h3>
-                {ps.type === "input" && (
-                  <input defaultValue={ps.val} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 18, padding: "12px 12px", fontFamily: serif, outline: "none", boxSizing: "border-box", borderRadius: 14 }} />
+                {ps.type === "input" && ps.label === "Naam" && (
+                  <input value={profielNaam} onChange={e => setProfielNaam(e.target.value)} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 18, padding: "12px 12px", fontFamily: serif, outline: "none", boxSizing: "border-box", borderRadius: 14 }} />
                 )}
-                {ps.type === "area" && (
-                  <textarea defaultValue={ps.val} rows={3} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, padding: "12px 12px", fontFamily: sans, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7, borderRadius: 14 }} />
+                {ps.type === "input" && ps.label === "Leeftijd" && (
+                  <input value={profielLeeftijd} onChange={e => setProfielLeeftijd(e.target.value)} type="number" style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 18, padding: "12px 12px", fontFamily: serif, outline: "none", boxSizing: "border-box", borderRadius: 14 }} />
+                )}
+                {ps.type === "area" && ps.label === "Verhaal" && (
+                  <textarea value={profielVerhaal} onChange={e => setProfielVerhaal(e.target.value)} rows={3} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, padding: "12px 12px", fontFamily: sans, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7, borderRadius: 14 }} />
+                )}
+                {ps.type === "area" && ps.label === "Passies" && (
+                  <textarea value={profielPassies} onChange={e => setProfielPassies(e.target.value)} rows={3} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, padding: "12px 12px", fontFamily: sans, outline: "none", resize: "none", boxSizing: "border-box", lineHeight: 1.7, borderRadius: 14 }} />
                 )}
                 {ps.type === "geslacht" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
