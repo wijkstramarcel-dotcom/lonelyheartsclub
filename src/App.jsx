@@ -750,6 +750,7 @@ function OnboardingWizard({ user, onComplete }) {
   const [passies, setPassies] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
 
   const steps = [
     { label: "Naam",     title: "Wat is je voornaam?",         type: "input",    hint: "Alleen je voornaam — geen achternaam nodig." },
@@ -787,7 +788,7 @@ function OnboardingWizard({ user, onComplete }) {
         actief: true,
       });
       if (error) throw error;
-      onComplete();
+      setSaved(true);
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -802,6 +803,36 @@ function OnboardingWizard({ user, onComplete }) {
       handleSave();
     }
   };
+
+  if (saved) {
+    return (
+      <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          <LHCLogo size={100} />
+          <h1 style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, color: C.text, margin: "20px 0 12px" }}>Je staat op de lijst! 🎉</h1>
+          <p style={{ fontFamily: sans, fontSize: 16, color: C.textMid, lineHeight: 1.8, margin: "0 0 28px", maxWidth: 380, marginLeft: "auto", marginRight: "auto" }}>
+            Welkom bij Lonely Hearts Club. We bouwen de app en laten je weten zodra je toegang krijgt.
+          </p>
+          <GlassCard style={{ padding: 24, marginBottom: 24, textAlign: "left" }}>
+            {[
+              { n: "1", title: "Profiel aangemaakt", sub: "Je gegevens zijn opgeslagen ✓", done: true },
+              { n: "2", title: "Wachten op toegang", sub: "We openen de app stapsgewijs — jij bent er vroeg bij", done: false },
+              { n: "3", title: "Jouw eerste gesprek", sub: "Leer iemand kennen via stem — zonder foto", done: false },
+            ].map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: i < 2 ? 16 : 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: s.done ? C.terra : C.border, display: "flex", alignItems: "center", justifyContent: "center", color: s.done ? C.white : C.textDim, fontSize: 14, flexShrink: 0 }}>{s.n}</div>
+                <div>
+                  <div style={{ fontFamily: sans, fontSize: 14, fontWeight: 700, color: s.done ? C.text : C.textMid, marginBottom: 2 }}>{s.title}</div>
+                  <div style={{ fontFamily: sans, fontSize: 13, color: C.textDim }}>{s.sub}</div>
+                </div>
+              </div>
+            ))}
+          </GlassCard>
+          <PrimaryBtn onClick={onComplete}>Naar de app →</PrimaryBtn>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, fontFamily: sans }}>
@@ -917,25 +948,33 @@ function AuthScreen({ onAuth, onBack }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [onWaitlist, setOnWaitlist] = useState(false);
 
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // Save to waitlist table
         await supabase.from("waitlist").upsert({ email });
-        setOnWaitlist(true);
+        // Direct door naar onboarding wizard
+        if (data.user) onAuth(data.user);
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         onAuth(data.user);
       }
     } catch (err) {
-      setError(err.message);
+      // Vertaal foutmeldingen naar Nederlands
+      if (err.message.includes("already registered")) {
+        setError("Dit e-mailadres is al in gebruik. Log in of gebruik een ander e-mailadres.");
+      } else if (err.message.includes("Invalid login credentials")) {
+        setError("E-mailadres of wachtwoord klopt niet.");
+      } else if (err.message.includes("Password should be")) {
+        setError("Wachtwoord moet minimaal 6 tekens zijn.");
+      } else {
+        setError(err.message);
+      }
     }
     setLoading(false);
   };
