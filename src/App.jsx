@@ -392,25 +392,25 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
         )}
 
         {idx === 1 && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
             <Header label="Jouw profiel" title="Vertel je verhaal" />
 
-            {/* ALWAYS VISIBLE NAV - simpel en duidelijk */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 18px", background: C.white, borderBottom: `2px solid ${C.terra}22`, flexShrink: 0, gap: 10 }}>
+            {/* NAV BAR - boven de content */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: C.terra, flexShrink: 0, minHeight: 48 }}>
               <button
                 onClick={() => step > 0 && setStep(s => s - 1)}
-                style={{ padding: "8px 16px", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 999, color: step > 0 ? C.textMid : "transparent", fontFamily: sans, fontSize: 12, cursor: step > 0 ? "pointer" : "default", flexShrink: 0 }}
+                style={{ padding: "7px 14px", background: "rgba(255,255,255,0.2)", border: "1.5px solid rgba(255,255,255,0.4)", borderRadius: 999, color: C.white, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0, opacity: step > 0 ? 1 : 0.3 }}
               >← Terug</button>
-              <span style={{ fontFamily: sans, fontSize: 11, color: C.textDim }}>{step + 1} / {profileSteps.length}</span>
+              <div style={{ flex: 1, display: "flex", gap: 3 }}>
+                {profileSteps.map((_, i) => (<div key={i} style={{ flex: 1, height: 3, borderRadius: 999, background: i <= step ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)" }} />))}
+              </div>
               <button
-                onClick={() => step < profileSteps.length - 1 ? setStep(s => s + 1) : next()}
-                style={{ padding: "8px 20px", background: `linear-gradient(180deg, ${pa}, ${C.terraDeep})`, border: "none", borderRadius: 999, color: C.white, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1 }}
+                onClick={() => {
+                  if (ps.type === "voorkeur" && !voorkeurConsent) return;
+                  step < profileSteps.length - 1 ? setStep(s => s + 1) : next();
+                }}
+                style={{ padding: "7px 18px", background: C.white, border: "none", borderRadius: 999, color: C.terra, fontFamily: sans, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0, opacity: (ps.type === "voorkeur" && !voorkeurConsent) ? 0.4 : 1 }}
               >{step < profileSteps.length - 1 ? "Verder →" : "Opslaan ✓"}</button>
-            </div>
-
-            {/* Progress bar */}
-            <div style={{ display: "flex", gap: 3, padding: "8px 18px 0", flexShrink: 0 }}>
-              {profileSteps.map((_, i) => (<div key={i} style={{ flex: 1, height: 3, borderRadius: 999, background: i < step ? C.terra : i === step ? pa : C.border, transition: "all 0.3s" }} />))}
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
