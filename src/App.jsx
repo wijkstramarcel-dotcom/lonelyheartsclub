@@ -458,13 +458,11 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
               </GlassCard>
               {step === 5 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
                   {[["Hardlopen", true], ["Kunst", true], ["Reizen", true], ["Lezen", false], ["Wijn", false]].map(([t, active], i) => (
                     <span key={i} style={{ padding: "5px 14px", fontSize: 12, border: `1px solid ${active ? C.terra : C.border}`, color: active ? C.terra : C.textDim, background: active ? "#FDF0EC" : "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 999 }}>{t}</span>
                   ))}
                 </div>
               )}
-              </div>
             </div>
           </div>
         )}
