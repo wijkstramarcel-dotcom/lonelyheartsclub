@@ -1092,14 +1092,14 @@ export default function App() {
   const checkProfile = async (u) => {
     setCheckingProfile(true);
     try {
-      const { data } = await supabase.from("profiles").select("id").eq("id", u.id).single();
-      if (!data) {
-        setShowOnboarding(true); // Geen profiel → wizard
-      } else {
-        setShowOnboarding(false); // Profiel bestaat → app in
-      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", u.id)
+        .maybeSingle(); // geeft null terug ipv error als geen rij gevonden
+      setShowOnboarding(!data); // geen profiel → wizard, wel profiel → app
     } catch {
-      setShowOnboarding(true); // Bij twijfel → wizard
+      setShowOnboarding(true);
     }
     setCheckingProfile(false);
   };
