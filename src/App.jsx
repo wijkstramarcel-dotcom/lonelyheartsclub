@@ -949,22 +949,27 @@ function AuthScreen({ onAuth, onBack }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [emailSent, setEmailSent] = useState(false);
+
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: "https://lonelyheartsclub.nl" }
+        });
         if (error) throw error;
         await supabase.from("waitlist").upsert({ email });
-        if (data.user) onAuth(data.user, true); // nieuw account → wizard
+        setEmailSent(true); // Toon "check je e-mail" scherm
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        onAuth(data.user, false); // bestaand account → check profiel
+        onAuth(data.user, false);
       }
     } catch (err) {
-      // Vertaal foutmeldingen naar Nederlands
       if (err.message.includes("already registered")) {
         setError("Dit e-mailadres is al in gebruik. Log in of gebruik een ander e-mailadres.");
       } else if (err.message.includes("Invalid login credentials")) {
@@ -978,7 +983,43 @@ function AuthScreen({ onAuth, onBack }) {
     setLoading(false);
   };
 
-  // Waitlist confirmation screen - verwijderd, zit nu in OnboardingWizard
+  // Check je e-mail scherm
+  if (emailSent) {
+    return (
+      <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          <LHCLogo size={80} />
+          <div style={{ fontSize: 48, margin: "16px 0 8px" }}>📬</div>
+          <h1 style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, color: C.text, margin: "0 0 12px" }}>Check je e-mail!</h1>
+          <p style={{ fontFamily: sans, fontSize: 15, color: C.textMid, lineHeight: 1.8, margin: "0 0 28px" }}>
+            We hebben een bevestigingslink gestuurd naar <strong>{email}</strong>. Klik op de link om je account te activeren en je profiel aan te maken.
+          </p>
+          <GlassCard style={{ padding: 20, marginBottom: 20, textAlign: "left" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.terra, display: "flex", alignItems: "center", justifyContent: "center", color: C.white, fontSize: 12, flexShrink: 0 }}>1</div>
+              <span style={{ fontFamily: sans, fontSize: 14, color: C.text }}>Open je e-mail inbox</span>
+            </div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.terra, display: "flex", alignItems: "center", justifyContent: "center", color: C.white, fontSize: 12, flexShrink: 0 }}>2</div>
+              <span style={{ fontFamily: sans, fontSize: 14, color: C.text }}>Klik op de bevestigingslink</span>
+            </div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.border, display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim, fontSize: 12, flexShrink: 0 }}>3</div>
+              <span style={{ fontFamily: sans, fontSize: 14, color: C.textMid }}>Maak je profiel aan — zonder foto!</span>
+            </div>
+          </GlassCard>
+          <p style={{ fontFamily: sans, fontSize: 12, color: C.textDim }}>
+            Geen e-mail ontvangen?{" "}
+            <button onClick={() => setEmailSent(false)} style={{ background: "none", border: "none", color: C.terra, fontFamily: sans, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+              Probeer opnieuw
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Waitlist confirmation verwijderd - zit nu in OnboardingWizard
 
   return (
     <div style={{ minHeight: "100vh", background: `radial-gradient(circle at 15% 20%, rgba(196,86,44,0.08), transparent 26%), ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, padding: 20 }}>
@@ -1078,9 +1119,14 @@ export default function App() {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      if (!session) setShowOnboarding(false);
+      if (!session) {
+        setShowOnboarding(false);
+      } else if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        // Komt binnen na e-mailbevestiging of login
+        checkProfile(session.user);
+      }
     });
 
     return () => {
