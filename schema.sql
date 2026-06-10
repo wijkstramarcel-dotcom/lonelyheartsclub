@@ -8,13 +8,42 @@ create table if not exists profiles (
 );
 
 alter table profiles add column if not exists naam text;
+alter table profiles add column if not exists voornaam text;
 alter table profiles add column if not exists leeftijd int;
+alter table profiles add column if not exists geslacht text;
+alter table profiles add column if not exists zoekt text;
 alter table profiles add column if not exists verhaal text;
-alter table profiles add column if not exists passies text;
+alter table profiles add column if not exists passies text[] default '{}';
 alter table profiles add column if not exists tags text[] default '{}';
 alter table profiles add column if not exists foto_url text;
+alter table profiles add column if not exists actief boolean default true;
 alter table profiles add column if not exists created_at timestamptz default now();
 alter table profiles add column if not exists updated_at timestamptz default now();
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'passies'
+      and data_type <> 'ARRAY'
+  ) then
+    alter table profiles
+      alter column passies type text[]
+      using case
+        when passies is null or trim(passies::text) = '' then '{}'::text[]
+        else regexp_split_to_array(passies::text, '\s*,\s*')
+      end;
+  end if;
+end;
+$$;
+
+create table if not exists waitlist (
+  email text primary key,
+  created_at timestamptz default now()
+);
 
 create table if not exists interests (
   id uuid primary key default gen_random_uuid()
@@ -159,6 +188,7 @@ create trigger on_interest_inserted
   for each row execute function create_match_on_mutual_interest();
 
 alter table profiles enable row level security;
+alter table waitlist enable row level security;
 alter table interests enable row level security;
 alter table matches enable row level security;
 alter table calls enable row level security;
@@ -198,6 +228,15 @@ create policy "Eigen profiel aanmaken"
 
 create policy "Eigen profiel bijwerken"
   on profiles for update using (auth.uid() = id) with check (auth.uid() = id);
+
+drop policy if exists "Iedereen mag waitlist inschrijven" on waitlist;
+drop policy if exists "Iedereen mag waitlist bijwerken" on waitlist;
+
+create policy "Iedereen mag waitlist inschrijven"
+  on waitlist for insert with check (true);
+
+create policy "Iedereen mag waitlist bijwerken"
+  on waitlist for update using (true) with check (true);
 
 drop policy if exists "Eigen interesses lezen" on interests;
 drop policy if exists "Interesse toevoegen" on interests;

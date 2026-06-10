@@ -293,14 +293,17 @@ function MobileApp({ onLogin, isPrototype = false, user, onLogout }) {
     setSaveLoading(true);
     setSaveError("");
     try {
+      const passiesList = profielPassies.split(",").map(p => p.trim()).filter(Boolean);
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
+        naam: profielNaam,
         voornaam: profielNaam,
         leeftijd: parseInt(profielLeeftijd) || 0,
         geslacht: geslacht,
         zoekt: zoekt,
         verhaal: profielVerhaal,
-        passies: profielPassies.split(",").map(p => p.trim()).filter(Boolean),
+        passies: passiesList,
+        tags: passiesList,
         actief: true,
       });
       if (error) throw error;
@@ -772,14 +775,17 @@ function OnboardingWizard({ user, onComplete }) {
     setLoading(true);
     setError("");
     try {
+      const passiesList = passies.split(",").map(p => p.trim()).filter(Boolean);
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
+        naam: naam.trim(),
         voornaam: naam.trim(),
         leeftijd: parseInt(leeftijd),
         geslacht,
         zoekt,
         verhaal: verhaal.trim(),
-        passies: passies.split(",").map(p => p.trim()).filter(Boolean),
+        passies: passiesList,
+        tags: passiesList,
         actief: true,
       });
       if (error) throw error;
