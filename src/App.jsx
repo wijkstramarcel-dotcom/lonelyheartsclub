@@ -103,6 +103,33 @@ const tabs = [
   { id: "profile", label: "Profiel" },
 ];
 
+const AUTH_MODES = [
+  {
+    id: "link",
+    label: "Bestaand account",
+    hint: "mail-link",
+    title: "Inloggen zonder wachtwoord",
+    text: "Gebruik dit als je al eens bent aangemeld. Je krijgt een veilige link per e-mail. Er wordt geen nieuw account aangemaakt.",
+    submit: "Stuur inloglink",
+  },
+  {
+    id: "signup",
+    label: "Nieuw account",
+    hint: "registreren",
+    title: "Nieuw account maken",
+    text: "Gebruik dit alleen als je nog geen account hebt. Je kiest een wachtwoord en bevestigt daarna mogelijk eerst je e-mail.",
+    submit: "Maak account",
+  },
+  {
+    id: "login",
+    label: "Wachtwoord",
+    hint: "bestaand account",
+    title: "Inloggen met wachtwoord",
+    text: "Gebruik dit als je account al bestaat, je e-mail bevestigd is en je het wachtwoord weet.",
+    submit: "Log in",
+  },
+];
+
 const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
 const CONSENT_VERSION = "2026-06-10";
 const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
@@ -547,6 +574,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
 
   const validEmail = email.includes("@") && email.includes(".");
   const needsPrivacyConsent = mode === "signup";
+  const activeAuthMode = AUTH_MODES.find((item) => item.id === mode) ?? AUTH_MODES[0];
 
   const submit = async (event) => {
     event.preventDefault();
@@ -633,16 +661,12 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         <img src="/lhc-seal.svg" alt="" className="dialog-logo" />
         <h2 id="auth-title">Begin veilig</h2>
         <p>
-          Log in met een link of wachtwoord als je al een account hebt. Nieuw hier? Kies Nieuw account en
-          maak daarna je profiel zonder foto.
+          Kies eerst of je al een account hebt of nieuw bent. Oude profielen blijven gekoppeld aan het
+          e-mailadres waarmee ze zijn gemaakt.
         </p>
 
         <div className="segmented-control" role="tablist" aria-label="Inlogmethode">
-          {[
-            ["link", "Inloglink"],
-            ["signup", "Nieuw account"],
-            ["login", "Wachtwoord"],
-          ].map(([id, label]) => (
+          {AUTH_MODES.map(({ id, label, hint }) => (
             <button
               key={id}
               type="button"
@@ -654,9 +678,15 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
                 if (id === "login") setPrivacyAccepted(false);
               }}
             >
-              {label}
+              <span>{label}</span>
+              <small>{hint}</small>
             </button>
           ))}
+        </div>
+
+        <div className="auth-mode-note">
+          <h3>{activeAuthMode.title}</h3>
+          <p>{activeAuthMode.text}</p>
         </div>
 
         <form onSubmit={submit} className="auth-form">
@@ -705,7 +735,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           {status && <p className="form-message success">{status}</p>}
 
           <button className="primary-button wide" disabled={loading} type="submit">
-            {loading ? "Even wachten" : mode === "link" ? "Stuur inloglink" : mode === "signup" ? "Maak account" : "Log in"}
+            {loading ? "Even wachten" : activeAuthMode.submit}
           </button>
           <button className="text-button" type="button" onClick={onDemo}>
             Bekijk eerst de demo

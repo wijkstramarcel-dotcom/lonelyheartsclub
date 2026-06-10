@@ -526,15 +526,47 @@ button:disabled {
 }
 
 .segmented-control button {
+  display: grid;
+  gap: 3px;
+  align-content: center;
   border-radius: 6px;
-  padding: 10px;
+  min-height: 58px;
+  padding: 9px 8px;
   color: #6e6258;
   font-weight: 800;
+  line-height: 1.15;
+}
+
+.segmented-control small {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.78;
 }
 
 .segmented-control button.active {
   color: #1d1a16;
   background: #fffdfa;
+}
+
+.auth-mode-note {
+  margin-top: 14px;
+  border-left: 4px solid #b14e30;
+  padding: 12px 14px;
+  background: rgba(177, 78, 48, 0.08);
+}
+
+.auth-mode-note h3 {
+  margin: 0 0 5px;
+  color: #1d1a16;
+  font-size: 15px;
+}
+
+.auth-mode-note p {
+  margin: 0;
+  color: #5d5147;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .auth-form,
@@ -1068,6 +1100,16 @@ textarea {
 
   .privacy-dialog {
     padding: 24px 18px;
+  }
+
+  .segmented-control {
+    grid-template-columns: 1fr;
+  }
+
+  .segmented-control button {
+    min-height: 0;
+    justify-items: start;
+    text-align: left;
   }
 
   .hero-section {
