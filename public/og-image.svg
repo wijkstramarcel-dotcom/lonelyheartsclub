@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Lonely Hearts Club</title>
+  <desc id="desc">Social preview for Lonely Hearts Club, a dating app where love starts with a voice.</desc>
+  <defs>
+    <radialGradient id="glow1" cx="20%" cy="15%" r="50%">
+      <stop offset="0%" stop-color="#00c8d4" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#00c8d4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="78%" cy="78%" r="55%">
+      <stop offset="0%" stop-color="#e8126a" stop-opacity=".62"/>
+      <stop offset="100%" stop-color="#e8126a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="heart" x1="404" x2="808" y1="139" y2="502">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="48%" stop-color="#e8126a"/>
+      <stop offset="100%" stop-color="#00c8d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0a0010"/>
+  <rect width="1200" height="630" fill="url(#glow1)"/>
+  <rect width="1200" height="630" fill="url(#glow2)"/>
+  <circle cx="600" cy="315" r="230" fill="#1a0828" stroke="#ffd700" stroke-width="10"/>
+  <circle cx="600" cy="315" r="192" fill="none" stroke="#00c8d4" stroke-width="4" stroke-dasharray="6 18" opacity=".9"/>
+  <path fill="url(#heart)" d="M600 454 466 327c-55-52-63-126-18-170 43-41 109-31 152 23 43-54 109-64 152-23 45 44 37 118-18 170L600 454Z"/>
+  <path fill="none" stroke="#fff8e7" stroke-linecap="round" stroke-width="18" d="M450 320c34-39 68-39 102 0s68 39 102 0 68-39 102 0"/>
+  <text x="600" y="90" text-anchor="middle" fill="#ffd700" font-family="Georgia, serif" font-size="34" font-weight="700" letter-spacing="12">SGT. PEPPER'S</text>
+  <text x="600" y="540" text-anchor="middle" fill="#ffffff" font-family="Georgia, serif" font-size="72" font-weight="900" letter-spacing="3">LONELY HEARTS CLUB</text>
+  <text x="600" y="590" text-anchor="middle" fill="#fff8e7" font-family="Georgia, serif" font-size="30" font-style="italic">Dating begint met een stem, niet met een foto</text>
+</svg>

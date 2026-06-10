@@ -3,40 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lonely Hearts Club — Daten zonder foto's</title>
-    <meta name="description" content="Bij Lonely Hearts Club leer je iemand kennen via stem, niet op uiterlijk. Anoniem bellen, dan pas een gezicht. Daten zoals het bedoeld is." />
-    <meta name="keywords" content="dating app nederland, daten zonder foto, anoniem daten, dating stem, lonely hearts club" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://lonelyheartsclub.nl" />
+    <title>Lonely Hearts Club - Dating begint met een stem</title>
+    <meta name="description" content="Lonely Hearts Club is een privacy-first dating app waar je eerst luistert, anoniem belt en pas later foto's ziet." />
+    <meta name="keywords" content="dating app, anoniem daten, voice dating, dating zonder foto, singles Nederland, Lonely Hearts Club" />
+    <meta name="author" content="Lonely Hearts Club" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#e8126a" />
+    <meta name="application-name" content="Lonely Hearts Club" />
+    <meta name="apple-mobile-web-app-title" content="Lonely Hearts Club" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="canonical" href="https://lonelyheartsclub.nl/" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="icon" href="/lhc-seal.svg" type="image/svg+xml" />
+    <link rel="preload" href="/lhc-seal.svg" as="image" type="image/svg+xml" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://lonelyheartsclub.nl" />
-    <meta property="og:title" content="Lonely Hearts Club — Daten zonder foto's" />
-    <meta property="og:description" content="Bij Lonely Hearts Club leer je iemand kennen via stem, niet op uiterlijk. Anoniem bellen, dan pas een gezicht." />
     <meta property="og:locale" content="nl_NL" />
     <meta property="og:site_name" content="Lonely Hearts Club" />
+    <meta property="og:title" content="Lonely Hearts Club - Dating begint met een stem" />
+    <meta property="og:description" content="Een dating app waar je eerst luistert, anoniem belt en pas later foto's ziet." />
+    <meta property="og:url" content="https://lonelyheartsclub.nl/" />
+    <meta property="og:image" content="https://lonelyheartsclub.nl/og-image.svg" />
+    <meta property="og:image:alt" content="Lonely Hearts Club - dating begint met een stem" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Lonely Hearts Club — Daten zonder foto's" />
-    <meta name="twitter:description" content="Bij Lonely Hearts Club leer je iemand kennen via stem, niet op uiterlijk." />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#C4562C" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Lonely Hearts Club" />
+    <meta name="twitter:title" content="Lonely Hearts Club - Dating begint met een stem" />
+    <meta name="twitter:description" content="Eerst luisteren. Dan anoniem bellen. Pas later foto's." />
+    <meta name="twitter:image" content="https://lonelyheartsclub.nl/og-image.svg" />
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Lonely Hearts Club",
-      "url": "https://lonelyheartsclub.nl",
-      "description": "Nederlandse dating app waarbij je iemand leert kennen via stem, niet op uiterlijk.",
-      "applicationCategory": "LifestyleApplication",
-      "operatingSystem": "Web",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-      "inLanguage": "nl-NL"
-    }
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://lonelyheartsclub.nl/#website",
+            "url": "https://lonelyheartsclub.nl/",
+            "name": "Lonely Hearts Club",
+            "inLanguage": "nl-NL",
+            "description": "Dating begint met een stem, niet met een foto."
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://lonelyheartsclub.nl/#app",
+            "name": "Lonely Hearts Club",
+            "url": "https://lonelyheartsclub.nl/",
+            "applicationCategory": "LifestyleApplication",
+            "operatingSystem": "Web",
+            "inLanguage": "nl-NL",
+            "description": "Een privacy-first dating app met profiel zonder foto, anoniem bellen, matches en berichten.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "EUR"
+            }
+          }
+        ]
+      }
     </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main style="font-family: Georgia, serif; padding: 32px; color: #fff8e7; background: #1a0828; min-height: 100vh;">
+        <h1>Lonely Hearts Club</h1>
+        <p>Dating begint met een stem, niet met een foto. Zet JavaScript aan om de app te gebruiken.</p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

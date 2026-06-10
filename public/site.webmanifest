@@ -1,0 +1,18 @@
+{
+  "name": "Lonely Hearts Club",
+  "short_name": "LHC",
+  "description": "Dating begint met een stem, niet met een foto.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0010",
+  "theme_color": "#e8126a",
+  "icons": [
+    {
+      "src": "/lhc-seal.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

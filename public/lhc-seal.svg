@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Lonely Hearts Club seal</title>
+  <desc id="desc">A bright heart and voice-wave seal for Lonely Hearts Club.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#7b2d8b"/>
+      <stop offset="55%" stop-color="#1a0828"/>
+      <stop offset="100%" stop-color="#07030d"/>
+    </radialGradient>
+    <linearGradient id="heart" x1="40" x2="216" y1="54" y2="216">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="45%" stop-color="#e8126a"/>
+      <stop offset="100%" stop-color="#00c8d4"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="121" fill="url(#bg)" stroke="#ffd700" stroke-width="8"/>
+  <circle cx="128" cy="128" r="101" fill="none" stroke="#00c8d4" stroke-width="3" stroke-dasharray="3 10" opacity=".85"/>
+  <path fill="url(#heart)" d="M128 197 67 139c-25-24-29-58-8-78 19-18 49-14 69 11 20-25 50-29 69-11 21 20 17 54-8 78l-61 58Z"/>
+  <path fill="none" stroke="#fff8e7" stroke-linecap="round" stroke-width="8" d="M64 132c14-16 28-16 42 0s28 16 42 0 28-16 44 0"/>
+  <path fill="none" stroke="#ffd700" stroke-linecap="round" stroke-width="5" d="M83 92c8-7 17-9 27-5M173 92c-8-7-17-9-27-5"/>
+  <text x="128" y="233" text-anchor="middle" fill="#ffd700" font-family="Georgia, serif" font-size="16" font-weight="700" letter-spacing="4">LHC</text>
+</svg>
