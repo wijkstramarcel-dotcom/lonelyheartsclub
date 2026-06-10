@@ -590,14 +590,18 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           emailRedirectTo: window.location.origin,
           data: consentMetadata(acceptedAt),
         };
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: authOptions,
         });
         if (signUpError) throw signUpError;
         await upsertWaitlist(email, acceptedAt);
-        setStatus("Account aangemaakt. Bevestig je e-mail als Supabase daarom vraagt.");
+        if (signUpData.session) {
+          setStatus("Account aangemaakt. Je bent ingelogd; je kunt nu je profiel maken.");
+        } else {
+          setStatus("Account aangemaakt. Bevestig eerst je e-mail via de link in je inbox. Daarna kun je inloggen met Inloglink of Wachtwoord.");
+        }
       }
 
       if (mode === "login") {
@@ -607,7 +611,11 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
     } catch (err) {
       const message = err.message || "Inloggen lukte niet. Probeer het opnieuw.";
       if (mode === "link" && (message.toLowerCase().includes("signup") || message.toLowerCase().includes("signups"))) {
-        setError("Geen bestaand account gevonden. Kies Account om je eerst te registreren.");
+        setError("Geen bestaand account gevonden. Kies Nieuw account om je eerst te registreren.");
+      } else if (message.toLowerCase().includes("email not confirmed")) {
+        setError("Je e-mailadres is nog niet bevestigd. Open eerst de bevestigingsmail, of gebruik Inloglink om opnieuw een mail te sturen.");
+      } else if (message.toLowerCase().includes("invalid login credentials")) {
+        setError("E-mailadres of wachtwoord klopt niet. Had je eerder alleen een inloglink gebruikt? Kies dan Inloglink.");
       } else {
         setError(message);
       }
@@ -625,15 +633,15 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         <img src="/lhc-seal.svg" alt="" className="dialog-logo" />
         <h2 id="auth-title">Begin veilig</h2>
         <p>
-          Log in met een link of wachtwoord als je al een account hebt. Nieuw hier? Kies Account en
+          Log in met een link of wachtwoord als je al een account hebt. Nieuw hier? Kies Nieuw account en
           maak daarna je profiel zonder foto.
         </p>
 
         <div className="segmented-control" role="tablist" aria-label="Inlogmethode">
           {[
-            ["link", "Link"],
-            ["signup", "Account"],
-            ["login", "Login"],
+            ["link", "Inloglink"],
+            ["signup", "Nieuw account"],
+            ["login", "Wachtwoord"],
           ].map(([id, label]) => (
             <button
               key={id}
@@ -697,7 +705,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           {status && <p className="form-message success">{status}</p>}
 
           <button className="primary-button wide" disabled={loading} type="submit">
-            {loading ? "Even wachten" : mode === "link" ? "Stuur inloglink" : mode === "signup" ? "Maak account" : "Inloggen"}
+            {loading ? "Even wachten" : mode === "link" ? "Stuur inloglink" : mode === "signup" ? "Maak account" : "Log in"}
           </button>
           <button className="text-button" type="button" onClick={onDemo}>
             Bekijk eerst de demo
