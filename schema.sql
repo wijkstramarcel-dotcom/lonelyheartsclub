@@ -242,9 +242,6 @@ drop policy if exists "Iedereen mag waitlist bijwerken" on waitlist;
 create policy "Iedereen mag waitlist inschrijven"
   on waitlist for insert with check (true);
 
-create policy "Iedereen mag waitlist bijwerken"
-  on waitlist for update using (true) with check (true);
-
 drop policy if exists "Eigen interesses lezen" on interests;
 drop policy if exists "Interesse toevoegen" on interests;
 

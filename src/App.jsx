@@ -227,6 +227,11 @@ function isMissingConsentColumnError(error) {
   );
 }
 
+function isDuplicateEmailError(error) {
+  const message = String(error?.message || "");
+  return error?.code === "23505" || message.includes("duplicate key");
+}
+
 async function upsertWaitlist(email, timestamp) {
   const fullPayload = {
     email,
@@ -234,12 +239,12 @@ async function upsertWaitlist(email, timestamp) {
     consent_version: CONSENT_VERSION,
   };
 
-  const { error } = await supabase.from("waitlist").upsert(fullPayload);
-  if (!error) return;
+  const { error } = await supabase.from("waitlist").insert(fullPayload);
+  if (!error || isDuplicateEmailError(error)) return;
   if (!isMissingConsentColumnError(error)) throw error;
 
-  const { error: fallbackError } = await supabase.from("waitlist").upsert({ email });
-  if (fallbackError) throw fallbackError;
+  const { error: fallbackError } = await supabase.from("waitlist").insert({ email });
+  if (fallbackError && !isDuplicateEmailError(fallbackError)) throw fallbackError;
 }
 
 async function upsertProfile(payload) {
@@ -381,9 +386,9 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
             en ga pas daarna verder naar video of een echte afspraak.
           </p>
           <div className="hero-actions">
-            <button className="primary-button" onClick={() => setAuthOpen(true)}>
-              Start gratis
-            </button>
+            <a className="primary-button" href="#voorinschrijven">
+              Schrijf je voor in
+            </a>
             <button className="secondary-button" onClick={onDemo}>
               Bekijk demo
             </button>
@@ -416,6 +421,38 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
         </div>
       </section>
 
+      <PreRegisterSection onPrivacy={onPrivacy} onCreateAccount={() => setAuthOpen(true)} />
+
+      <section className="section-band">
+        <div className="section-inner">
+          <p className="eyebrow">Dating zonder swipe-ruis</p>
+          <h2>Voor singles die eerst karakter willen voelen.</h2>
+          <div className="story-grid">
+            <article>
+              <h3>Geen foto als eerste oordeel</h3>
+              <p>
+                Lonely Hearts Club is gebouwd voor mensen die genoeg hebben van eindeloos swipen.
+                Je profiel begint met je verhaal, passies en intentie, niet met perfecte foto's.
+              </p>
+            </article>
+            <article>
+              <h3>Anoniem daten met rust</h3>
+              <p>
+                Je ontdekt leden op inhoud en wederzijdse interesse. Pas daarna ga je verder met berichten
+                en later eventueel anoniem bellen.
+              </p>
+            </article>
+            <article>
+              <h3>Nederlandse dating community</h3>
+              <p>
+                We starten klein in Nederland, zodat er genoeg aandacht blijft voor veiligheid, privacy en
+                echte gesprekken tussen actieve leden.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section className="section-band" id="hoe">
         <div className="section-inner">
           <p className="eyebrow">Hoe het werkt</p>
@@ -440,11 +477,11 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
       <section className="closing-section">
         <div>
           <p className="eyebrow">Voor singles die meer willen dan een swipe</p>
-          <h2>Klaar om de eerste echte leden binnen te laten?</h2>
+          <h2>Klaar om alvast op de lijst te komen?</h2>
         </div>
-        <button className="primary-button" onClick={() => setAuthOpen(true)}>
-          Account maken
-        </button>
+        <a className="primary-button" href="#voorinschrijven">
+          Voorinschrijven
+        </a>
       </section>
 
       <SiteFooter onPrivacy={onPrivacy} />
@@ -463,6 +500,103 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
   );
 }
 
+function PreRegisterSection({ onPrivacy, onCreateAccount }) {
+  const [email, setEmail] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setStatus("");
+    setError("");
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes("@") || !normalizedEmail.includes(".")) {
+      setError("Vul een geldig e-mailadres in.");
+      return;
+    }
+    if (!privacyAccepted) {
+      setError("Accepteer eerst de privacyverklaring voor de wachtlijst.");
+      return;
+    }
+    if (!hasSupabaseConfig || !supabase) {
+      setError("De wachtlijst is nog niet gekoppeld. Probeer het later opnieuw.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await upsertWaitlist(normalizedEmail, consentTimestamp());
+      setStatus("Je staat op de wachtlijst. We mailen je zodra de volgende groep leden wordt toegelaten.");
+      setEmail("");
+      setPrivacyAccepted(false);
+    } catch (err) {
+      setError(err.message || "Voorinschrijven lukte niet. Probeer het opnieuw.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="pre-register-section" id="voorinschrijven">
+      <div className="pre-register-copy">
+        <p className="eyebrow">Pre-registratie</p>
+        <h2>Kom op de lijst voor de eerste echte ledenronde.</h2>
+        <p>
+          Laat je e-mailadres achter als je interesse hebt in rustig, privacy-first daten zonder foto-oordeel.
+          Je maakt nog geen profiel aan; dit is alleen de wachtlijst.
+        </p>
+        <ul>
+          <li>Geen marketingruis, alleen updates over toegang.</li>
+          <li>Je kunt later zelf kiezen of je een profiel maakt.</li>
+          <li>We starten bewust klein, zodat matches betekenisvoller blijven.</li>
+        </ul>
+      </div>
+
+      <form className="pre-register-form" onSubmit={submit} noValidate>
+        <label>
+          E-mailadres
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            placeholder="jouw@email.nl"
+            autoComplete="email"
+          />
+        </label>
+
+        <div className="check-row">
+          <input
+            id="waitlist-privacy-accepted"
+            type="checkbox"
+            checked={privacyAccepted}
+            onChange={(event) => setPrivacyAccepted(event.target.checked)}
+          />
+          <label htmlFor="waitlist-privacy-accepted">
+            Ik ga akkoord dat Lonely Hearts Club mijn e-mailadres bewaart voor de wachtlijst en updates over toegang.{" "}
+            <button className="inline-link" type="button" onClick={onPrivacy}>
+              Lees privacy
+            </button>
+            .
+          </label>
+        </div>
+
+        {error && <p className="form-message error">{error}</p>}
+        {status && <p className="form-message success">{status}</p>}
+
+        <button className="primary-button wide" disabled={loading} type="submit">
+          {loading ? "Inschrijven" : "Zet mij op de wachtlijst"}
+        </button>
+        <button className="text-button" type="button" onClick={onCreateAccount}>
+          Ik wil nu direct een account maken
+        </button>
+      </form>
+    </section>
+  );
+}
+
 function HeaderNav({ onLogin, onPrivacy }) {
   return (
     <header className="top-nav">
@@ -471,6 +605,7 @@ function HeaderNav({ onLogin, onPrivacy }) {
         <span>Lonely Hearts Club</span>
       </a>
       <nav>
+        <a href="#voorinschrijven">Voorinschrijven</a>
         <a href="#hoe">Hoe het werkt</a>
         <button className="nav-link" type="button" onClick={onPrivacy}>
           Privacy

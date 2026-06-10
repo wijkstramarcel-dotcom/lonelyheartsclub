@@ -139,6 +139,9 @@ button:disabled {
 }
 
 .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 8px;
   padding: 13px 20px;
@@ -146,6 +149,8 @@ button:disabled {
   background: linear-gradient(180deg, #b14e30, #86351f);
   box-shadow: 0 14px 28px rgba(177, 78, 48, 0.24);
   font-weight: 800;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -341,6 +346,94 @@ button:disabled {
   max-width: 760px;
   font-size: clamp(34px, 4vw, 54px);
   line-height: 1.05;
+}
+
+.pre-register-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 48px) 72px;
+  scroll-margin-top: 96px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: clamp(24px, 5vw, 58px);
+  align-items: start;
+}
+
+.pre-register-copy h2 {
+  max-width: 740px;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 4.4vw, 58px);
+  line-height: 1.05;
+}
+
+.pre-register-copy p {
+  max-width: 680px;
+  margin: 20px 0 0;
+  color: #5d5147;
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.pre-register-copy ul {
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  color: #413832;
+  list-style: none;
+}
+
+.pre-register-copy li {
+  position: relative;
+  padding-left: 24px;
+  line-height: 1.55;
+}
+
+.pre-register-copy li::before {
+  content: "";
+  position: absolute;
+  top: 0.72em;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2f655d;
+}
+
+.pre-register-form {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(29, 26, 22, 0.11);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 20px 46px rgba(29, 26, 22, 0.08);
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 34px;
+}
+
+.story-grid article {
+  border: 1px solid rgba(29, 26, 22, 0.1);
+  border-radius: 8px;
+  padding: 22px;
+  background: rgba(255, 253, 250, 0.68);
+}
+
+.story-grid h3 {
+  margin: 0 0 10px;
+  color: #1d1a16;
+}
+
+.story-grid p {
+  margin: 0;
+  color: #6e6258;
+  line-height: 1.65;
 }
 
 .steps-grid {
@@ -1020,6 +1113,8 @@ textarea {
 @media (max-width: 860px) {
   .hero-section,
   .steps-grid,
+  .story-grid,
+  .pre-register-section,
   .closing-section,
   .app-shell,
   .form-grid,
@@ -1045,6 +1140,10 @@ textarea {
 
   .closing-section {
     align-items: flex-start;
+  }
+
+  .pre-register-section {
+    padding-top: 12px;
   }
 
   .app-sidebar {
