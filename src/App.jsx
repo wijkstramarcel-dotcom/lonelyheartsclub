@@ -103,6 +103,14 @@ const tabs = [
   { id: "profile", label: "Profiel" },
 ];
 
+const PRODUCT_FLOW_STEPS = [
+  ["01", "Match zoeken", "Ontdek leden op verhaal en intentie, zonder foto als eerste oordeel."],
+  ["02", "Interesse tonen", "Bij wederzijdse interesse ontstaat een match en gaat de chat open."],
+  ["03", "Chatten", "Voel of er ritme, aandacht en nieuwsgierigheid in het gesprek zit."],
+  ["04", "Anoniem bellen", "Bel afgeschermd voordat je persoonlijke gegevens of nummers deelt."],
+  ["05", "Afspreken", "Pas als het goed voelt, stel je een echte ontmoeting voor."],
+];
+
 const AUTH_MODES = [
   {
     id: "link",
@@ -382,8 +390,8 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
           <p className="eyebrow">Nederland · privacy-first dating · 2026</p>
           <h1>Lonely Hearts Club</h1>
           <p className="hero-subtitle">
-            Dating begint met een stem. Maak eerst contact zonder foto, ontdek of er een klik is,
-            en ga pas daarna verder naar video of een echte afspraak.
+            Eerst zoek je een match op verhaal en intentie. Daarna chat je, bel je anoniem en spreek
+            je pas af als het gesprek echt goed voelt.
           </p>
           <div className="hero-actions">
             <a className="primary-button" href="#voorinschrijven">
@@ -409,12 +417,12 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
             <div className="phone-content">
               <img src="/lhc-seal.svg" alt="" className="phone-logo" />
               <p className="phone-kicker">Eerst luisteren</p>
-              <h2>Ontdek wie iemand is voordat je een foto ziet.</h2>
+              <h2>Van match naar chat, belronde en echte afspraak.</h2>
               <div className="flow-list">
-                <span>Profiel zonder foto</span>
-                <span>Anoniem gesprek</span>
-                <span>Match bij wederzijdse interesse</span>
-                <span>Berichten en vervolgafspraak</span>
+                <span>1. Zoek een match zonder foto-oordeel</span>
+                <span>2. Chat pas na wederzijdse interesse</span>
+                <span>3. Bel anoniem voordat je gegevens deelt</span>
+                <span>4. Spreek af als het veilig en goed voelt</span>
               </div>
             </div>
           </div>
@@ -438,8 +446,8 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
             <article>
               <h3>Anoniem daten met rust</h3>
               <p>
-                Je ontdekt leden op inhoud en wederzijdse interesse. Pas daarna ga je verder met berichten
-                en later eventueel anoniem bellen.
+                Je ontdekt leden op inhoud en wederzijdse interesse. Pas daarna ga je naar chat, anoniem
+                bellen en eventueel een echte afspraak.
               </p>
             </article>
             <article>
@@ -456,14 +464,9 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
       <section className="section-band" id="hoe">
         <div className="section-inner">
           <p className="eyebrow">Hoe het werkt</p>
-          <h2>Een rustiger alternatief voor swipen.</h2>
+          <h2>De route is bewust: match, chat, bel, spreek af.</h2>
           <div className="steps-grid">
-            {[
-              ["01", "Profiel zonder foto", "Vertel wie je bent met woorden, voorkeuren en passies."],
-              ["02", "Ontdek leden", "Bekijk verhalen en interesses in plaats van perfecte plaatjes."],
-              ["03", "Toon interesse", "Bij wederzijdse interesse ontstaat automatisch een match."],
-              ["04", "Praat verder", "Stuur berichten en plan daarna een anoniem gesprek."],
-            ].map(([number, title, text]) => (
+            {PRODUCT_FLOW_STEPS.map(([number, title, text]) => (
               <article className="step-card" key={number}>
                 <span>{number}</span>
                 <h3>{title}</h3>
@@ -476,8 +479,8 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
 
       <section className="closing-section">
         <div>
-          <p className="eyebrow">Voor singles die meer willen dan een swipe</p>
-          <h2>Klaar om alvast op de lijst te komen?</h2>
+          <p className="eyebrow">Voor singles die eerst vertrouwen willen opbouwen</p>
+          <h2>Klaar om de eerste ledenronde mee te maken?</h2>
         </div>
         <a className="primary-button" href="#voorinschrijven">
           Voorinschrijven
@@ -1029,8 +1032,27 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
 
   const likeProfile = async (targetProfile) => {
     if (demoMode) {
+      const matchId = `demo-match-${targetProfile.id}`;
+      const createdAt = new Date().toISOString();
+      const otherProfile = normalizeProfile(targetProfile);
+      const firstMessage = {
+        id: `${matchId}-intro`,
+        match_id: matchId,
+        sender_id: targetProfile.id,
+        content: `Hoi ${profile?.voornaam || "Marcel"}, jouw verhaal voelt rustig en oprecht. Zullen we eerst even chatten?`,
+        created_at: createdAt,
+      };
+
       setInterestedIds((current) => new Set([...current, targetProfile.id]));
-      setNotice(`Interesse getoond in ${targetProfile.naam}. In demo ontstaat de match zodra de ander ook kiest.`);
+      setMatches((current) => {
+        if (current.some((match) => match.id === matchId)) return current;
+        return [{ id: matchId, user_a: user.id, user_b: targetProfile.id, created_at: createdAt }, ...current];
+      });
+      setMatchProfiles((current) => ({ ...current, [targetProfile.id]: otherProfile }));
+      setMessages((current) => (current[matchId] ? current : { ...current, [matchId]: [firstMessage] }));
+      setSelectedMatchId(matchId);
+      setActiveTab("messages");
+      setNotice(`Demo-match met ${targetProfile.naam}. Stuur een bericht en ga daarna door naar anoniem bellen.`);
       return;
     }
 
@@ -1058,17 +1080,26 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     if (!selectedMatch || !content.trim()) return;
 
     if (demoMode) {
+      const now = Date.now();
       const message = {
         id: `demo-message-${Date.now()}`,
         match_id: selectedMatch.id,
         sender_id: user.id,
         content: content.trim(),
-        created_at: new Date().toISOString(),
+        created_at: new Date(now).toISOString(),
+      };
+      const reply = {
+        id: `demo-reply-${now}`,
+        match_id: selectedMatch.id,
+        sender_id: getOtherUserId(selectedMatch, user.id),
+        content: "Fijn bericht. Als dit zo blijft voelen, wil ik eerst anoniem bellen voordat we iets afspreken.",
+        created_at: new Date(now + 45_000).toISOString(),
       };
       setMessages((current) => ({
         ...current,
-        [selectedMatch.id]: [...(current[selectedMatch.id] ?? []), message],
+        [selectedMatch.id]: [...(current[selectedMatch.id] ?? []), message, reply],
       }));
+      setNotice("Chat werkt. Volgende stap: start de demo-belronde vanuit dit gesprek.");
       return;
     }
 
@@ -1127,6 +1158,10 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       <section className="app-main">
         <AppHeader profile={profile} notice={notice} onRefresh={loadData} loading={loading} />
 
+        {demoMode && (
+          <DemoJourney activeTab={activeTab} />
+        )}
+
         {activeTab === "discover" && (
           <DiscoverView
             profiles={allOtherProfiles}
@@ -1142,6 +1177,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             matchProfiles={matchProfiles}
             userId={user.id}
             selectedMatchId={selectedMatchId}
+            demoMode={demoMode}
             onSelect={(matchId) => {
               setSelectedMatchId(matchId);
               setActiveTab("messages");
@@ -1156,6 +1192,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             messages={selectedMatch ? messages[selectedMatch.id] ?? [] : []}
             userId={user.id}
             onSend={sendMessage}
+            demoMode={demoMode}
           />
         )}
 
@@ -1187,6 +1224,32 @@ function AppHeader({ profile, notice, onRefresh, loading }) {
         </button>
       </div>
     </header>
+  );
+}
+
+function DemoJourney({ activeTab }) {
+  const flow = [
+    ["discover", "Match zoeken", activeTab === "discover"],
+    ["matches", "Match kiezen", activeTab === "matches"],
+    ["messages", "Chatten", activeTab === "messages"],
+    ["call", "Anoniem bellen", false],
+    ["meet", "Afspreken", false],
+  ];
+
+  return (
+    <section className="demo-journey" aria-label="Demo route">
+      <div>
+        <p className="eyebrow">Demo-route</p>
+        <h2>Test de echte volgorde: match, chat, bel, spreek af.</h2>
+      </div>
+      <div className="journey-steps">
+        {flow.map(([id, label, active], index) => (
+          <span key={id} className={active ? "active" : ""}>
+            {index + 1}. {label}
+          </span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1450,12 +1513,16 @@ function ProfileCard({ profile, liked, onLike }) {
   );
 }
 
-function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect }) {
+function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect, demoMode = false }) {
   if (!matches.length) {
     return (
       <EmptyState
         title="Nog geen matches"
-        text="Een match ontstaat zodra twee leden allebei interesse tonen."
+        text={
+          demoMode
+            ? "Ga naar Ontdek en toon interesse. In de demo maken we daarna meteen een match, zodat je chat en bellen kunt testen."
+            : "Een match ontstaat zodra twee leden allebei interesse tonen. Daarna kun je chatten en later anoniem bellen."
+        }
       />
     );
   }
@@ -1488,8 +1555,13 @@ function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect
   );
 }
 
-function MessagesView({ match, otherProfile, messages, userId, onSend }) {
+function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode = false }) {
   const [draft, setDraft] = useState("");
+  const [callStep, setCallStep] = useState("ready");
+
+  useEffect(() => {
+    setCallStep("ready");
+  }, [match?.id]);
 
   const submit = (event) => {
     event.preventDefault();
@@ -1501,8 +1573,8 @@ function MessagesView({ match, otherProfile, messages, userId, onSend }) {
   if (!match) {
     return (
       <EmptyState
-        title="Kies een match"
-        text="Zodra je een match hebt, kun je hier berichten sturen."
+        title="Zoek eerst een match"
+        text="De volgorde is bewust: eerst matchen, daarna chatten, daarna pas anoniem bellen."
       />
     );
   }
@@ -1514,7 +1586,7 @@ function MessagesView({ match, otherProfile, messages, userId, onSend }) {
           <p className="eyebrow">Berichten</p>
           <h2>{otherProfile?.naam ?? "Je match"}</h2>
         </div>
-        <span className="call-badge">Anoniem bellen voorbereid</span>
+        <span className="call-badge">Stap 3: chatten</span>
       </div>
 
       <div className="messages-panel">
@@ -1536,6 +1608,46 @@ function MessagesView({ match, otherProfile, messages, userId, onSend }) {
           />
         )}
       </div>
+
+      {demoMode && (
+        <div className="call-panel">
+          <div>
+            <p className="eyebrow">Volgende stap</p>
+            <h3>Anoniem bellen voordat je afspreekt.</h3>
+            <p>
+              In de echte app blijven telefoonnummers afgeschermd. In deze demo zie je hoe het gesprek
+              verder gaat na de chat.
+            </p>
+          </div>
+          <div className="call-actions">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => setCallStep((current) => (current === "ready" ? "calling" : current))}
+            >
+              {callStep === "ready" ? "Start demo-belronde" : "Belronde gestart"}
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              disabled={callStep === "ready"}
+              onClick={() => setCallStep("meet")}
+            >
+              Afspraak voorstellen
+            </button>
+          </div>
+          {callStep === "calling" && (
+            <p className="call-note">
+              Demo-belronde actief: eerst vijf minuten praten, zonder nummers te delen.
+            </p>
+          )}
+          {callStep === "meet" && (
+            <p className="call-note success">
+              Afspraakvoorstel klaar: kies pas een plek en moment als de belronde goed voelde.
+            </p>
+          )}
+        </div>
+      )}
 
       <form className="message-form" onSubmit={submit}>
         <input
