@@ -103,6 +103,10 @@ const tabs = [
   { id: "profile", label: "Profiel" },
 ];
 
+const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
+const CONSENT_VERSION = "2026-06-10";
+const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
+
 function normalizeList(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (!value) return [];
@@ -174,11 +178,84 @@ function classNames(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
+function consentTimestamp() {
+  return new Date().toISOString();
+}
+
+function consentMetadata(timestamp = consentTimestamp()) {
+  return {
+    privacy_consent_at: timestamp,
+    privacy_consent_version: CONSENT_VERSION,
+  };
+}
+
+function isMissingConsentColumnError(error) {
+  const message = String(error?.message || "");
+  return (
+    error?.code === "PGRST204" ||
+    message.includes("privacy_consent_at") ||
+    message.includes("privacy_consent_version") ||
+    message.includes("sensitive_data_consent_at") ||
+    message.includes("consent_version")
+  );
+}
+
+async function upsertWaitlist(email, timestamp) {
+  const fullPayload = {
+    email,
+    privacy_consent_at: timestamp,
+    consent_version: CONSENT_VERSION,
+  };
+
+  const { error } = await supabase.from("waitlist").upsert(fullPayload);
+  if (!error) return;
+  if (!isMissingConsentColumnError(error)) throw error;
+
+  const { error: fallbackError } = await supabase.from("waitlist").upsert({ email });
+  if (fallbackError) throw fallbackError;
+}
+
+async function upsertProfile(payload) {
+  const { error } = await supabase.from("profiles").upsert(payload);
+  if (!error) return { error: null };
+  if (!isMissingConsentColumnError(error)) return { error };
+
+  const {
+    privacy_consent_at,
+    privacy_consent_version,
+    sensitive_data_consent_at,
+    consent_version,
+    ...legacyPayload
+  } = payload;
+  return supabase.from("profiles").upsert(legacyPayload);
+}
+
+function sensitiveConsentStorageKey(userId) {
+  return `${SENSITIVE_CONSENT_KEY}:${userId || "anonymous"}`;
+}
+
+function hasStoredSensitiveConsent(userId) {
+  try {
+    return window.localStorage.getItem(sensitiveConsentStorageKey(userId)) === CONSENT_VERSION;
+  } catch {
+    return false;
+  }
+}
+
+function rememberSensitiveConsent(userId) {
+  try {
+    window.localStorage.setItem(sensitiveConsentStorageKey(userId), CONSENT_VERSION);
+  } catch {
+    // Local storage is only a graceful fallback; server-side consent is handled through Supabase columns.
+  }
+}
+
 export default function App() {
   const [sessionUser, setSessionUser] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [demoMode, setDemoMode] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   useEffect(() => {
     if (!hasSupabaseConfig || !supabase) {
@@ -218,19 +295,39 @@ export default function App() {
   }
 
   if (demoMode) {
-    return <ProductApp user={DEMO_USER} initialProfile={DEMO_PROFILE} demoMode onLogout={handleLogout} />;
+    return (
+      <>
+        <ProductApp
+          user={DEMO_USER}
+          initialProfile={DEMO_PROFILE}
+          demoMode
+          onLogout={handleLogout}
+          onPrivacy={() => setPrivacyOpen(true)}
+        />
+        {privacyOpen && <PrivacyDialog onClose={() => setPrivacyOpen(false)} />}
+      </>
+    );
   }
 
   if (sessionUser) {
-    return <ProductApp user={sessionUser} onLogout={handleLogout} />;
+    return (
+      <>
+        <ProductApp user={sessionUser} onLogout={handleLogout} onPrivacy={() => setPrivacyOpen(true)} />
+        {privacyOpen && <PrivacyDialog onClose={() => setPrivacyOpen(false)} />}
+      </>
+    );
   }
 
   return (
-    <LandingPage
-      authOpen={authOpen}
-      setAuthOpen={setAuthOpen}
-      onDemo={() => setDemoMode(true)}
-    />
+    <>
+      <LandingPage
+        authOpen={authOpen}
+        setAuthOpen={setAuthOpen}
+        onDemo={() => setDemoMode(true)}
+        onPrivacy={() => setPrivacyOpen(true)}
+      />
+      {privacyOpen && <PrivacyDialog onClose={() => setPrivacyOpen(false)} />}
+    </>
   );
 }
 
@@ -243,10 +340,10 @@ function LoadingScreen() {
   );
 }
 
-function LandingPage({ authOpen, setAuthOpen, onDemo }) {
+function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
   return (
     <main className="site-shell">
-      <HeaderNav onLogin={() => setAuthOpen(true)} />
+      <HeaderNav onLogin={() => setAuthOpen(true)} onPrivacy={onPrivacy} />
 
       <section className="hero-section">
         <div className="hero-copy">
@@ -323,12 +420,23 @@ function LandingPage({ authOpen, setAuthOpen, onDemo }) {
         </button>
       </section>
 
-      {authOpen && <AuthDialog onClose={() => setAuthOpen(false)} onDemo={onDemo} />}
+      <SiteFooter onPrivacy={onPrivacy} />
+
+      {authOpen && (
+        <AuthDialog
+          onClose={() => setAuthOpen(false)}
+          onDemo={onDemo}
+          onPrivacy={() => {
+            setAuthOpen(false);
+            onPrivacy();
+          }}
+        />
+      )}
     </main>
   );
 }
 
-function HeaderNav({ onLogin }) {
+function HeaderNav({ onLogin, onPrivacy }) {
   return (
     <header className="top-nav">
       <a href="/" className="brand-lockup" aria-label="Lonely Hearts Club home">
@@ -337,6 +445,9 @@ function HeaderNav({ onLogin }) {
       </a>
       <nav>
         <a href="#hoe">Hoe het werkt</a>
+        <button className="nav-link" type="button" onClick={onPrivacy}>
+          Privacy
+        </button>
         <button className="nav-button" onClick={onLogin}>
           Inloggen
         </button>
@@ -345,25 +456,103 @@ function HeaderNav({ onLogin }) {
   );
 }
 
-function AuthDialog({ onClose, onDemo }) {
+function SiteFooter({ onPrivacy }) {
+  return (
+    <footer className="site-footer">
+      <span>Lonely Hearts Club</span>
+      <button className="inline-link" type="button" onClick={onPrivacy}>
+        Privacy & gegevens
+      </button>
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+    </footer>
+  );
+}
+
+function PrivacyDialog({ onClose }) {
+  return (
+    <div className="dialog-backdrop" role="presentation">
+      <section className="privacy-dialog" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+        <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
+          x
+        </button>
+        <p className="eyebrow">Privacy & gegevens</p>
+        <h2 id="privacy-title">Jij houdt grip op je datingdata.</h2>
+        <p>
+          Lonely Hearts Club verwerkt alleen gegevens die nodig zijn om je account, profiel, matches en
+          berichten te laten werken.
+        </p>
+
+        <div className="privacy-grid">
+          <article>
+            <h3>Wat we opslaan</h3>
+            <p>
+              Je e-mailadres, profielgegevens, leeftijd, geslacht, zoekvoorkeur, passies, likes, matches,
+              berichten en technische accountgegevens.
+            </p>
+          </article>
+          <article>
+            <h3>Waarom</h3>
+            <p>
+              Voor inloggen, matching, misbruikpreventie, beveiliging en het tonen van gesprekken tussen
+              mensen die allebei interesse hebben.
+            </p>
+          </article>
+          <article>
+            <h3>Gevoelige voorkeuren</h3>
+            <p>
+              Geslacht, zoekvoorkeur en profieltekst kunnen gevoelige datinginformatie bevatten. We vragen
+              daarom apart om expliciete toestemming bij het opslaan van je profiel.
+            </p>
+          </article>
+          <article>
+            <h3>Verwerkers</h3>
+            <p>
+              De app gebruikt Supabase voor account en database, Vercel voor hosting en alleen bij
+              ingeschakelde belfunctionaliteit Twilio voor gespreksverbindingen.
+            </p>
+          </article>
+          <article>
+            <h3>Je rechten</h3>
+            <p>
+              Je kunt vragen om inzage, correctie, export, beperking of verwijdering van je gegevens. Je kunt
+              toestemming later intrekken.
+            </p>
+          </article>
+          <article>
+            <h3>Contact</h3>
+            <p>
+              Stuur privacyverzoeken naar <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Gebruik
+              het e-mailadres waarmee je bent geregistreerd.
+            </p>
+          </article>
+        </div>
+
+        <p className="privacy-note">
+          Op dit moment gebruikt de site geen marketingcookies vanuit de app-code. Als analytics of advertentiecookies
+          later worden toegevoegd, moet daarvoor apart toestemming worden gevraagd.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function AuthDialog({ onClose, onDemo, onPrivacy }) {
   const [mode, setMode] = useState("link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const validEmail = email.includes("@") && email.includes(".");
+  const needsPrivacyConsent = mode !== "login";
 
   const submit = async (event) => {
     event.preventDefault();
     setError("");
     setStatus("");
 
-    if (!hasSupabaseConfig || !supabase) {
-      setError("Supabase is nog niet gekoppeld. Gebruik nu de demo.");
-      return;
-    }
     if (!validEmail) {
       setError("Vul een geldig e-mailadres in.");
       return;
@@ -372,15 +561,30 @@ function AuthDialog({ onClose, onDemo }) {
       setError("Gebruik minimaal 6 tekens voor je wachtwoord.");
       return;
     }
+    if (needsPrivacyConsent && !privacyAccepted) {
+      setError("Accepteer eerst de privacyverklaring om een account te starten.");
+      return;
+    }
+    if (!hasSupabaseConfig || !supabase) {
+      setError("Supabase is nog niet gekoppeld. Gebruik nu de demo.");
+      return;
+    }
 
     setLoading(true);
     try {
+      const acceptedAt = consentTimestamp();
+      const authOptions = {
+        emailRedirectTo: window.location.origin,
+        data: consentMetadata(acceptedAt),
+      };
+
       if (mode === "link") {
         const { error: authError } = await supabase.auth.signInWithOtp({
           email,
-          options: { emailRedirectTo: window.location.origin },
+          options: authOptions,
         });
         if (authError) throw authError;
+        await upsertWaitlist(email, acceptedAt);
         setStatus("Check je inbox. We hebben een veilige inloglink gestuurd.");
       }
 
@@ -388,10 +592,10 @@ function AuthDialog({ onClose, onDemo }) {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: authOptions,
         });
         if (signUpError) throw signUpError;
-        await supabase.from("waitlist").upsert({ email });
+        await upsertWaitlist(email, acceptedAt);
         setStatus("Account aangemaakt. Bevestig je e-mail als Supabase daarom vraagt.");
       }
 
@@ -433,6 +637,7 @@ function AuthDialog({ onClose, onDemo }) {
                 setMode(id);
                 setError("");
                 setStatus("");
+                if (id === "login") setPrivacyAccepted(false);
               }}
             >
               {label}
@@ -464,6 +669,24 @@ function AuthDialog({ onClose, onDemo }) {
             </label>
           )}
 
+          {needsPrivacyConsent && (
+            <div className="check-row">
+              <input
+                id="auth-privacy-accepted"
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(event) => setPrivacyAccepted(event.target.checked)}
+              />
+              <label htmlFor="auth-privacy-accepted">
+                Ik ga akkoord met de verwerking van mijn accountgegevens en de{" "}
+                <button className="inline-link" type="button" onClick={onPrivacy}>
+                  privacyverklaring
+                </button>
+                .
+              </label>
+            </div>
+          )}
+
           {error && <p className="form-message error">{error}</p>}
           {status && <p className="form-message success">{status}</p>}
 
@@ -479,7 +702,7 @@ function AuthDialog({ onClose, onDemo }) {
   );
 }
 
-function ProductApp({ user, initialProfile = null, demoMode = false, onLogout }) {
+function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, onPrivacy }) {
   const [activeTab, setActiveTab] = useState("discover");
   const [profile, setProfile] = useState(initialProfile ? normalizeProfile(initialProfile) : null);
   const [needsProfile, setNeedsProfile] = useState(!initialProfile);
@@ -679,7 +902,15 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout })
   };
 
   if (needsProfile) {
-    return <Onboarding user={user} onSaved={handleProfileSaved} demoMode={demoMode} onLogout={onLogout} />;
+    return (
+      <Onboarding
+        user={user}
+        onSaved={handleProfileSaved}
+        demoMode={demoMode}
+        onLogout={onLogout}
+        onPrivacy={onPrivacy}
+      />
+    );
   }
 
   return (
@@ -704,6 +935,10 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout })
             </button>
           ))}
         </nav>
+
+        <button className="text-button align-left sidebar-link" type="button" onClick={onPrivacy}>
+          Privacy & gegevens
+        </button>
 
         <button className="secondary-button wide" onClick={onLogout}>
           {demoMode ? "Demo sluiten" : "Uitloggen"}
@@ -746,7 +981,13 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout })
         )}
 
         {activeTab === "profile" && (
-          <ProfileView profile={profile} user={user} onSaved={handleProfileSaved} demoMode={demoMode} />
+          <ProfileView
+            profile={profile}
+            user={user}
+            onSaved={handleProfileSaved}
+            demoMode={demoMode}
+            onPrivacy={onPrivacy}
+          />
         )}
       </section>
     </main>
@@ -770,7 +1011,7 @@ function AppHeader({ profile, notice, onRefresh, loading }) {
   );
 }
 
-function Onboarding({ user, onSaved, demoMode, onLogout }) {
+function Onboarding({ user, onSaved, demoMode, onLogout, onPrivacy }) {
   return (
     <main className="onboarding-shell">
       <section className="onboarding-panel">
@@ -782,25 +1023,25 @@ function Onboarding({ user, onSaved, demoMode, onLogout }) {
         <p>
           Andere leden zien je naam, leeftijd, verhaal en passies. Je foto blijft bewust buiten beeld.
         </p>
-        <ProfileForm user={user} onSaved={onSaved} demoMode={demoMode} />
+        <ProfileForm user={user} onSaved={onSaved} demoMode={demoMode} onPrivacy={onPrivacy} />
       </section>
     </main>
   );
 }
 
-function ProfileView({ profile, user, onSaved, demoMode }) {
+function ProfileView({ profile, user, onSaved, demoMode, onPrivacy }) {
   return (
     <section className="content-section">
       <div className="section-heading">
         <p className="eyebrow">Profiel</p>
         <h2>Houd je verhaal actueel.</h2>
       </div>
-      <ProfileForm user={user} profile={profile} onSaved={onSaved} demoMode={demoMode} />
+      <ProfileForm user={user} profile={profile} onSaved={onSaved} demoMode={demoMode} onPrivacy={onPrivacy} />
     </section>
   );
 }
 
-function ProfileForm({ user, profile = null, onSaved, demoMode = false }) {
+function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivacy }) {
   const [form, setForm] = useState(() => ({
     naam: profile?.naam ?? "",
     leeftijd: profile?.leeftijd ? String(profile.leeftijd) : "",
@@ -809,6 +1050,9 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false }) {
     verhaal: profile?.verhaal ?? "",
     passies: normalizeList(profile?.passies).join(", "),
   }));
+  const [sensitiveConsent, setSensitiveConsent] = useState(
+    () => Boolean(profile?.sensitive_data_consent_at) || hasStoredSensitiveConsent(user.id),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -835,6 +1079,12 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false }) {
       setError("Schrijf minimaal een korte zin over jezelf.");
       return;
     }
+    if (!sensitiveConsent) {
+      setError("Geef expliciet toestemming voor het verwerken van je datingvoorkeuren.");
+      return;
+    }
+
+    const acceptedAt = profile?.sensitive_data_consent_at || consentTimestamp();
 
     const payload = {
       id: user.id,
@@ -847,9 +1097,14 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false }) {
       passies: passionList,
       tags: passionList,
       actief: true,
+      privacy_consent_at: profile?.privacy_consent_at || acceptedAt,
+      privacy_consent_version: CONSENT_VERSION,
+      sensitive_data_consent_at: acceptedAt,
+      consent_version: CONSENT_VERSION,
     };
 
     if (demoMode) {
+      rememberSensitiveConsent(user.id);
       onSaved(payload);
       return;
     }
@@ -860,13 +1115,14 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false }) {
     }
 
     setSaving(true);
-    const { error: saveError } = await supabase.from("profiles").upsert(payload);
+    const { error: saveError } = await upsertProfile(payload);
     setSaving(false);
 
     if (saveError) {
       setError(saveError.message);
       return;
     }
+    rememberSensitiveConsent(user.id);
     onSaved(payload);
   };
 
@@ -936,6 +1192,22 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false }) {
             {passion}
           </button>
         ))}
+      </div>
+
+      <div className="check-row">
+        <input
+          id="profile-sensitive-consent"
+          type="checkbox"
+          checked={sensitiveConsent}
+          onChange={(event) => setSensitiveConsent(event.target.checked)}
+        />
+        <label htmlFor="profile-sensitive-consent">
+          Ik geef expliciet toestemming voor het verwerken van mijn geslacht, zoekvoorkeur en profieltekst voor matching.{" "}
+          <button className="inline-link" type="button" onClick={onPrivacy}>
+            Lees privacy
+          </button>
+          .
+        </label>
       </div>
 
       {error && <p className="form-message error">{error}</p>}

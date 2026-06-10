@@ -17,6 +17,10 @@ alter table profiles add column if not exists passies text[] default '{}';
 alter table profiles add column if not exists tags text[] default '{}';
 alter table profiles add column if not exists foto_url text;
 alter table profiles add column if not exists actief boolean default true;
+alter table profiles add column if not exists privacy_consent_at timestamptz;
+alter table profiles add column if not exists privacy_consent_version text;
+alter table profiles add column if not exists sensitive_data_consent_at timestamptz;
+alter table profiles add column if not exists consent_version text;
 alter table profiles add column if not exists created_at timestamptz default now();
 alter table profiles add column if not exists updated_at timestamptz default now();
 
@@ -44,6 +48,9 @@ create table if not exists waitlist (
   email text primary key,
   created_at timestamptz default now()
 );
+
+alter table waitlist add column if not exists privacy_consent_at timestamptz;
+alter table waitlist add column if not exists consent_version text;
 
 create table if not exists interests (
   id uuid primary key default gen_random_uuid()
@@ -221,7 +228,7 @@ drop policy if exists "Eigen profiel aanmaken" on profiles;
 drop policy if exists "Eigen profiel bijwerken" on profiles;
 
 create policy "Profielen lezen"
-  on profiles for select using (true);
+  on profiles for select using (auth.role() = 'authenticated');
 
 create policy "Eigen profiel aanmaken"
   on profiles for insert with check (auth.uid() = id);

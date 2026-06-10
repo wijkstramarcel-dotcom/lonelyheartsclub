@@ -101,9 +101,22 @@ button:disabled {
   font-size: 14px;
 }
 
+.nav-link,
+.inline-link {
+  padding: 0;
+  color: #9a4329;
+  background: none;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
 .nav-button,
+.nav-link,
 .secondary-button,
 .text-button,
+.inline-link,
 .icon-button,
 .like-button,
 .match-row,
@@ -377,6 +390,28 @@ button:disabled {
   gap: 28px;
 }
 
+.site-footer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 48px) 34px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  color: #6e6258;
+  font-size: 13px;
+}
+
+.site-footer span {
+  color: #1d1a16;
+  font-weight: 900;
+}
+
+.site-footer a {
+  color: #6e6258;
+  text-decoration: none;
+}
+
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -392,6 +427,18 @@ button:disabled {
   position: relative;
   width: min(100%, 480px);
   padding: 28px;
+}
+
+.privacy-dialog {
+  position: relative;
+  width: min(100%, 860px);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  border: 1px solid rgba(29, 26, 22, 0.11);
+  border-radius: 8px;
+  padding: 30px;
+  background: #fffdfa;
+  box-shadow: 0 26px 80px rgba(29, 26, 22, 0.18);
 }
 
 .close-button {
@@ -420,9 +467,53 @@ button:disabled {
   font-size: 34px;
 }
 
+.privacy-dialog h2 {
+  margin: 0 42px 12px 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1.05;
+}
+
+.privacy-dialog h3 {
+  margin: 0 0 8px;
+  color: #1d1a16;
+  font-size: 16px;
+}
+
 .auth-dialog p {
   color: #5d5147;
   line-height: 1.6;
+}
+
+.privacy-dialog p {
+  color: #5d5147;
+  line-height: 1.6;
+}
+
+.privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.privacy-grid article {
+  border: 1px solid rgba(29, 26, 22, 0.1);
+  border-radius: 8px;
+  padding: 18px;
+  background: #fbf7f1;
+}
+
+.privacy-grid p,
+.privacy-note {
+  margin: 0;
+}
+
+.privacy-note {
+  margin-top: 18px;
+  border-left: 4px solid #2f655d;
+  padding: 12px 14px;
+  background: rgba(47, 101, 93, 0.08);
 }
 
 .segmented-control {
@@ -474,6 +565,33 @@ select {
 
 textarea {
   resize: vertical;
+}
+
+.check-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 11px;
+  align-items: flex-start;
+  border: 1px solid rgba(47, 101, 93, 0.18);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(47, 101, 93, 0.06);
+}
+
+.check-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: #2f655d;
+}
+
+.check-row label {
+  display: block;
+  color: #413832;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .form-message {
@@ -565,6 +683,11 @@ textarea {
 .app-tabs button.active {
   color: #fffdfa;
   background: #1d1a16;
+}
+
+.sidebar-link {
+  margin-top: auto;
+  text-align: left;
 }
 
 .app-main {
@@ -867,7 +990,8 @@ textarea {
   .steps-grid,
   .closing-section,
   .app-shell,
-  .form-grid {
+  .form-grid,
+  .privacy-grid {
     grid-template-columns: 1fr;
   }
 
@@ -896,6 +1020,10 @@ textarea {
     height: auto;
     border-right: 0;
     border-bottom: 1px solid rgba(29, 26, 22, 0.1);
+  }
+
+  .sidebar-link {
+    margin-top: 0;
   }
 
   .app-tabs {
@@ -930,8 +1058,16 @@ textarea {
     padding: 12px 14px;
   }
 
+  .top-nav nav {
+    gap: 10px;
+  }
+
   .brand-lockup span {
     font-size: 14px;
+  }
+
+  .privacy-dialog {
+    padding: 24px 18px;
   }
 
   .hero-section {
