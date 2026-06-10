@@ -546,7 +546,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
   const [loading, setLoading] = useState(false);
 
   const validEmail = email.includes("@") && email.includes(".");
-  const needsPrivacyConsent = mode !== "login";
+  const needsPrivacyConsent = mode === "signup";
 
   const submit = async (event) => {
     event.preventDefault();
@@ -572,23 +572,24 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
 
     setLoading(true);
     try {
-      const acceptedAt = consentTimestamp();
-      const authOptions = {
-        emailRedirectTo: window.location.origin,
-        data: consentMetadata(acceptedAt),
-      };
-
       if (mode === "link") {
         const { error: authError } = await supabase.auth.signInWithOtp({
           email,
-          options: authOptions,
+          options: {
+            emailRedirectTo: window.location.origin,
+            shouldCreateUser: false,
+          },
         });
         if (authError) throw authError;
-        await upsertWaitlist(email, acceptedAt);
-        setStatus("Check je inbox. We hebben een veilige inloglink gestuurd.");
+        setStatus("Check je inbox. We hebben een veilige inloglink gestuurd als dit account bestaat.");
       }
 
       if (mode === "signup") {
+        const acceptedAt = consentTimestamp();
+        const authOptions = {
+          emailRedirectTo: window.location.origin,
+          data: consentMetadata(acceptedAt),
+        };
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -604,7 +605,12 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         if (loginError) throw loginError;
       }
     } catch (err) {
-      setError(err.message || "Inloggen lukte niet. Probeer het opnieuw.");
+      const message = err.message || "Inloggen lukte niet. Probeer het opnieuw.";
+      if (mode === "link" && (message.toLowerCase().includes("signup") || message.toLowerCase().includes("signups"))) {
+        setError("Geen bestaand account gevonden. Kies Account om je eerst te registreren.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -619,8 +625,8 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         <img src="/lhc-seal.svg" alt="" className="dialog-logo" />
         <h2 id="auth-title">Begin veilig</h2>
         <p>
-          Log in met een magische link of maak een account met wachtwoord. De app maakt daarna je
-          profiel aan zonder foto.
+          Log in met een link of wachtwoord als je al een account hebt. Nieuw hier? Kies Account en
+          maak daarna je profiel zonder foto.
         </p>
 
         <div className="segmented-control" role="tablist" aria-label="Inlogmethode">
