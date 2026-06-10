@@ -125,6 +125,39 @@ function normalizeProfile(profile) {
   };
 }
 
+function normalizeGender(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.includes("vrouw")) return "women";
+  if (text.includes("man")) return "men";
+  if (text.includes("non") || text.includes("binair")) return "nonbinary";
+  return "";
+}
+
+function normalizePreference(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return new Set();
+  if (text.includes("iedereen")) return new Set(["women", "men", "nonbinary"]);
+
+  const preference = new Set();
+  if (text.includes("vrouw")) preference.add("women");
+  if (text.includes("man")) preference.add("men");
+  if (text.includes("non") || text.includes("binair")) preference.add("nonbinary");
+  return preference;
+}
+
+function fitsPreference(viewerProfile, candidateProfile) {
+  const wantedGenders = normalizePreference(viewerProfile?.zoekt);
+  if (!wantedGenders.size) return true;
+
+  const candidateGender = normalizeGender(candidateProfile?.geslacht);
+  return Boolean(candidateGender && wantedGenders.has(candidateGender));
+}
+
+function isPotentialMatch(viewerProfile, candidateProfile) {
+  return fitsPreference(viewerProfile, candidateProfile) && fitsPreference(candidateProfile, viewerProfile);
+}
+
 function getOtherUserId(match, userId) {
   return match.user_a === userId ? match.user_b : match.user_a;
 }
@@ -466,8 +499,8 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout })
 
   const allOtherProfiles = useMemo(() => {
     const matchedIds = new Set(matches.map((match) => getOtherUserId(match, user.id)));
-    return profiles.filter((item) => item.id !== user.id && !matchedIds.has(item.id));
-  }, [matches, profiles, user.id]);
+    return profiles.filter((item) => item.id !== user.id && !matchedIds.has(item.id) && isPotentialMatch(profile, item));
+  }, [matches, profile, profiles, user.id]);
 
   const loadData = async () => {
     if (demoMode || !hasSupabaseConfig || !supabase) {
@@ -920,7 +953,7 @@ function DiscoverView({ profiles, interestedIds, onLike, loading }) {
     return (
       <EmptyState
         title="Nog geen nieuwe leden"
-        text="Je profiel staat klaar. Zodra er meer leden actief zijn, verschijnen ze hier."
+        text="Je profiel staat klaar. Zodra er leden actief zijn die bij je voorkeur passen, verschijnen ze hier."
       />
     );
   }
