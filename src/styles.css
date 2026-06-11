@@ -818,6 +818,31 @@ button:disabled {
   line-height: 1.5;
 }
 
+.auth-recovery-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(47, 101, 93, 0.18);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(47, 101, 93, 0.08);
+}
+
+.auth-recovery-panel strong,
+.auth-recovery-panel span {
+  display: block;
+}
+
+.auth-recovery-panel strong {
+  color: #1d1a16;
+  font-size: 13px;
+}
+
+.auth-recovery-panel span {
+  color: #5d5147;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .auth-form,
 .profile-form {
   display: grid;

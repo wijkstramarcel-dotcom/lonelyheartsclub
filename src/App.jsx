@@ -208,7 +208,7 @@ const AUTH_MODES = [
     label: "Wachtwoord",
     hint: "bestaand account",
     title: "Inloggen met wachtwoord",
-    text: "Gebruik dit als je e-mailadres al bevestigd is en je het wachtwoord weet. Lukt dit niet, probeer dan eerst Inloglink.",
+    text: "Gebruik dit als je e-mailadres al bevestigd is en je ooit een wachtwoord hebt ingesteld. Anders kun je hieronder een wachtwoordlink aanvragen.",
     submit: "Log in",
   },
   {
@@ -223,7 +223,7 @@ const AUTH_MODES = [
 
 const AUTH_GUIDE_ITEMS = [
   ["Al eerder aangemeld?", "Kies Inloglink. Dat werkt ook als je je wachtwoord niet weet."],
-  ["Wachtwoord ingesteld?", "Kies Wachtwoord als je mail al bevestigd is."],
+  ["Geen wachtwoord?", "Vraag bij Wachtwoord een link aan om er een in te stellen."],
   ["Nieuw hier?", "Kies Nieuw account en bevestig daarna je e-mailadres."],
 ];
 
@@ -346,6 +346,10 @@ function isValidEmail(value) {
 
 function consentTimestamp() {
   return new Date().toISOString();
+}
+
+function authRedirectUrl() {
+  return window.location.origin;
 }
 
 function consentMetadata(timestamp = consentTimestamp()) {
@@ -502,6 +506,7 @@ export default function App() {
   const [demoMode, setDemoMode] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [passwordRecoveryOpen, setPasswordRecoveryOpen] = useState(false);
 
   useEffect(() => {
     if (!hasSupabaseConfig || !supabase) {
@@ -516,9 +521,19 @@ export default function App() {
       setLoadingSession(false);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       setSessionUser(session?.user ?? null);
-      setAuthOpen(false);
+      if (event === "PASSWORD_RECOVERY") {
+        setPasswordRecoveryOpen(true);
+        setAuthOpen(false);
+        return;
+      }
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        setAuthOpen(false);
+      }
+      if (event === "SIGNED_OUT") {
+        setPasswordRecoveryOpen(false);
+      }
     });
 
     return () => {
@@ -551,6 +566,7 @@ export default function App() {
           onPrivacy={() => setPrivacyOpen(true)}
         />
         {privacyOpen && <PrivacyDialog onClose={() => setPrivacyOpen(false)} />}
+        {passwordRecoveryOpen && <PasswordResetDialog onClose={() => setPasswordRecoveryOpen(false)} />}
       </>
     );
   }
@@ -560,6 +576,7 @@ export default function App() {
       <>
         <ProductApp user={sessionUser} onLogout={handleLogout} onPrivacy={() => setPrivacyOpen(true)} />
         {privacyOpen && <PrivacyDialog onClose={() => setPrivacyOpen(false)} />}
+        {passwordRecoveryOpen && <PasswordResetDialog onClose={() => setPasswordRecoveryOpen(false)} />}
       </>
     );
   }
@@ -573,6 +590,7 @@ export default function App() {
         onPrivacy={() => setPrivacyOpen(true)}
       />
       {privacyOpen && <PrivacyDialog onClose={() => setPrivacyOpen(false)} />}
+      {passwordRecoveryOpen && <PasswordResetDialog onClose={() => setPasswordRecoveryOpen(false)} />}
     </>
   );
 }
@@ -1070,15 +1088,15 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const normalizedEmail = normalizeEmail(email);
   const validEmail = isValidEmail(normalizedEmail);
   const needsPrivacyConsent = mode === "signup";
   const activeAuthMode = AUTH_MODES.find((item) => item.id === mode) ?? AUTH_MODES[0];
   const canResendConfirmation =
-    mode === "signup" ||
-    error.toLowerCase().includes("bevestig") ||
-    status.toLowerCase().includes("bevestig");
+    validEmail &&
+    (error.toLowerCase().includes("bevestig") || status.toLowerCase().includes("bevestig"));
 
   const resendConfirmation = async () => {
     setError("");
@@ -1099,7 +1117,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         type: "signup",
         email: normalizedEmail,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: authRedirectUrl(),
         },
       });
       if (resendError) throw resendError;
@@ -1108,6 +1126,35 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
       setError(err.message || "Bevestigingsmail opnieuw sturen lukte niet. Probeer het straks opnieuw.");
     } finally {
       setResendLoading(false);
+    }
+  };
+
+  const requestPasswordReset = async () => {
+    setError("");
+    setStatus("");
+
+    if (!validEmail) {
+      setError("Vul eerst je e-mailadres in. Dan kunnen we de wachtwoordlink sturen.");
+      return;
+    }
+    if (!hasSupabaseConfig || !supabase) {
+      setError("Supabase is nog niet gekoppeld. Gebruik nu de demo.");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: authRedirectUrl(),
+      });
+      if (resetError) throw resetError;
+      setStatus(
+        "Als dit e-mailadres een account heeft, sturen we nu een link om je wachtwoord in te stellen. Open die link in deze browser.",
+      );
+    } catch (err) {
+      setError(err.message || "Wachtwoordlink sturen lukte niet. Probeer het straks opnieuw.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -1139,7 +1186,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         const { error: authError } = await supabase.auth.signInWithOtp({
           email: normalizedEmail,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: authRedirectUrl(),
             shouldCreateUser: false,
           },
         });
@@ -1150,7 +1197,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
       if (mode === "signup") {
         const acceptedAt = consentTimestamp();
         const authOptions = {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: authRedirectUrl(),
           data: consentMetadata(acceptedAt),
         };
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -1163,7 +1210,9 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         if (signUpData.session) {
           setStatus("Account aangemaakt. Je bent ingelogd; je kunt nu je profiel maken.");
         } else {
-          setStatus("Account gestart. Bevestig je e-mailadres via de link in je inbox. Daarna kun je inloggen met Inloglink of Wachtwoord.");
+          setStatus(
+            "Account gestart. Bevestig je e-mailadres via de link in je inbox. Daarna kom je automatisch terug en kun je je profiel maken.",
+          );
         }
       }
 
@@ -1181,7 +1230,9 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
       } else if (message.toLowerCase().includes("email not confirmed")) {
         setError("Je e-mailadres is nog niet bevestigd. Open eerst de bevestigingsmail of stuur hem hieronder opnieuw.");
       } else if (message.toLowerCase().includes("invalid login credentials")) {
-        setError("E-mailadres of wachtwoord klopt niet. Had je eerder alleen een inloglink gebruikt? Kies dan Inloglink in plaats van Wachtwoord.");
+        setError("E-mailadres of wachtwoord klopt niet. Had je nog geen wachtwoord? Gebruik hieronder Wachtwoord instellen/vergeten.");
+      } else if (mode === "signup" && message.toLowerCase().includes("already")) {
+        setError("Dit e-mailadres heeft waarschijnlijk al een account. Kies Inloglink om veilig verder te gaan.");
       } else {
         setError(message);
       }
@@ -1281,6 +1332,21 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           {error && <p className="form-message error">{error}</p>}
           {status && <p className="form-message success">{status}</p>}
 
+          {mode === "login" && (
+            <div className="auth-recovery-panel">
+              <strong>Geen wachtwoord of vergeten?</strong>
+              <span>Stuur jezelf een veilige link om een nieuw wachtwoord in te stellen.</span>
+              <button
+                className="secondary-button wide"
+                disabled={resetLoading || loading}
+                type="button"
+                onClick={requestPasswordReset}
+              >
+                {resetLoading ? "Link wordt gestuurd" : "Wachtwoord instellen/vergeten"}
+              </button>
+            </div>
+          )}
+
           <button className="primary-button wide" disabled={loading} type="submit">
             {loading ? "Even wachten" : activeAuthMode.submit}
           </button>
@@ -1297,6 +1363,102 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           <button className="text-button" type="button" onClick={onDemo}>
             Bekijk eerst de demo
           </button>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function PasswordResetDialog({ onClose }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setStatus("");
+
+    if (password.length < 6) {
+      setError("Gebruik minimaal 6 tekens voor je nieuwe wachtwoord.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("De twee wachtwoorden zijn niet gelijk.");
+      return;
+    }
+    if (!hasSupabaseConfig || !supabase) {
+      setError("Supabase is nog niet gekoppeld.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+      setPassword("");
+      setConfirmPassword("");
+      setStatus("Wachtwoord opgeslagen. Je bent ingelogd en kunt verder met je profiel.");
+    } catch (err) {
+      const message = err.message || "Wachtwoord opslaan lukte niet.";
+      if (message.toLowerCase().includes("session")) {
+        setError("Deze herstel-link is verlopen. Vraag via Inloggen > Wachtwoord een nieuwe link aan.");
+      } else {
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="dialog-backdrop" role="presentation">
+      <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="password-reset-title">
+        <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
+          x
+        </button>
+        <img src="/lhc-seal.svg" alt="" className="dialog-logo" />
+        <h2 id="password-reset-title">Nieuw wachtwoord instellen</h2>
+        <p>
+          Kies een nieuw wachtwoord voor je Lonely Hearts Club account. Daarna blijf je ingelogd en kun
+          je direct verder.
+        </p>
+
+        <form onSubmit={submit} className="auth-form">
+          <label>
+            Nieuw wachtwoord
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              placeholder="Minimaal 6 tekens"
+              autoComplete="new-password"
+            />
+          </label>
+          <label>
+            Herhaal wachtwoord
+            <input
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              type="password"
+              placeholder="Nog een keer"
+              autoComplete="new-password"
+            />
+          </label>
+
+          {error && <p className="form-message error">{error}</p>}
+          {status && <p className="form-message success">{status}</p>}
+
+          <button className="primary-button wide" disabled={loading} type="submit">
+            {loading ? "Opslaan" : "Sla wachtwoord op"}
+          </button>
+          {status && (
+            <button className="text-button" type="button" onClick={onClose}>
+              Verder naar mijn profiel
+            </button>
+          )}
         </form>
       </section>
     </div>
