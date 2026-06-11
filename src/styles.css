@@ -436,6 +436,36 @@ button:disabled {
   line-height: 1.65;
 }
 
+.faq-section {
+  background: rgba(248, 244, 237, 0.72);
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 34px;
+}
+
+.faq-grid details {
+  border: 1px solid rgba(29, 26, 22, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(255, 253, 250, 0.72);
+}
+
+.faq-grid summary {
+  color: #1d1a16;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.faq-grid p {
+  margin: 14px 0 0;
+  color: #5d5147;
+  line-height: 1.65;
+}
+
 .steps-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -1192,6 +1222,7 @@ textarea {
   .hero-section,
   .steps-grid,
   .story-grid,
+  .faq-grid,
   .pre-register-section,
   .demo-journey,
   .call-panel,
@@ -1219,6 +1250,7 @@ textarea {
   }
 
   .closing-section {
+    flex-direction: column;
     align-items: flex-start;
   }
 

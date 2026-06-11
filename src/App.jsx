@@ -111,6 +111,25 @@ const PRODUCT_FLOW_STEPS = [
   ["05", "Afspreken", "Pas als het goed voelt, stel je een echte ontmoeting voor."],
 ];
 
+const FAQ_ITEMS = [
+  [
+    "Wat is Lonely Hearts Club?",
+    "Lonely Hearts Club is een Nederlandse dating community in pre-registratie. De app draait om rustig matchen, chatten en anoniem bellen voordat je eventueel afspreekt.",
+  ],
+  [
+    "Is dit een dating app zonder foto?",
+    "Je profiel begint zonder foto als eerste oordeel. Leden ontdekken elkaar via verhaal, passies, intentie en gesprek voordat uiterlijk centraal staat.",
+  ],
+  [
+    "Hoe werkt anoniem bellen?",
+    "Na een match en chat kun je een afgeschermde belronde starten. Het doel is dat telefoonnummers prive blijven totdat beide mensen zelf verder willen.",
+  ],
+  [
+    "Kan ik me nu al aanmelden?",
+    "Ja. Je kunt je e-mailadres achterlaten op de wachtlijst. Zodra de eerste echte ledenronde opent, krijg je bericht om eventueel een profiel te maken.",
+  ],
+];
+
 const AUTH_MODES = [
   {
     id: "link",
@@ -477,6 +496,8 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
         </div>
       </section>
 
+      <FAQSection />
+
       <section className="closing-section">
         <div>
           <p className="eyebrow">Voor singles die eerst vertrouwen willen opbouwen</p>
@@ -500,6 +521,25 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
         />
       )}
     </main>
+  );
+}
+
+function FAQSection() {
+  return (
+    <section className="section-band faq-section" id="vragen">
+      <div className="section-inner">
+        <p className="eyebrow">Veelgestelde vragen</p>
+        <h2>Anoniem daten, matchen en voorinschrijven.</h2>
+        <div className="faq-grid">
+          {FAQ_ITEMS.map(([question, answer]) => (
+            <details key={question}>
+              <summary>{question}</summary>
+              <p>{answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -610,6 +650,7 @@ function HeaderNav({ onLogin, onPrivacy }) {
       <nav>
         <a href="#voorinschrijven">Voorinschrijven</a>
         <a href="#hoe">Hoe het werkt</a>
+        <a href="#vragen">Vragen</a>
         <button className="nav-link" type="button" onClick={onPrivacy}>
           Privacy
         </button>

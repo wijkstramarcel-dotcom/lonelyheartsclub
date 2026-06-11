@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://lonelyheartsclub.nl/sitemap.xml
+Sitemap: https://www.lonelyheartsclub.nl/sitemap.xml

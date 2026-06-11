@@ -1,12 +1,12 @@
 {
   "name": "Lonely Hearts Club",
   "short_name": "LHC",
-  "description": "Dating begint met een stem, niet met een foto.",
+  "description": "Privacy-first dating: match, chat en bel anoniem voordat je afspreekt.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0010",
-  "theme_color": "#e8126a",
+  "background_color": "#f8f4ed",
+  "theme_color": "#b14e30",
   "icons": [
     {
       "src": "/lhc-seal.svg",
