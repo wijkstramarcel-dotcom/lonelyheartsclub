@@ -635,6 +635,8 @@ button:disabled {
 .auth-dialog {
   position: relative;
   width: min(100%, 480px);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
   padding: 28px;
 }
 
@@ -692,6 +694,36 @@ button:disabled {
 .auth-dialog p {
   color: #5d5147;
   line-height: 1.6;
+}
+
+.auth-guide {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.auth-guide article {
+  border: 1px solid rgba(29, 26, 22, 0.1);
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: rgba(255, 253, 250, 0.74);
+}
+
+.auth-guide strong,
+.auth-guide span {
+  display: block;
+}
+
+.auth-guide strong {
+  color: #1d1a16;
+  font-size: 13px;
+}
+
+.auth-guide span {
+  margin-top: 3px;
+  color: #6e6258;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .privacy-dialog p {

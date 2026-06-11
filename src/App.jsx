@@ -177,28 +177,34 @@ const FAQ_ITEMS = [
 const AUTH_MODES = [
   {
     id: "link",
-    label: "Bestaand account",
-    hint: "mail-link",
-    title: "Inloggen zonder wachtwoord",
-    text: "Gebruik dit als je al eens bent aangemeld. Je krijgt een veilige link per e-mail. Er wordt geen nieuw account aangemaakt.",
+    label: "Inloglink",
+    hint: "zonder wachtwoord",
+    title: "Ik heb al een account",
+    text: "Beste keuze als je al eerder bent aangemeld of je wachtwoord niet weet. Je krijgt een veilige link per e-mail. We maken hiermee geen nieuw account aan.",
     submit: "Stuur inloglink",
-  },
-  {
-    id: "signup",
-    label: "Nieuw account",
-    hint: "registreren",
-    title: "Nieuw account maken",
-    text: "Gebruik dit alleen als je nog geen account hebt. Je kiest een wachtwoord en bevestigt daarna mogelijk eerst je e-mail.",
-    submit: "Maak account",
   },
   {
     id: "login",
     label: "Wachtwoord",
     hint: "bestaand account",
     title: "Inloggen met wachtwoord",
-    text: "Gebruik dit als je account al bestaat, je e-mail bevestigd is en je het wachtwoord weet.",
+    text: "Gebruik dit als je e-mailadres al bevestigd is en je het wachtwoord weet. Lukt dit niet, probeer dan eerst Inloglink.",
     submit: "Log in",
   },
+  {
+    id: "signup",
+    label: "Nieuw account",
+    hint: "registreren",
+    title: "Nieuw account maken",
+    text: "Gebruik dit alleen als je nog geen account hebt. Je kiest een wachtwoord en bevestigt daarna je e-mail voordat je profiel echt actief wordt.",
+    submit: "Maak account",
+  },
+];
+
+const AUTH_GUIDE_ITEMS = [
+  ["Al eerder aangemeld?", "Kies Inloglink. Dat werkt ook als je je wachtwoord niet weet."],
+  ["Wachtwoord ingesteld?", "Kies Wachtwoord als je mail al bevestigd is."],
+  ["Nieuw hier?", "Kies Nieuw account en bevestig daarna je e-mailadres."],
 ];
 
 const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
@@ -276,6 +282,14 @@ function classNames(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+}
+
 function consentTimestamp() {
   return new Date().toISOString();
 }
@@ -311,11 +325,14 @@ async function upsertWaitlist(email, timestamp) {
   };
 
   const { error } = await supabase.from("waitlist").insert(fullPayload);
-  if (!error || isDuplicateEmailError(error)) return;
+  if (!error) return { duplicate: false };
+  if (isDuplicateEmailError(error)) return { duplicate: true };
   if (!isMissingConsentColumnError(error)) throw error;
 
   const { error: fallbackError } = await supabase.from("waitlist").insert({ email });
-  if (fallbackError && !isDuplicateEmailError(fallbackError)) throw fallbackError;
+  if (!fallbackError) return { duplicate: false };
+  if (isDuplicateEmailError(fallbackError)) return { duplicate: true };
+  throw fallbackError;
 }
 
 async function upsertProfile(payload) {
@@ -653,8 +670,8 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
     setStatus("");
     setError("");
 
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail.includes("@") || !normalizedEmail.includes(".")) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!isValidEmail(normalizedEmail)) {
       setError("Vul een geldig e-mailadres in.");
       return;
     }
@@ -669,8 +686,12 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
 
     setLoading(true);
     try {
-      await upsertWaitlist(normalizedEmail, consentTimestamp());
-      setStatus("Je staat op de wachtlijst. We mailen je zodra de volgende groep leden wordt toegelaten.");
+      const result = await upsertWaitlist(normalizedEmail, consentTimestamp());
+      setStatus(
+        result?.duplicate
+          ? "Je stond al op de wachtlijst. We mailen je zodra de volgende groep leden wordt toegelaten."
+          : "Je staat op de wachtlijst. We mailen je zodra de volgende groep leden wordt toegelaten.",
+      );
       setEmail("");
       setPrivacyAccepted(false);
     } catch (err) {
@@ -849,10 +870,47 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
-  const validEmail = email.includes("@") && email.includes(".");
+  const normalizedEmail = normalizeEmail(email);
+  const validEmail = isValidEmail(normalizedEmail);
   const needsPrivacyConsent = mode === "signup";
   const activeAuthMode = AUTH_MODES.find((item) => item.id === mode) ?? AUTH_MODES[0];
+  const canResendConfirmation =
+    mode === "signup" ||
+    error.toLowerCase().includes("bevestig") ||
+    status.toLowerCase().includes("bevestig");
+
+  const resendConfirmation = async () => {
+    setError("");
+    setStatus("");
+
+    if (!validEmail) {
+      setError("Vul eerst het e-mailadres in waarvoor je de bevestigingsmail wilt ontvangen.");
+      return;
+    }
+    if (!hasSupabaseConfig || !supabase) {
+      setError("Supabase is nog niet gekoppeld. Gebruik nu de demo.");
+      return;
+    }
+
+    setResendLoading(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (resendError) throw resendError;
+      setStatus("Bevestigingsmail opnieuw verstuurd. Check ook je spam of reclamefolder.");
+    } catch (err) {
+      setError(err.message || "Bevestigingsmail opnieuw sturen lukte niet. Probeer het straks opnieuw.");
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -880,14 +938,14 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
     try {
       if (mode === "link") {
         const { error: authError } = await supabase.auth.signInWithOtp({
-          email,
+          email: normalizedEmail,
           options: {
             emailRedirectTo: window.location.origin,
             shouldCreateUser: false,
           },
         });
         if (authError) throw authError;
-        setStatus("Check je inbox. We hebben een veilige inloglink gestuurd als dit account bestaat.");
+        setStatus("Check je inbox. Als dit e-mailadres een account heeft, staat daar nu een veilige inloglink.");
       }
 
       if (mode === "signup") {
@@ -897,21 +955,24 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           data: consentMetadata(acceptedAt),
         };
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
+          email: normalizedEmail,
           password,
           options: authOptions,
         });
         if (signUpError) throw signUpError;
-        await upsertWaitlist(email, acceptedAt);
+        await upsertWaitlist(normalizedEmail, acceptedAt);
         if (signUpData.session) {
           setStatus("Account aangemaakt. Je bent ingelogd; je kunt nu je profiel maken.");
         } else {
-          setStatus("Account aangemaakt. Bevestig eerst je e-mail via de link in je inbox. Daarna kun je inloggen met Inloglink of Wachtwoord.");
+          setStatus("Account gestart. Bevestig je e-mailadres via de link in je inbox. Daarna kun je inloggen met Inloglink of Wachtwoord.");
         }
       }
 
       if (mode === "login") {
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
         if (loginError) throw loginError;
       }
     } catch (err) {
@@ -919,9 +980,9 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
       if (mode === "link" && (message.toLowerCase().includes("signup") || message.toLowerCase().includes("signups"))) {
         setError("Geen bestaand account gevonden. Kies Nieuw account om je eerst te registreren.");
       } else if (message.toLowerCase().includes("email not confirmed")) {
-        setError("Je e-mailadres is nog niet bevestigd. Open eerst de bevestigingsmail, of gebruik Inloglink om opnieuw een mail te sturen.");
+        setError("Je e-mailadres is nog niet bevestigd. Open eerst de bevestigingsmail of stuur hem hieronder opnieuw.");
       } else if (message.toLowerCase().includes("invalid login credentials")) {
-        setError("E-mailadres of wachtwoord klopt niet. Had je eerder alleen een inloglink gebruikt? Kies dan Inloglink.");
+        setError("E-mailadres of wachtwoord klopt niet. Had je eerder alleen een inloglink gebruikt? Kies dan Inloglink in plaats van Wachtwoord.");
       } else {
         setError(message);
       }
@@ -937,11 +998,20 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           x
         </button>
         <img src="/lhc-seal.svg" alt="" className="dialog-logo" />
-        <h2 id="auth-title">Begin veilig</h2>
+        <h2 id="auth-title">Inloggen of account maken</h2>
         <p>
-          Kies eerst of je al een account hebt of nieuw bent. Oude profielen blijven gekoppeld aan het
-          e-mailadres waarmee ze zijn gemaakt.
+          Begin met het e-mailadres waarmee je eerder bent aangemeld. Profielen blijven aan dat adres
+          gekoppeld; maak alleen een nieuw account als je echt nieuw bent.
         </p>
+
+        <div className="auth-guide" aria-label="Welke keuze past bij mij?">
+          {AUTH_GUIDE_ITEMS.map(([title, text]) => (
+            <article key={title}>
+              <strong>{title}</strong>
+              <span>{text}</span>
+            </article>
+          ))}
+        </div>
 
         <div className="segmented-control" role="tablist" aria-label="Inlogmethode">
           {AUTH_MODES.map(({ id, label, hint }) => (
@@ -953,7 +1023,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
                 setMode(id);
                 setError("");
                 setStatus("");
-                if (id === "login") setPrivacyAccepted(false);
+                if (id !== "signup") setPrivacyAccepted(false);
               }}
             >
               <span>{label}</span>
@@ -1015,6 +1085,16 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           <button className="primary-button wide" disabled={loading} type="submit">
             {loading ? "Even wachten" : activeAuthMode.submit}
           </button>
+          {canResendConfirmation && (
+            <button
+              className="secondary-button wide"
+              disabled={resendLoading || loading}
+              type="button"
+              onClick={resendConfirmation}
+            >
+              {resendLoading ? "Opnieuw sturen" : "Bevestigingsmail opnieuw sturen"}
+            </button>
+          )}
           <button className="text-button" type="button" onClick={onDemo}>
             Bekijk eerst de demo
           </button>
