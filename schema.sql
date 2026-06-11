@@ -52,6 +52,16 @@ create table if not exists waitlist (
 alter table waitlist add column if not exists privacy_consent_at timestamptz;
 alter table waitlist add column if not exists consent_version text;
 
+create table if not exists analytics_events (
+  id uuid primary key default gen_random_uuid()
+);
+
+alter table analytics_events add column if not exists event_name text;
+alter table analytics_events add column if not exists page_path text;
+alter table analytics_events add column if not exists referrer_host text;
+alter table analytics_events add column if not exists metadata jsonb default '{}'::jsonb;
+alter table analytics_events add column if not exists created_at timestamptz default now();
+
 create table if not exists interests (
   id uuid primary key default gen_random_uuid()
 );
@@ -158,6 +168,43 @@ begin
   end if;
 
   if not exists (
+    select 1 from pg_constraint where conname = 'analytics_events_event_name_check'
+  ) then
+    alter table analytics_events add constraint analytics_events_event_name_check
+      check (
+        event_name in (
+          'landing_view',
+          'waitlist_cta_click',
+          'waitlist_view',
+          'waitlist_submit',
+          'demo_open',
+          'account_start'
+        )
+      ) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'analytics_events_page_path_check'
+  ) then
+    alter table analytics_events add constraint analytics_events_page_path_check
+      check (page_path is null or char_length(page_path) <= 180) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'analytics_events_referrer_host_check'
+  ) then
+    alter table analytics_events add constraint analytics_events_referrer_host_check
+      check (referrer_host is null or char_length(referrer_host) <= 180) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'analytics_events_metadata_check'
+  ) then
+    alter table analytics_events add constraint analytics_events_metadata_check
+      check (metadata is null or (jsonb_typeof(metadata) = 'object' and char_length(metadata::text) <= 1000)) not valid;
+  end if;
+
+  if not exists (
     select 1 from pg_constraint where conname = 'blocks_blocker_id_blocked_id_key'
   ) then
     alter table blocks add constraint blocks_blocker_id_blocked_id_key
@@ -203,6 +250,7 @@ $$;
 
 create index if not exists interests_from_user_idx on interests(from_user);
 create index if not exists interests_to_user_idx on interests(to_user);
+create index if not exists analytics_events_event_created_idx on analytics_events(event_name, created_at desc);
 create index if not exists matches_user_a_idx on matches(user_a);
 create index if not exists matches_user_b_idx on matches(user_b);
 create index if not exists messages_match_created_idx on messages(match_id, created_at);
@@ -290,6 +338,7 @@ create trigger on_block_inserted
 
 alter table profiles enable row level security;
 alter table waitlist enable row level security;
+alter table analytics_events enable row level security;
 alter table interests enable row level security;
 alter table matches enable row level security;
 alter table calls enable row level security;
@@ -305,7 +354,7 @@ begin
     select schemaname, tablename, policyname
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('profiles', 'interests', 'matches', 'calls', 'messages', 'blocks', 'reports')
+      and tablename in ('profiles', 'analytics_events', 'interests', 'matches', 'calls', 'messages', 'blocks', 'reports')
   loop
     execute format(
       'drop policy if exists %I on %I.%I',
@@ -337,6 +386,21 @@ drop policy if exists "Iedereen mag waitlist bijwerken" on waitlist;
 
 create policy "Iedereen mag waitlist inschrijven"
   on waitlist for insert with check (true);
+
+drop policy if exists "Conversie event toevoegen" on analytics_events;
+
+create policy "Conversie event toevoegen"
+  on analytics_events for insert with check (
+    event_name in (
+      'landing_view',
+      'waitlist_cta_click',
+      'waitlist_view',
+      'waitlist_submit',
+      'demo_open',
+      'account_start'
+    )
+    and (metadata is null or (jsonb_typeof(metadata) = 'object' and char_length(metadata::text) <= 1000))
+  );
 
 drop policy if exists "Eigen interesses lezen" on interests;
 drop policy if exists "Interesse toevoegen" on interests;

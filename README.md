@@ -88,6 +88,33 @@ Relevante docs:
 - Twilio Voice JavaScript SDK: https://www.twilio.com/docs/voice/sdks/javascript
 - Twilio `<Client>` TwiML: https://www.twilio.com/docs/voice/twiml/client
 
+## Conversiemeting
+
+De site gebruikt geen externe analytics en plaatst geen trackingcookies. Conversies worden als losse
+events in Supabase opgeslagen in `analytics_events`.
+
+Vastgelegde events:
+
+- `landing_view`: openbare landingspagina geopend.
+- `waitlist_cta_click`: klik op een wachtlijstknop.
+- `waitlist_view`: wachtlijstsectie in beeld.
+- `waitlist_submit`: wachtlijstformulier succesvol opgeslagen.
+- `demo_open`: demo geopend.
+- `account_start`: accountformulier geopend vanuit de wachtlijst.
+
+We slaan hierbij geen e-mailadres, profieldata, cookie-ID of volledige referrer op. Voor een snelle
+dagrapportage in de Supabase SQL Editor:
+
+```sql
+select
+  date_trunc('day', created_at) as day,
+  event_name,
+  count(*) as events
+from analytics_events
+group by 1, 2
+order by 1 desc, 2;
+```
+
 ## Deploy
 
 Vercel en Netlify config staan klaar.

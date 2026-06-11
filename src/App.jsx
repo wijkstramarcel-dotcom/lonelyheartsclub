@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { hasSupabaseConfig, supabase } from "./lib/supabase.js";
 import { hangUp, isVoiceCallingEnabled, startCall } from "./lib/twilio.js";
 
@@ -235,6 +235,16 @@ const REPORT_REASONS = [
   "Anders",
 ];
 
+const CONVERSION_EVENTS = new Set([
+  "landing_view",
+  "waitlist_cta_click",
+  "waitlist_view",
+  "waitlist_submit",
+  "demo_open",
+  "account_start",
+]);
+const sentConversionEvents = new Set();
+
 const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
 const CONSENT_VERSION = "2026-06-10";
 const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
@@ -420,6 +430,52 @@ async function upsertProfile(payload) {
   return supabase.from("profiles").upsert(legacyPayload);
 }
 
+function getPagePath() {
+  try {
+    return `${window.location.pathname || "/"}`.slice(0, 180);
+  } catch {
+    return "/";
+  }
+}
+
+function getReferrerHost() {
+  try {
+    if (!document.referrer) return null;
+    return new URL(document.referrer).hostname.slice(0, 180);
+  } catch {
+    return null;
+  }
+}
+
+function compactAnalyticsMetadata(metadata = {}) {
+  return Object.fromEntries(
+    Object.entries(metadata)
+      .filter(([, value]) => ["boolean", "number", "string"].includes(typeof value))
+      .map(([key, value]) => [key.slice(0, 40), typeof value === "string" ? value.slice(0, 140) : value]),
+  );
+}
+
+async function trackConversionEvent(eventName, metadata = {}, options = {}) {
+  if (!CONVERSION_EVENTS.has(eventName) || !hasSupabaseConfig || !supabase) return;
+
+  if (options.onceKey) {
+    const key = `${eventName}:${options.onceKey}`;
+    if (sentConversionEvents.has(key)) return;
+    sentConversionEvents.add(key);
+  }
+
+  try {
+    await supabase.from("analytics_events").insert({
+      event_name: eventName,
+      page_path: getPagePath(),
+      referrer_host: getReferrerHost(),
+      metadata: compactAnalyticsMetadata(metadata),
+    });
+  } catch {
+    // Conversiemeting mag nooit de app of wachtlijst blokkeren.
+  }
+}
+
 function sensitiveConsentStorageKey(userId) {
   return `${SENSITIVE_CONSENT_KEY}:${userId || "anonymous"}`;
 }
@@ -531,6 +587,24 @@ function LoadingScreen() {
 }
 
 function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
+  useEffect(() => {
+    void trackConversionEvent("landing_view", {}, { onceKey: "landing" });
+  }, []);
+
+  const trackWaitlistCta = () => {
+    void trackConversionEvent("waitlist_cta_click");
+  };
+
+  const openDemo = () => {
+    void trackConversionEvent("demo_open");
+    onDemo();
+  };
+
+  const openAccount = () => {
+    void trackConversionEvent("account_start");
+    setAuthOpen(true);
+  };
+
   return (
     <main className="site-shell">
       <HeaderNav onLogin={() => setAuthOpen(true)} onPrivacy={onPrivacy} />
@@ -544,10 +618,10 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
             anoniem en pas daarna spreek je af als het echt goed voelt.
           </p>
           <div className="hero-actions">
-            <a className="primary-button" href="#voorinschrijven">
+            <a className="primary-button" href="#voorinschrijven" onClick={trackWaitlistCta}>
               Schrijf je in voor de wachtlijst
             </a>
-            <button className="secondary-button" onClick={onDemo}>
+            <button className="secondary-button" onClick={openDemo}>
               Bekijk demo
             </button>
           </div>
@@ -579,7 +653,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
         </div>
       </section>
 
-      <PreRegisterSection onPrivacy={onPrivacy} onCreateAccount={() => setAuthOpen(true)} />
+      <PreRegisterSection onPrivacy={onPrivacy} onCreateAccount={openAccount} />
 
       <section className="section-band" id="waarom">
         <div className="section-inner">
@@ -686,7 +760,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
           <p className="eyebrow">Voor singles die eerst vertrouwen willen opbouwen</p>
           <h2>Wil je erbij zijn zodra we opengaan?</h2>
         </div>
-        <a className="primary-button" href="#voorinschrijven">
+        <a className="primary-button" href="#voorinschrijven" onClick={trackWaitlistCta}>
           Schrijf je in
         </a>
       </section>
@@ -696,7 +770,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
       {authOpen && (
         <AuthDialog
           onClose={() => setAuthOpen(false)}
-          onDemo={onDemo}
+          onDemo={openDemo}
           onPrivacy={() => {
             setAuthOpen(false);
             onPrivacy();
@@ -746,11 +820,34 @@ function FAQSection() {
 }
 
 function PreRegisterSection({ onPrivacy, onCreateAccount }) {
+  const sectionRef = useRef(null);
   const [email, setEmail] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return undefined;
+
+    if (!("IntersectionObserver" in window)) {
+      void trackConversionEvent("waitlist_view", { fallback: true }, { onceKey: "waitlist" });
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        void trackConversionEvent("waitlist_view", {}, { onceKey: "waitlist" });
+        observer.disconnect();
+      },
+      { threshold: 0.32 },
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -774,6 +871,7 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
     setLoading(true);
     try {
       const result = await upsertWaitlist(normalizedEmail, consentTimestamp());
+      void trackConversionEvent("waitlist_submit", { duplicate: Boolean(result?.duplicate) });
       setStatus(
         result?.duplicate
           ? "Je stond al op de wachtlijst. We mailen je zodra de volgende groep leden wordt toegelaten."
@@ -789,7 +887,7 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
   };
 
   return (
-    <section className="pre-register-section" id="voorinschrijven">
+    <section className="pre-register-section" id="voorinschrijven" ref={sectionRef}>
       <div className="pre-register-copy">
         <p className="eyebrow">Wachtlijst</p>
         <h2>Schrijf je in voor vroege toegang.</h2>
@@ -900,7 +998,7 @@ function PrivacyDialog({ onClose }) {
             <h3>Wat we opslaan</h3>
             <p>
               Je e-mailadres, profielgegevens, leeftijd, geslacht, zoekvoorkeur, passies, likes, matches,
-              berichten en technische accountgegevens.
+              berichten, technische accountgegevens en cookievrije conversie-events.
             </p>
           </article>
           <article>
@@ -936,6 +1034,13 @@ function PrivacyDialog({ onClose }) {
             <p>
               In je profiel kun je je zichtbaarheid pauzeren. Je profiel wordt dan niet getoond aan andere
               leden, terwijl je account niet direct wordt verwijderd.
+            </p>
+          </article>
+          <article>
+            <h3>Cookievrije statistiek</h3>
+            <p>
+              We meten alleen losse gebeurtenissen, zoals pagina geopend, wachtlijst gezien en inschrijving
+              gelukt. We slaan daarbij geen e-mailadres, profieldata, cookie-ID of volledige referrer op.
             </p>
           </article>
           <article>
