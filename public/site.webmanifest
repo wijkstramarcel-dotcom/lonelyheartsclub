@@ -1,7 +1,7 @@
 {
   "name": "Lonely Hearts Club",
   "short_name": "LHC",
-  "description": "Privacy-first dating: match, chat en bel anoniem voordat je afspreekt.",
+  "description": "Privacyvriendelijk daten: match, chat en bel anoniem voordat je afspreekt.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

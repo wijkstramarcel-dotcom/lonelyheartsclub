@@ -105,73 +105,92 @@ const tabs = [
 ];
 
 const PRODUCT_FLOW_STEPS = [
-  ["01", "Match zoeken", "Ontdek leden op verhaal en intentie, zonder foto als eerste oordeel."],
-  ["02", "Interesse tonen", "Bij wederzijdse interesse ontstaat een match en gaat de chat open."],
+  ["01", "Match zoeken", "Ontdek leden op verhaal, intentie en voorkeuren, zonder foto als eerste oordeel."],
+  ["02", "Interesse tonen", "Pas bij wederzijdse interesse ontstaat een match en gaat de chat open."],
   ["03", "Chatten", "Voel of er ritme, aandacht en nieuwsgierigheid in het gesprek zit."],
-  ["04", "Anoniem bellen", "Bel afgeschermd voordat je persoonlijke gegevens of nummers deelt."],
-  ["05", "Afspreken", "Pas als het goed voelt, stel je een echte ontmoeting voor."],
+  ["04", "Anoniem bellen", "Bel afgeschermd voordat je telefoonnummers of privégegevens deelt."],
+  ["05", "Afspreken", "Spreek pas af als het gesprek veilig en goed voelt."],
 ];
 
 const TRUST_PILLARS = [
   [
-    "Eerst inhoud, dan pas uiterlijk",
-    "Profielen beginnen met verhaal, passies en intentie. Dat vertraagt het oordeel en maakt ruimte voor een echte eerste indruk.",
+    "Minder profielen, meer aandacht",
+    "We tonen liever een kleine, passende selectie dan een eindeloze stapel profielen. Dat houdt het zoeken rustiger en serieuzer.",
   ],
   [
-    "Rustige stappen in plaats van druk",
-    "Je gaat pas verder als er wederzijdse interesse is: eerst matchen, dan chatten, daarna eventueel anoniem bellen.",
+    "Een profiel dat gesprek start",
+    "Verhaal, passies en intentie dragen het profiel. Zo geef je iemand een echte opening, niet alleen een snelle foto-reactie.",
   ],
   [
-    "Klein starten, beter bewaken",
-    "De eerste toegang gaat via de wachtlijst. Zo kunnen we kwaliteit, privacy en veiligheid serieuzer nemen dan snelle groei.",
+    "Veiligheid in elke stap",
+    "Blokkeren en rapporteren zijn direct beschikbaar. Voor een afspraak zit er bewust eerst chat en anoniem bellen tussen.",
+  ],
+];
+
+const LEARNING_ITEMS = [
+  [
+    "Beperk de ruis",
+    "Goede datingproducten maken kiezen niet eindeloos. Lonely Hearts Club kiest daarom voor passende profielen en een rustige route.",
+  ],
+  [
+    "Maak intentie zichtbaar",
+    "Leden moeten voelen dat de ander serieus zoekt. Daarom draait het profiel om verhaal, passies en aandacht in plaats van alleen uiterlijk.",
+  ],
+  [
+    "Breng veiligheid dichtbij",
+    "Privacy, rapporteren, verbergen en anoniem bellen horen op de plekken te staan waar leden ze nodig hebben.",
   ],
 ];
 
 const AUDIENCE_ITEMS = [
   "Singles die genoeg hebben van eindeloos swipen.",
-  "Mensen die liever eerst karakter, taal en aandacht voelen.",
+  "Mensen die liever eerst karakter, stem en aandacht voelen.",
   "Daters die privacy belangrijk vinden en rustig willen opbouwen.",
 ];
 
 const SAFETY_ITEMS = [
   [
-    "Profielen niet publiek",
-    "Profielinformatie is bedoeld voor ingelogde leden en niet als openbare zoekmachine-pagina.",
+    "Profielen niet openbaar",
+    "Profielinformatie is bedoeld voor ingelogde leden en niet als openbare zoekmachinepagina.",
   ],
   [
     "Toestemming per stap",
-    "Voor wachtlijst, account en profielgegevens vragen we expliciet om akkoord voordat data wordt opgeslagen.",
+    "Voor de wachtlijst, accountgegevens en profielgegevens vragen we expliciet om akkoord voordat data wordt opgeslagen.",
   ],
   [
     "Anoniem bellen als tussenstap",
-    "Het doel is dat je eerst veilig kunt praten zonder direct telefoonnummers of privegegevens te delen.",
+    "Het doel is dat je eerst veilig kunt praten zonder direct telefoonnummers of privégegevens te delen.",
+  ],
+  [
+    "Blokkeren en rapporteren",
+    "Je kunt een profiel verbergen of rapporteren vanuit Ontdek en vanuit het gesprek. Rapportages blijven afgeschermd.",
   ],
   [
     "Menselijke schaal",
-    "We laten liever gecontroleerd mensen toe dan meteen een grote, rommelige datingdatabase te maken.",
+    "We laten liever gecontroleerd mensen toe dan meteen een groot, rommelig ledenbestand te vullen.",
   ],
 ];
 
 const FAQ_ITEMS = [
   [
     "Wat is Lonely Hearts Club?",
-    "Lonely Hearts Club is een Nederlandse dating community in pre-registratie. De app draait om rustig matchen, chatten en anoniem bellen voordat je eventueel afspreekt.",
+    "Lonely Hearts Club is een Nederlandse datingcommunity met een wachtlijst. De app draait om rustig matchen, chatten en anoniem bellen voordat je eventueel afspreekt.",
   ],
   [
-    "Is dit een dating app zonder foto?",
+    "Is dit een datingapp zonder foto?",
     "Je profiel begint zonder foto als eerste oordeel. Leden ontdekken elkaar via verhaal, passies, intentie en gesprek voordat uiterlijk centraal staat.",
   ],
   [
     "Hoe werkt anoniem bellen?",
-    "Na een match en chat kun je een afgeschermde belronde starten. Het doel is dat telefoonnummers prive blijven totdat beide mensen zelf verder willen.",
+    "Na een match en chat kun je afgeschermd bellen. Het doel is dat telefoonnummers privé blijven totdat beide mensen zelf verder willen.",
   ],
   [
-    "Kan ik me nu al aanmelden?",
+    "Kan ik me al inschrijven?",
     "Ja. Je kunt je e-mailadres achterlaten op de wachtlijst. Zodra we de eerste groep gebruikers toelaten, krijg je bericht om eventueel een profiel te maken.",
   ],
   [
     "Voor wie is Lonely Hearts Club bedoeld?",
-    "Voor singles die bewuster willen daten: minder swipe-druk, meer aandacht voor verhaal, intentie, chat en een veilige belstap.",
+    "Voor singles die bewuster willen daten: minder swipe-druk, meer aandacht voor verhaal, intentie, chat en een veilig belmoment.",
   ],
 ];
 
@@ -518,22 +537,22 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
 
       <section className="hero-section">
         <div className="hero-copy">
-          <p className="eyebrow">Nederland · privacy-first dating · 2026</p>
+          <p className="eyebrow">Nederland · privacyvriendelijk daten · 2026</p>
           <h1>Lonely Hearts Club</h1>
           <p className="hero-subtitle">
-            Eerst zoek je een match op verhaal en intentie. Daarna chat je, bel je anoniem en spreek
-            je pas af als het gesprek echt goed voelt.
+            Je ontdekt eerst iemands verhaal. Bij wederzijdse interesse chat je, daarna bel je
+            anoniem en pas daarna spreek je af als het echt goed voelt.
           </p>
           <div className="hero-actions">
             <a className="primary-button" href="#voorinschrijven">
-              Schrijf je voor in
+              Schrijf je in voor de wachtlijst
             </a>
             <button className="secondary-button" onClick={onDemo}>
               Bekijk demo
             </button>
           </div>
           <div className="trust-row" aria-label="Belangrijkste voordelen">
-            <span>Geen foto's nodig</span>
+            <span>Geen foto als eerste filter</span>
             <span>Anoniem contact</span>
             <span>Matches met aandacht</span>
           </div>
@@ -547,10 +566,10 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
             </div>
             <div className="phone-content">
               <img src="/lhc-seal.svg" alt="" className="phone-logo" />
-              <p className="phone-kicker">Eerst luisteren</p>
-              <h2>Van match naar chat, belronde en echte afspraak.</h2>
+              <p className="phone-kicker">Eerst verhaal, dan stem</p>
+              <h2>Van match naar chat, anoniem bellen en veilig afspreken.</h2>
               <div className="flow-list">
-                <span>1. Zoek een match zonder foto-oordeel</span>
+                <span>1. Ontdek op verhaal en intentie</span>
                 <span>2. Chat pas na wederzijdse interesse</span>
                 <span>3. Bel anoniem voordat je gegevens deelt</span>
                 <span>4. Spreek af als het veilig en goed voelt</span>
@@ -565,7 +584,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
       <section className="section-band" id="waarom">
         <div className="section-inner">
           <p className="eyebrow">Dating zonder swipe-ruis</p>
-          <h2>Voor singles die eerst karakter willen voelen.</h2>
+          <h2>Voor singles die eerst karakter willen leren kennen.</h2>
           <div className="story-grid">
             <article>
               <h3>Geen foto als eerste oordeel</h3>
@@ -577,12 +596,12 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
             <article>
               <h3>Anoniem daten met rust</h3>
               <p>
-                Je ontdekt leden op inhoud en wederzijdse interesse. Pas daarna ga je naar chat, anoniem
-                bellen en eventueel een echte afspraak.
+                Je ontdekt leden op inhoud en wederzijdse interesse. Pas daarna ga je naar chat,
+                anoniem bellen en eventueel een echte afspraak.
               </p>
             </article>
             <article>
-              <h3>Nederlandse dating community</h3>
+              <h3>Nederlandse datingcommunity</h3>
               <p>
                 We starten klein in Nederland, zodat er genoeg aandacht blijft voor veiligheid, privacy en
                 echte gesprekken tussen actieve leden.
@@ -595,7 +614,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
       <section className="section-inner trust-section">
         <div className="section-heading">
           <p className="eyebrow">Waarom anders</p>
-          <h2>Niet sneller daten, maar beter beginnen.</h2>
+          <h2>Niet sneller swipen, maar beter beginnen.</h2>
         </div>
         <div className="trust-grid">
           {TRUST_PILLARS.map(([title, text]) => (
@@ -604,6 +623,23 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
               <p>{text}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="section-band">
+        <div className="section-inner">
+          <div className="section-heading">
+            <p className="eyebrow">Wat we meenemen</p>
+            <h2>De beste les van moderne dating: minder ruis, meer vertrouwen.</h2>
+          </div>
+          <div className="story-grid">
+            {LEARNING_ITEMS.map(([title, text]) => (
+              <article key={title}>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -628,7 +664,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
       <section className="section-band" id="hoe">
         <div className="section-inner">
           <p className="eyebrow">Hoe het werkt</p>
-          <h2>De route is bewust: match, chat, bel, spreek af.</h2>
+          <h2>De route is bewust: match, chat, bel en spreek pas daarna af.</h2>
           <div className="steps-grid">
             {PRODUCT_FLOW_STEPS.map(([number, title, text]) => (
               <article className="step-card" key={number}>
@@ -651,7 +687,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
           <h2>Wil je erbij zijn zodra we opengaan?</h2>
         </div>
         <a className="primary-button" href="#voorinschrijven">
-          Voorinschrijven
+          Schrijf je in
         </a>
       </section>
 
@@ -695,7 +731,7 @@ function FAQSection() {
     <section className="section-band faq-section" id="vragen">
       <div className="section-inner">
         <p className="eyebrow">Veelgestelde vragen</p>
-        <h2>Anoniem daten, matchen en voorinschrijven.</h2>
+        <h2>Anoniem daten, matchen en veilig verdergaan.</h2>
         <div className="faq-grid">
           {FAQ_ITEMS.map(([question, answer]) => (
             <details key={question}>
@@ -746,7 +782,7 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
       setEmail("");
       setPrivacyAccepted(false);
     } catch (err) {
-      setError(err.message || "Voorinschrijven lukte niet. Probeer het opnieuw.");
+      setError(err.message || "Inschrijven voor de wachtlijst lukte niet. Probeer het opnieuw.");
     } finally {
       setLoading(false);
     }
@@ -755,11 +791,11 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
   return (
     <section className="pre-register-section" id="voorinschrijven">
       <div className="pre-register-copy">
-        <p className="eyebrow">Pre-registratie</p>
-        <h2>Kom op de wachtlijst voor vroege toegang.</h2>
+        <p className="eyebrow">Wachtlijst</p>
+        <h2>Schrijf je in voor vroege toegang.</h2>
         <p>
-          Laat je e-mailadres achter als je interesse hebt in rustig, privacy-first daten zonder foto-oordeel.
-          Je maakt nog geen profiel aan; dit is alleen de wachtlijst.
+          Laat je e-mailadres achter als je interesse hebt in rustig, privacyvriendelijk daten zonder
+          foto als eerste oordeel. Je maakt nog geen profiel aan; dit is alleen de wachtlijst.
         </p>
         <ul>
           <li>Geen marketingruis, alleen updates over toegang.</li>
@@ -818,7 +854,7 @@ function HeaderNav({ onLogin, onPrivacy }) {
         <span>Lonely Hearts Club</span>
       </a>
       <nav>
-        <a href="#voorinschrijven">Voorinschrijven</a>
+        <a href="#voorinschrijven">Wachtlijst</a>
         <a href="#waarom">Waarom</a>
         <a href="#hoe">Hoe het werkt</a>
         <a href="#vragen">Vragen</a>
@@ -853,7 +889,7 @@ function PrivacyDialog({ onClose }) {
           x
         </button>
         <p className="eyebrow">Privacy & gegevens</p>
-        <h2 id="privacy-title">Jij houdt grip op je datingdata.</h2>
+        <h2 id="privacy-title">Jij houdt grip op je datinggegevens.</h2>
         <p>
           Lonely Hearts Club verwerkt alleen gegevens die nodig zijn om je account, profiel, matches en
           berichten te laten werken.
@@ -884,7 +920,7 @@ function PrivacyDialog({ onClose }) {
           <article>
             <h3>Verwerkers</h3>
             <p>
-              De app gebruikt Supabase voor account en database, Vercel voor hosting en alleen bij
+              De app gebruikt Supabase voor accounts en database, Vercel voor hosting en alleen bij
               ingeschakelde belfunctionaliteit Twilio voor gespreksverbindingen.
             </p>
           </article>
@@ -1515,7 +1551,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
         [selectedMatch.id]: [...(current[selectedMatch.id] ?? []), message, reply],
       }));
       setJourneyStep("call");
-      setNotice("Chat werkt. Volgende stap: start de demo-belronde vanuit dit gesprek.");
+      setNotice("Chat werkt. Volgende stap: start het anonieme belmoment vanuit dit gesprek.");
       return;
     }
 
@@ -1677,7 +1713,7 @@ function DemoJourney({ activeStep }) {
     <section className="demo-journey" aria-label="Demo route">
       <div>
         <p className="eyebrow">Demo-route</p>
-        <h2>Test de echte volgorde: match, chat, bel, spreek af.</h2>
+        <h2>Test de echte volgorde: match, chat, bel en spreek pas daarna af.</h2>
       </div>
       <div className="journey-steps">
         {flow.map(([id, label], index) => (
@@ -1743,7 +1779,7 @@ function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
   };
 
   return (
-    <section className="profile-privacy-controls" aria-label="Profiel privacy en gegevens">
+    <section className="profile-privacy-controls" aria-label="Profielprivacy en gegevens">
       <div>
         <p className="eyebrow">Privacycontrole</p>
         <h3>Jij bepaalt of je profiel zichtbaar is.</h3>
@@ -1760,10 +1796,10 @@ function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
           {updating ? "Aanpassen" : active ? "Pauzeer profiel" : "Maak profiel weer actief"}
         </button>
         <a className="secondary-button wide danger" href={privacyRequestMailto(user, "Verwijderverzoek")}>
-          Verwijderverzoek mailen
+          Verwijdering aanvragen
         </a>
         <button className="text-button" type="button" onClick={onPrivacy}>
-          Bekijk privacyrechten
+          Bekijk je privacyrechten
         </button>
       </div>
     </section>
@@ -2270,7 +2306,7 @@ function MessagesView({
     }
 
     if (!hasChat) {
-      setCallError("Stuur eerst een bericht voordat je een belronde start.");
+      setCallError("Stuur eerst een bericht voordat je anoniem gaat bellen.");
       return;
     }
 
@@ -2327,7 +2363,7 @@ function MessagesView({
         {[
           ["match", "Match"],
           ["messages", "Chat"],
-          ["call", "Belronde"],
+          ["call", "Bellen"],
           ["meet", "Afspraak"],
         ].map(([id, label]) => {
           const order = ["match", "messages", "call", "meet"];
@@ -2369,7 +2405,7 @@ function MessagesView({
           <p className="eyebrow">Volgende stap</p>
           <h3>Anoniem bellen voordat je afspreekt.</h3>
           <p>
-            Telefoonnummers blijven afgeschermd. Eerst chatten, dan een korte belronde, en pas daarna
+            Telefoonnummers blijven afgeschermd. Eerst chatten, dan kort anoniem bellen, en pas daarna
             eventueel een afspraak voorstellen.
           </p>
         </div>
@@ -2388,7 +2424,7 @@ function MessagesView({
         </div>
         {!hasChat && (
           <p className="call-note">
-            Stuur eerst een bericht. De belronde hoort pas na een eerste gesprek open te gaan.
+            Stuur eerst een bericht. Anoniem bellen hoort pas na een eerste gesprek open te gaan.
           </p>
         )}
         {!voiceReady && hasChat && (
@@ -2401,14 +2437,14 @@ function MessagesView({
           <p className="call-note">Belverbinding wordt voorbereid zonder telefoonnummers te delen.</p>
         )}
         {callStep === "active" && (
-          <p className="call-note success">Belronde actief. Houd het kort, veilig en gericht op vertrouwen.</p>
+          <p className="call-note success">Gesprek actief. Houd het kort, veilig en gericht op vertrouwen.</p>
         )}
         {callStep === "ended" && (
-          <p className="call-note success">Belronde afgerond. Stel alleen een afspraak voor als het goed voelde.</p>
+          <p className="call-note success">Gesprek afgerond. Stel alleen een afspraak voor als het goed voelde.</p>
         )}
         {callStep === "meet" && (
           <p className="call-note success">
-            Afspraakvoorstel klaar: kies pas een plek en moment als de belronde goed voelde.
+            Afspraakvoorstel klaar: kies pas een plek en moment als het gesprek goed voelde.
           </p>
         )}
         {callError && <p className="call-note error">{callError}</p>}

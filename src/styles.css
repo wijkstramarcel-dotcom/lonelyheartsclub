@@ -180,7 +180,7 @@ button:disabled {
 .hero-section {
   max-width: 1180px;
   margin: 0 auto;
-  padding: clamp(54px, 8vw, 98px) clamp(18px, 4vw, 48px) 72px;
+  padding: clamp(42px, 6vw, 64px) clamp(18px, 4vw, 48px) 48px;
   display: grid;
   grid-template-columns: minmax(0, 1.04fr) minmax(320px, 0.74fr);
   gap: clamp(34px, 7vw, 92px);
@@ -258,8 +258,8 @@ button:disabled {
 }
 
 .phone-frame {
-  width: min(100%, 360px);
-  min-height: 650px;
+  width: min(100%, 340px);
+  min-height: 560px;
   border: 1px solid rgba(29, 26, 22, 0.14);
   border-radius: 28px;
   padding: 16px;
@@ -286,9 +286,9 @@ button:disabled {
 }
 
 .phone-content {
-  min-height: 590px;
+  min-height: 500px;
   border-radius: 20px;
-  padding: 34px 24px;
+  padding: 28px 22px;
   background:
     radial-gradient(circle at 20% 14%, rgba(177, 78, 48, 0.18), transparent 30%),
     linear-gradient(180deg, #fffaf2, #f2e7d8);
@@ -296,10 +296,10 @@ button:disabled {
 }
 
 .phone-logo {
-  width: 104px;
-  height: 104px;
+  width: 88px;
+  height: 88px;
   display: block;
-  margin: 14px auto 28px;
+  margin: 8px auto 22px;
 }
 
 .phone-kicker {
@@ -312,10 +312,10 @@ button:disabled {
 }
 
 .phone-content h2 {
-  margin: 0 auto 26px;
+  margin: 0 auto 20px;
   max-width: 260px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 32px;
+  font-size: 29px;
   line-height: 1.08;
   text-align: center;
 }
@@ -330,7 +330,7 @@ button:disabled {
   border: 1px solid rgba(29, 26, 22, 0.1);
   border-left: 4px solid #b14e30;
   border-radius: 8px;
-  padding: 13px 14px;
+  padding: 11px 13px;
   background: rgba(255, 255, 255, 0.62);
   color: #413832;
   font-weight: 750;
@@ -1568,12 +1568,46 @@ textarea {
     font-size: clamp(46px, 15vw, 70px);
   }
 
+  .hero-section {
+    gap: 24px;
+    padding-bottom: 46px;
+  }
+
   .phone-frame {
+    width: min(100%, 330px);
     min-height: 0;
+    border-radius: 22px;
+    padding: 12px;
+  }
+
+  .phone-bar {
+    padding-bottom: 10px;
   }
 
   .phone-content {
-    min-height: 520px;
+    min-height: 0;
+    border-radius: 16px;
+    padding: 22px 18px;
+  }
+
+  .phone-logo {
+    width: 64px;
+    height: 64px;
+    margin: 4px auto 16px;
+  }
+
+  .phone-content h2 {
+    margin-bottom: 16px;
+    font-size: 24px;
+  }
+
+  .flow-list {
+    gap: 7px;
+  }
+
+  .flow-list span {
+    padding: 9px 11px;
+    font-size: 13px;
   }
 
   .closing-section {
@@ -1670,7 +1704,65 @@ textarea {
   }
 
   .hero-section {
-    padding-top: 42px;
+    gap: 18px;
+    padding-top: 24px;
+    padding-bottom: 28px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(42px, 14vw, 58px);
+  }
+
+  .hero-subtitle {
+    margin-top: 18px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .hero-actions {
+    margin-top: 22px;
+  }
+
+  .trust-row {
+    margin-top: 18px;
+  }
+
+  .phone-frame {
+    width: min(100%, 300px);
+    padding: 9px;
+    border-radius: 18px;
+  }
+
+  .phone-bar {
+    padding: 4px 0 7px;
+  }
+
+  .phone-content {
+    padding: 14px;
+  }
+
+  .phone-logo {
+    display: none;
+  }
+
+  .phone-kicker {
+    margin: 0 0 8px;
+    font-size: 10px;
+  }
+
+  .phone-content h2 {
+    margin-bottom: 10px;
+    font-size: 19px;
+    line-height: 1.12;
+  }
+
+  .flow-list span {
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+
+  .flow-list span:nth-child(n + 3) {
+    display: none;
   }
 
   .hero-actions,

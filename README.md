@@ -1,6 +1,6 @@
 # Lonely Hearts Club
 
-React/Vite dating-app prototype met Supabase-ready auth, profielen, matches,
+React/Vite datingapp-prototype met Supabase-ready auth, profielen, matches,
 berichten en Twilio-ready anoniem bellen.
 
 ## Status
@@ -72,7 +72,7 @@ supabase functions deploy twilio-voice
 
 5. Log in met twee testaccounts in twee browsers of apparaten.
 6. Maak twee profielen die wederzijds bij elkaar passen.
-7. Maak een match, stuur eerst een chatbericht en start daarna een belronde.
+7. Maak een match, stuur eerst een chatbericht en start daarna het anonieme belmoment.
 8. Controleer dat de browser om microfoontoegang vraagt en dat beide kanten audio hebben.
 9. Controleer dat telefoonnummers nergens zichtbaar zijn.
 10. Zet pas daarna in Vercel `VITE_ENABLE_VOICE_CALLS=true` voor Production en redeploy.

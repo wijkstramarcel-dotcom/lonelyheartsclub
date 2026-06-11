@@ -62,7 +62,7 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 
 ## 7. Go/no-go
 
-- [ ] Een nieuwe bezoeker kan zich voorinschrijven.
+- [ ] Een nieuwe bezoeker kan zich inschrijven voor de wachtlijst.
 - [ ] Een nieuwe gebruiker kan registreren, bevestigen en profiel maken.
 - [ ] Een gebruiker ziet alleen passende profielen.
 - [ ] Match, chat, belroute en afspraakroute zijn begrijpelijk.
