@@ -111,6 +111,46 @@ const PRODUCT_FLOW_STEPS = [
   ["05", "Afspreken", "Pas als het goed voelt, stel je een echte ontmoeting voor."],
 ];
 
+const TRUST_PILLARS = [
+  [
+    "Eerst inhoud, dan pas uiterlijk",
+    "Profielen beginnen met verhaal, passies en intentie. Dat vertraagt het oordeel en maakt ruimte voor een echte eerste indruk.",
+  ],
+  [
+    "Rustige stappen in plaats van druk",
+    "Je gaat pas verder als er wederzijdse interesse is: eerst matchen, dan chatten, daarna eventueel anoniem bellen.",
+  ],
+  [
+    "Klein starten, beter bewaken",
+    "De eerste toegang gaat via de wachtlijst. Zo kunnen we kwaliteit, privacy en veiligheid serieuzer nemen dan snelle groei.",
+  ],
+];
+
+const AUDIENCE_ITEMS = [
+  "Singles die genoeg hebben van eindeloos swipen.",
+  "Mensen die liever eerst karakter, taal en aandacht voelen.",
+  "Daters die privacy belangrijk vinden en rustig willen opbouwen.",
+];
+
+const SAFETY_ITEMS = [
+  [
+    "Profielen niet publiek",
+    "Profielinformatie is bedoeld voor ingelogde leden en niet als openbare zoekmachine-pagina.",
+  ],
+  [
+    "Toestemming per stap",
+    "Voor wachtlijst, account en profielgegevens vragen we expliciet om akkoord voordat data wordt opgeslagen.",
+  ],
+  [
+    "Anoniem bellen als tussenstap",
+    "Het doel is dat je eerst veilig kunt praten zonder direct telefoonnummers of privegegevens te delen.",
+  ],
+  [
+    "Menselijke schaal",
+    "We laten liever gecontroleerd mensen toe dan meteen een grote, rommelige datingdatabase te maken.",
+  ],
+];
+
 const FAQ_ITEMS = [
   [
     "Wat is Lonely Hearts Club?",
@@ -127,6 +167,10 @@ const FAQ_ITEMS = [
   [
     "Kan ik me nu al aanmelden?",
     "Ja. Je kunt je e-mailadres achterlaten op de wachtlijst. Zodra we de eerste groep gebruikers toelaten, krijg je bericht om eventueel een profiel te maken.",
+  ],
+  [
+    "Voor wie is Lonely Hearts Club bedoeld?",
+    "Voor singles die bewuster willen daten: minder swipe-druk, meer aandacht voor verhaal, intentie, chat en een veilige belstap.",
   ],
 ];
 
@@ -450,7 +494,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
 
       <PreRegisterSection onPrivacy={onPrivacy} onCreateAccount={() => setAuthOpen(true)} />
 
-      <section className="section-band">
+      <section className="section-band" id="waarom">
         <div className="section-inner">
           <p className="eyebrow">Dating zonder swipe-ruis</p>
           <h2>Voor singles die eerst karakter willen voelen.</h2>
@@ -480,6 +524,39 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
         </div>
       </section>
 
+      <section className="section-inner trust-section">
+        <div className="section-heading">
+          <p className="eyebrow">Waarom anders</p>
+          <h2>Niet sneller daten, maar beter beginnen.</h2>
+        </div>
+        <div className="trust-grid">
+          {TRUST_PILLARS.map(([title, text]) => (
+            <article key={title}>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-band audience-section">
+        <div className="section-inner audience-layout">
+          <div>
+            <p className="eyebrow">Voor wie</p>
+            <h2>Voor mensen die niet harder willen swipen.</h2>
+            <p>
+              Lonely Hearts Club is geen race naar zoveel mogelijk profielen. Het is bedoeld voor singles
+              die eerst willen merken hoe iemand denkt, praat en aandacht geeft.
+            </p>
+          </div>
+          <ul className="audience-list">
+            {AUDIENCE_ITEMS.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <section className="section-band" id="hoe">
         <div className="section-inner">
           <p className="eyebrow">Hoe het werkt</p>
@@ -495,6 +572,8 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
           </div>
         </div>
       </section>
+
+      <SafetySection />
 
       <FAQSection />
 
@@ -521,6 +600,25 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
         />
       )}
     </main>
+  );
+}
+
+function SafetySection() {
+  return (
+    <section className="section-inner safety-section" id="veiligheid">
+      <div className="section-heading">
+        <p className="eyebrow">Privacy & veiligheid</p>
+        <h2>Vertrouwen moet in het product zitten, niet alleen in de belofte.</h2>
+      </div>
+      <div className="safety-grid">
+        {SAFETY_ITEMS.map(([title, text]) => (
+          <article key={title}>
+            <h3>{title}</h3>
+            <p>{text}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -649,6 +747,7 @@ function HeaderNav({ onLogin, onPrivacy }) {
       </a>
       <nav>
         <a href="#voorinschrijven">Voorinschrijven</a>
+        <a href="#waarom">Waarom</a>
         <a href="#hoe">Hoe het werkt</a>
         <a href="#vragen">Vragen</a>
         <button className="nav-link" type="button" onClick={onPrivacy}>

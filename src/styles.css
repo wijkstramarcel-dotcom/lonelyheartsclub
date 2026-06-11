@@ -436,6 +436,92 @@ button:disabled {
   line-height: 1.65;
 }
 
+.trust-section,
+.safety-section {
+  display: grid;
+  gap: 34px;
+}
+
+.trust-grid,
+.safety-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.trust-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.safety-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.trust-grid article,
+.safety-grid article {
+  border: 1px solid rgba(29, 26, 22, 0.1);
+  border-radius: 8px;
+  padding: 22px;
+  background: rgba(255, 253, 250, 0.7);
+}
+
+.trust-grid h3,
+.safety-grid h3 {
+  margin: 0 0 10px;
+  color: #1d1a16;
+}
+
+.trust-grid p,
+.safety-grid p {
+  margin: 0;
+  color: #5d5147;
+  line-height: 1.65;
+}
+
+.audience-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.75fr);
+  gap: clamp(24px, 5vw, 58px);
+  align-items: start;
+}
+
+.audience-layout p {
+  max-width: 680px;
+  margin: 20px 0 0;
+  color: #5d5147;
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.audience-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  list-style: none;
+}
+
+.audience-list li {
+  position: relative;
+  border: 1px solid rgba(47, 101, 93, 0.16);
+  border-radius: 8px;
+  padding: 16px 16px 16px 42px;
+  color: #413832;
+  background: rgba(255, 253, 250, 0.72);
+  font-weight: 780;
+  line-height: 1.45;
+}
+
+.audience-list li::before {
+  content: "";
+  position: absolute;
+  top: 21px;
+  left: 18px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2f655d;
+}
+
 .faq-section {
   background: rgba(248, 244, 237, 0.72);
 }
@@ -1222,8 +1308,11 @@ textarea {
   .hero-section,
   .steps-grid,
   .story-grid,
+  .trust-grid,
+  .safety-grid,
   .faq-grid,
   .pre-register-section,
+  .audience-layout,
   .demo-journey,
   .call-panel,
   .closing-section,
