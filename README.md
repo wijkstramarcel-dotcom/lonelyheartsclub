@@ -7,7 +7,7 @@ berichten en Twilio-ready anoniem bellen.
 
 - Zonder `.env.local` draait de app in demo-modus met lokale voorbeelddata.
 - Met Supabase keys gebruikt de app live auth, database en realtime berichten.
-- Met gedeployde Supabase Edge Functions en Twilio secrets start de bel-flow via Twilio Voice.
+- Met gedeployde Supabase Edge Functions, Twilio secrets en `VITE_ENABLE_VOICE_CALLS=true` start de bel-flow via Twilio Voice.
 - SEO/social basis staat klaar: metadata, canonical URL, JSON-LD, sitemap, robots, manifest en share image.
 - Vercel en Netlify hebben rewrites, cache headers en privacy/security headers.
 
@@ -22,8 +22,9 @@ npm run dev
 
 1. Kopieer `.env.example` naar `.env.local`.
 2. Vul `VITE_SUPABASE_URL` en `VITE_SUPABASE_ANON_KEY`.
-3. Run `schema.sql` in de Supabase SQL Editor.
-4. Deploy de Edge Functions:
+3. Laat `VITE_ENABLE_VOICE_CALLS=false` totdat Twilio volledig getest is.
+4. Run `schema.sql` in de Supabase SQL Editor.
+5. Deploy de Edge Functions:
 
 ```bash
 supabase link --project-ref <project-ref>
@@ -41,6 +42,51 @@ https://<project-ref>.supabase.co/functions/v1/twilio-voice
 ```
 
 Gebruik de TwiML App SID als `TWILIO_TWIML_APP_SID`.
+
+## Anoniem bellen live zetten
+
+De app houdt echte gesprekken standaard dicht. Demo-calls blijven werken, maar live gebruikers zien
+`Belprovider nog niet actief` totdat je de voice launch bewust aanzet.
+
+Checklist:
+
+1. Maak of controleer een Twilio TwiML App.
+2. Zet de TwiML App Voice Request URL op:
+
+```text
+https://<project-ref>.supabase.co/functions/v1/twilio-voice
+```
+
+3. Zet de Twilio secrets alleen in Supabase:
+
+```bash
+supabase secrets set TWILIO_ACCOUNT_SID=AC... TWILIO_API_KEY=SK... TWILIO_API_SECRET=... TWILIO_TWIML_APP_SID=AP...
+```
+
+4. Deploy beide functions opnieuw:
+
+```bash
+supabase functions deploy twilio-token
+supabase functions deploy twilio-voice
+```
+
+5. Log in met twee testaccounts in twee browsers of apparaten.
+6. Maak twee profielen die wederzijds bij elkaar passen.
+7. Maak een match, stuur eerst een chatbericht en start daarna een belronde.
+8. Controleer dat de browser om microfoontoegang vraagt en dat beide kanten audio hebben.
+9. Controleer dat telefoonnummers nergens zichtbaar zijn.
+10. Zet pas daarna in Vercel `VITE_ENABLE_VOICE_CALLS=true` voor Production en redeploy.
+
+Niet doen:
+
+- Twilio secrets in `.env.local`, Vercel of frontend JavaScript zetten.
+- `VITE_ENABLE_VOICE_CALLS=true` zetten voordat de test met twee accounts werkt.
+- Gesprekken opnemen zonder aparte juridische basis en expliciete communicatie naar gebruikers.
+
+Relevante docs:
+
+- Twilio Voice JavaScript SDK: https://www.twilio.com/docs/voice/sdks/javascript
+- Twilio `<Client>` TwiML: https://www.twilio.com/docs/voice/twiml/client
 
 ## Deploy
 

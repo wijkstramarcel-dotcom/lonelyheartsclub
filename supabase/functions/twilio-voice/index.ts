@@ -19,14 +19,28 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
+function normalizeClientIdentity(value: FormDataEntryValue | null) {
+  return value?.toString().trim().replace(/^client:/i, "") ?? "";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   const body = await req.formData();
-  const to = escapeXml(body.get("To")?.toString() ?? "");    // het user_id van de ontvanger
-  const from = escapeXml(body.get("From")?.toString() ?? ""); // Twilio identity van de beller
+  const toIdentity = normalizeClientIdentity(body.get("To"));    // het user_id van de ontvanger
+  const fromIdentity = normalizeClientIdentity(body.get("From")); // Twilio identity van de beller
+
+  if (!toIdentity || !fromIdentity) {
+    return new Response(
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Reject reason="rejected" /></Response>`,
+      { status: 400, headers: { "Content-Type": "text/xml" } },
+    );
+  }
+
+  const to = escapeXml(toIdentity);
+  const from = escapeXml(fromIdentity);
 
   // Bouw TwiML om de ontvanger te bellen via hun Twilio identity (user_id)
   // Beide nummers blijven volledig verborgen — Twilio verbindt alleen de clients

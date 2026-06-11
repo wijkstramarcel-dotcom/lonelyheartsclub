@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { hasSupabaseConfig, supabase } from "./lib/supabase.js";
-import { hangUp, startCall } from "./lib/twilio.js";
+import { hangUp, isVoiceCallingEnabled, startCall } from "./lib/twilio.js";
 
 const PASSIONS = [
   "Hardlopen",
@@ -1910,6 +1910,7 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
 
   const recipientId = getOtherUserId(match, userId);
   const hasChat = messages.length > 0;
+  const voiceReady = demoMode || isVoiceCallingEnabled();
   const conversationStep =
     callStep === "meet"
       ? "meet"
@@ -1927,7 +1928,9 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
           ? "Stap 3: chatten"
           : "Stap 2: eerste bericht";
   const callButtonLabel =
-    callStep === "connecting"
+    !voiceReady
+      ? "Belprovider nog niet actief"
+      : callStep === "connecting"
       ? "Verbinden"
       : callStep === "active"
         ? "Ophangen"
@@ -1936,7 +1939,7 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
           : callStep === "ended"
             ? "Bel opnieuw"
             : "Start anoniem bellen";
-  const canStartCall = hasChat && Boolean(recipientId) && callStep !== "connecting";
+  const canStartCall = voiceReady && hasChat && Boolean(recipientId) && callStep !== "connecting";
   const canProposeMeet = ["active", "ended", "meet"].includes(callStep);
 
   const handleCall = async () => {
@@ -2060,6 +2063,12 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
         {!hasChat && (
           <p className="call-note">
             Stuur eerst een bericht. De belronde hoort pas na een eerste gesprek open te gaan.
+          </p>
+        )}
+        {!voiceReady && hasChat && (
+          <p className="call-note">
+            Anoniem bellen is technisch voorbereid, maar nog niet live geactiveerd. Eerst moeten de
+            belprovider, Supabase Functions en microfoon-test gecontroleerd zijn.
           </p>
         )}
         {callStep === "connecting" && (

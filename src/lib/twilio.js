@@ -1,8 +1,22 @@
-import { Device } from "@twilio/voice-sdk";
 import { hasSupabaseConfig, supabase } from "./supabase.js";
 
 let device = null;
 let currentCall = null;
+let DeviceConstructor = null;
+
+const enabledVoiceValues = new Set(["1", "true", "yes", "on"]);
+
+export function isVoiceCallingEnabled() {
+  return enabledVoiceValues.has(String(import.meta.env.VITE_ENABLE_VOICE_CALLS || "").trim().toLowerCase());
+}
+
+async function getDeviceConstructor() {
+  if (!DeviceConstructor) {
+    const module = await import("@twilio/voice-sdk");
+    DeviceConstructor = module.Device;
+  }
+  return DeviceConstructor;
+}
 
 function createDemoCall({ onAccepted, onDisconnected } = {}) {
   let disconnected = false;
@@ -23,6 +37,9 @@ function createDemoCall({ onAccepted, onDisconnected } = {}) {
 }
 
 export async function initTwilioDevice() {
+  if (!isVoiceCallingEnabled()) {
+    throw new Error("Anoniem bellen staat nog niet live. We activeren dit zodra de belprovider is gecontroleerd.");
+  }
   if (!hasSupabaseConfig || !supabase) return null;
 
   const session = await supabase.auth.getSession();
@@ -32,6 +49,7 @@ export async function initTwilioDevice() {
   const res = await supabase.functions.invoke("twilio-token");
   if (res.error) throw new Error(res.error.message);
 
+  const Device = await getDeviceConstructor();
   device = new Device(res.data.token, {
     logLevel: "warn",
     codecPreferences: ["opus", "pcmu"],
@@ -44,6 +62,10 @@ export async function initTwilioDevice() {
 // Start een uitgaand gesprek naar een andere gebruiker (via hun user_id als identity)
 export async function startCall(toUserId, { onAccepted, onDisconnected, allowDemoFallback = false } = {}) {
   if (!toUserId) throw new Error("Geen ontvanger voor het gesprek.");
+
+  if (!allowDemoFallback && !isVoiceCallingEnabled()) {
+    throw new Error("Anoniem bellen staat nog niet live. We activeren dit zodra de belprovider is gecontroleerd.");
+  }
 
   if (!hasSupabaseConfig || !supabase) {
     if (allowDemoFallback) {
