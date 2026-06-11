@@ -227,6 +227,21 @@ const AUTH_GUIDE_ITEMS = [
   ["Nieuw hier?", "Kies Nieuw account. Dan maak je voor het eerst een account aan."],
 ];
 
+const AUTH_RETURN_COPY = {
+  signup: [
+    "E-mailadres bevestigd",
+    "Als je niet automatisch bent ingelogd, log dan in met je wachtwoord of vraag een inloglink aan.",
+  ],
+  login: [
+    "Inloglink geopend",
+    "Als je sessie niet automatisch actief is, vraag dan een nieuwe inloglink aan of log in met je wachtwoord.",
+  ],
+  recovery: [
+    "Herstel-link geopend",
+    "Als het wachtwoordformulier niet verschijnt, vraag dan via Inloggen > Wachtwoord een nieuwe herstel-link aan.",
+  ],
+};
+
 const REPORT_REASONS = [
   "Onveilig of grensoverschrijdend gedrag",
   "Nepaccount of misleiding",
@@ -348,8 +363,26 @@ function consentTimestamp() {
   return new Date().toISOString();
 }
 
-function authRedirectUrl() {
-  return window.location.origin;
+function authRedirectUrl(flow = "login") {
+  const url = new URL("/auth/callback", window.location.origin);
+  url.searchParams.set("flow", flow);
+  return url.toString();
+}
+
+function getAuthReturnFlow() {
+  try {
+    const flow = new URLSearchParams(window.location.search).get("flow");
+    if (Object.prototype.hasOwnProperty.call(AUTH_RETURN_COPY, flow)) return flow;
+
+    const hash = window.location.hash.replace(/^#/, "");
+    const hashType = new URLSearchParams(hash).get("type");
+    if (hashType === "recovery") return "recovery";
+    if (hashType === "signup") return "signup";
+    if (hashType === "magiclink") return "login";
+  } catch {
+    // The return notice is best effort; auth itself is handled by Supabase.
+  }
+  return "";
 }
 
 function consentMetadata(timestamp = consentTimestamp()) {
@@ -507,6 +540,7 @@ export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [passwordRecoveryOpen, setPasswordRecoveryOpen] = useState(false);
+  const [authReturnFlow] = useState(() => getAuthReturnFlow());
 
   useEffect(() => {
     if (!hasSupabaseConfig || !supabase) {
@@ -585,6 +619,7 @@ export default function App() {
     <>
       <LandingPage
         authOpen={authOpen}
+        authReturnFlow={authReturnFlow}
         setAuthOpen={setAuthOpen}
         onDemo={() => setDemoMode(true)}
         onPrivacy={() => setPrivacyOpen(true)}
@@ -604,7 +639,7 @@ function LoadingScreen() {
   );
 }
 
-function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
+function LandingPage({ authOpen, authReturnFlow, setAuthOpen, onDemo, onPrivacy }) {
   useEffect(() => {
     void trackConversionEvent("landing_view", {}, { onceKey: "landing" });
   }, []);
@@ -626,6 +661,8 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
   return (
     <main className="site-shell">
       <HeaderNav onLogin={() => setAuthOpen(true)} onPrivacy={onPrivacy} />
+
+      {authReturnFlow && <AuthReturnNotice flow={authReturnFlow} onLogin={() => setAuthOpen(true)} />}
 
       <section className="hero-section">
         <div className="hero-copy">
@@ -796,6 +833,22 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
         />
       )}
     </main>
+  );
+}
+
+function AuthReturnNotice({ flow, onLogin }) {
+  const [title, text] = AUTH_RETURN_COPY[flow] ?? AUTH_RETURN_COPY.login;
+
+  return (
+    <section className="auth-return-notice" role="status" aria-live="polite">
+      <div>
+        <strong>{title}</strong>
+        <span>{text}</span>
+      </div>
+      <button className="secondary-button" type="button" onClick={onLogin}>
+        Open inloggen
+      </button>
+    </section>
   );
 }
 
@@ -1117,7 +1170,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         type: "signup",
         email: normalizedEmail,
         options: {
-          emailRedirectTo: authRedirectUrl(),
+          emailRedirectTo: authRedirectUrl("signup"),
         },
       });
       if (resendError) throw resendError;
@@ -1145,7 +1198,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
     setResetLoading(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: authRedirectUrl(),
+        redirectTo: authRedirectUrl("recovery"),
       });
       if (resetError) throw resetError;
       setStatus(
@@ -1186,7 +1239,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         const { error: authError } = await supabase.auth.signInWithOtp({
           email: normalizedEmail,
           options: {
-            emailRedirectTo: authRedirectUrl(),
+            emailRedirectTo: authRedirectUrl("login"),
             shouldCreateUser: false,
           },
         });
@@ -1197,7 +1250,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
       if (mode === "signup") {
         const acceptedAt = consentTimestamp();
         const authOptions = {
-          emailRedirectTo: authRedirectUrl(),
+          emailRedirectTo: authRedirectUrl("signup"),
           data: consentMetadata(acceptedAt),
         };
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
