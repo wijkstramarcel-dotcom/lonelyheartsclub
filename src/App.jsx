@@ -212,12 +212,17 @@ const CONSENT_VERSION = "2026-06-10";
 const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
 
 function normalizeList(value) {
-  if (Array.isArray(value)) return value.filter(Boolean);
-  if (!value) return [];
-  return String(value)
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const rawItems = Array.isArray(value) ? value : String(value || "").split(",");
+  const seen = new Set();
+  return rawItems
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 function normalizeProfile(profile) {
@@ -264,6 +269,17 @@ function fitsPreference(viewerProfile, candidateProfile) {
 
 function isPotentialMatch(viewerProfile, candidateProfile) {
   return fitsPreference(viewerProfile, candidateProfile) && fitsPreference(candidateProfile, viewerProfile);
+}
+
+function describeMatchFilter(profile) {
+  return {
+    gender: profile?.geslacht || "Nog niet ingevuld",
+    seeking: profile?.zoekt || "Nog niet ingevuld",
+    summary:
+      profile?.geslacht && profile?.zoekt
+        ? "Je ziet alleen leden die bij jouw zoekvoorkeur passen én waarvan de zoekvoorkeur ook bij jou past."
+        : "Maak je profiel compleet om passende leden te kunnen tonen.",
+  };
 }
 
 function getOtherUserId(match, userId) {
@@ -1122,10 +1138,17 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) ?? matches[0] ?? null;
   const selectedOther = selectedMatch ? matchProfiles[getOtherUserId(selectedMatch, user.id)] : null;
 
-  const allOtherProfiles = useMemo(() => {
+  const unmatchedProfiles = useMemo(() => {
     const matchedIds = new Set(matches.map((match) => getOtherUserId(match, user.id)));
-    return profiles.filter((item) => item.id !== user.id && !matchedIds.has(item.id) && isPotentialMatch(profile, item));
-  }, [matches, profile, profiles, user.id]);
+    return profiles.filter((item) => item.id !== user.id && !matchedIds.has(item.id));
+  }, [matches, profiles, user.id]);
+
+  const suggestedProfiles = useMemo(
+    () => unmatchedProfiles.filter((item) => isPotentialMatch(profile, item)),
+    [profile, unmatchedProfiles],
+  );
+
+  const hiddenByPreferenceCount = Math.max(unmatchedProfiles.length - suggestedProfiles.length, 0);
 
   const loadData = async () => {
     if (demoMode || !hasSupabaseConfig || !supabase) {
@@ -1247,7 +1270,9 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     setProfile(normalizeProfile(savedProfile));
     setNeedsProfile(false);
     setActiveTab("discover");
-    loadData();
+    loadData().then(() => {
+      setNotice("Profiel opgeslagen. Je ziet nu alleen leden die wederzijds bij je voorkeur passen.");
+    });
   };
 
   const likeProfile = async (targetProfile) => {
@@ -1384,10 +1409,12 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
 
         {activeTab === "discover" && (
           <DiscoverView
-            profiles={allOtherProfiles}
+            profiles={suggestedProfiles}
             interestedIds={interestedIds}
             onLike={likeProfile}
             loading={loading}
+            viewerProfile={profile}
+            hiddenByPreferenceCount={hiddenByPreferenceCount}
           />
         )}
 
@@ -1520,6 +1547,8 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const passionList = normalizeList(form.passies);
+  const age = Number(form.leeftijd);
+  const matchFilter = describeMatchFilter(form);
 
   const save = async (event) => {
     event.preventDefault();
@@ -1529,8 +1558,8 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       setError("Vul je voornaam in.");
       return;
     }
-    if (!form.leeftijd || Number(form.leeftijd) < 18) {
-      setError("Je moet minimaal 18 jaar zijn.");
+    if (!Number.isInteger(age) || age < 18 || age > 99) {
+      setError("Vul een leeftijd tussen 18 en 99 in.");
       return;
     }
     if (!form.geslacht || !form.zoekt) {
@@ -1539,6 +1568,10 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
     }
     if (form.verhaal.trim().length < 20) {
       setError("Schrijf minimaal een korte zin over jezelf.");
+      return;
+    }
+    if (passionList.length < 2) {
+      setError("Kies of schrijf minimaal twee passies.");
       return;
     }
     if (!sensitiveConsent) {
@@ -1552,7 +1585,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       id: user.id,
       naam: form.naam.trim(),
       voornaam: form.naam.trim(),
-      leeftijd: Number(form.leeftijd),
+      leeftijd: age,
       geslacht: form.geslacht,
       zoekt: form.zoekt,
       verhaal: form.verhaal.trim(),
@@ -1590,6 +1623,21 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
 
   return (
     <form className="profile-form" onSubmit={save}>
+      <div className="profile-match-preview">
+        <strong>Jouw matchfilter</strong>
+        <span>{matchFilter.summary}</span>
+        <dl>
+          <div>
+            <dt>Ik ben</dt>
+            <dd>{matchFilter.gender}</dd>
+          </div>
+          <div>
+            <dt>Ik zoek</dt>
+            <dd>{matchFilter.seeking}</dd>
+          </div>
+        </dl>
+      </div>
+
       <div className="form-grid">
         <label>
           Voornaam
@@ -1597,7 +1645,12 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
         </label>
         <label>
           Leeftijd
-          <input value={form.leeftijd} onChange={(event) => update("leeftijd", event.target.value)} inputMode="numeric" placeholder="48" />
+          <input
+            value={form.leeftijd}
+            onChange={(event) => update("leeftijd", event.target.value.replace(/\D/g, "").slice(0, 2))}
+            inputMode="numeric"
+            placeholder="48"
+          />
         </label>
         <label>
           Ik ben
@@ -1681,14 +1734,20 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
   );
 }
 
-function DiscoverView({ profiles, interestedIds, onLike, loading }) {
+function DiscoverView({ profiles, interestedIds, onLike, loading, viewerProfile, hiddenByPreferenceCount = 0 }) {
   if (loading) return <EmptyState title="Profielen laden" text="We halen de nieuwste leden op." />;
   if (!profiles.length) {
     return (
       <EmptyState
-        title="Nog geen nieuwe leden"
-        text="Je profiel staat klaar. Zodra er leden actief zijn die bij je voorkeur passen, verschijnen ze hier."
-      />
+        title="Geen passende profielen op dit moment"
+        text={
+          hiddenByPreferenceCount > 0
+            ? "Er zijn wel leden, maar ze passen niet wederzijds bij jouw zoekvoorkeur. We tonen liever minder dan verkeerde matches."
+            : "Je profiel staat klaar. Zodra er leden actief zijn die bij je voorkeur passen, verschijnen ze hier."
+        }
+      >
+        <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
+      </EmptyState>
     );
   }
 
@@ -1698,6 +1757,7 @@ function DiscoverView({ profiles, interestedIds, onLike, loading }) {
         <p className="eyebrow">Ontdek</p>
         <h2>Nieuwe leden zonder foto-oordeel.</h2>
       </div>
+      <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
       <div className="profile-grid">
         {profiles.map((profile) => (
           <ProfileCard
@@ -1709,6 +1769,32 @@ function DiscoverView({ profiles, interestedIds, onLike, loading }) {
         ))}
       </div>
     </section>
+  );
+}
+
+function MatchFilterNote({ profile, hiddenByPreferenceCount = 0 }) {
+  const filter = describeMatchFilter(profile);
+  return (
+    <div className="match-filter-note">
+      <div>
+        <strong>Wederzijdse matchfilter actief</strong>
+        <span>{filter.summary}</span>
+      </div>
+      <dl>
+        <div>
+          <dt>Ik ben</dt>
+          <dd>{filter.gender}</dd>
+        </div>
+        <div>
+          <dt>Ik zoek</dt>
+          <dd>{filter.seeking}</dd>
+        </div>
+        <div>
+          <dt>Verborgen</dt>
+          <dd>{hiddenByPreferenceCount}</dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 
@@ -1895,12 +1981,13 @@ function TagList({ tags }) {
   );
 }
 
-function EmptyState({ title, text, compact = false }) {
+function EmptyState({ title, text, compact = false, children = null }) {
   return (
     <section className={classNames("empty-state", compact && "compact")}>
       <img src="/lhc-seal.svg" alt="" />
       <h2>{title}</h2>
       <p>{text}</p>
+      {children}
     </section>
   );
 }

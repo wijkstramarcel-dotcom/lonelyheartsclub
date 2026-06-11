@@ -1336,6 +1336,77 @@ textarea {
   gap: 14px;
 }
 
+.profile-match-preview,
+.match-filter-note {
+  border: 1px solid rgba(47, 101, 93, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(47, 101, 93, 0.07);
+}
+
+.profile-match-preview strong,
+.profile-match-preview span,
+.match-filter-note strong,
+.match-filter-note span {
+  display: block;
+}
+
+.profile-match-preview strong,
+.match-filter-note strong {
+  color: #1d1a16;
+  font-size: 14px;
+}
+
+.profile-match-preview span,
+.match-filter-note span {
+  margin-top: 4px;
+  color: #5d5147;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.profile-match-preview dl,
+.match-filter-note dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.profile-match-preview dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-match-preview dl div,
+.match-filter-note dl div {
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: rgba(255, 253, 250, 0.7);
+}
+
+.profile-match-preview dt,
+.profile-match-preview dd,
+.match-filter-note dt,
+.match-filter-note dd {
+  margin: 0;
+}
+
+.profile-match-preview dt,
+.match-filter-note dt {
+  color: #7e7167;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.profile-match-preview dd,
+.match-filter-note dd {
+  margin-top: 3px;
+  color: #1d1a16;
+  font-size: 13px;
+  font-weight: 850;
+}
+
 @media (max-width: 860px) {
   .hero-section,
   .steps-grid,
@@ -1392,6 +1463,11 @@ textarea {
 
   .app-tabs {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .profile-match-preview dl,
+  .match-filter-note dl {
+    grid-template-columns: 1fr;
   }
 
   .app-tabs button {
