@@ -1152,6 +1152,37 @@ textarea {
   background: #2f655d;
 }
 
+.safety-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.safety-actions.compact {
+  grid-column: 1 / -1;
+}
+
+.safety-actions details {
+  width: min(100%, 360px);
+}
+
+.safety-actions summary {
+  color: #8a2c1c;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.report-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  border: 1px solid rgba(177, 78, 48, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(177, 78, 48, 0.06);
+}
+
 .match-list {
   display: grid;
   gap: 10px;
@@ -1194,6 +1225,12 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
+}
+
+.message-header-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
 }
 
 .conversation-steps {
@@ -1578,6 +1615,11 @@ textarea {
   .message-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .message-header-actions {
+    width: 100%;
+    justify-items: stretch;
   }
 
   .header-actions {

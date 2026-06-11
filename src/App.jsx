@@ -208,6 +208,14 @@ const AUTH_GUIDE_ITEMS = [
   ["Nieuw hier?", "Kies Nieuw account en bevestig daarna je e-mailadres."],
 ];
 
+const REPORT_REASONS = [
+  "Onveilig of grensoverschrijdend gedrag",
+  "Nepaccount of misleiding",
+  "Spam of commercieel bericht",
+  "Discriminerende of kwetsende inhoud",
+  "Anders",
+];
+
 const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
 const CONSENT_VERSION = "2026-06-10";
 const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
@@ -346,6 +354,18 @@ function isMissingConsentColumnError(error) {
 function isDuplicateEmailError(error) {
   const message = String(error?.message || "");
   return error?.code === "23505" || message.includes("duplicate key");
+}
+
+function isMissingSafetyTableError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    error?.code === "42P01" ||
+    error?.code === "PGRST205" ||
+    message.includes("blocks") ||
+    message.includes("reports") ||
+    message.includes("could not find the table") ||
+    (message.includes("relation") && message.includes("does not exist"))
+  );
 }
 
 async function upsertWaitlist(email, timestamp) {
@@ -1152,19 +1172,25 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     demoMode ? Object.fromEntries(DEMO_PROFILES.map((item) => [item.id, normalizeProfile(item)])) : {},
   );
   const [interestedIds, setInterestedIds] = useState(new Set());
+  const [blockedIds, setBlockedIds] = useState(new Set());
+  const [reportedIds, setReportedIds] = useState(new Set());
   const [selectedMatchId, setSelectedMatchId] = useState(demoMode ? DEMO_MATCHES[0]?.id ?? null : null);
   const [messages, setMessages] = useState(demoMode ? DEMO_MESSAGES : {});
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(!demoMode);
   const [journeyStep, setJourneyStep] = useState("discover");
 
-  const selectedMatch = matches.find((match) => match.id === selectedMatchId) ?? matches[0] ?? null;
+  const visibleMatches = useMemo(
+    () => matches.filter((match) => !blockedIds.has(getOtherUserId(match, user.id))),
+    [blockedIds, matches, user.id],
+  );
+  const selectedMatch = visibleMatches.find((match) => match.id === selectedMatchId) ?? visibleMatches[0] ?? null;
   const selectedOther = selectedMatch ? matchProfiles[getOtherUserId(selectedMatch, user.id)] : null;
 
   const unmatchedProfiles = useMemo(() => {
     const matchedIds = new Set(matches.map((match) => getOtherUserId(match, user.id)));
-    return profiles.filter((item) => item.id !== user.id && !matchedIds.has(item.id));
-  }, [matches, profiles, user.id]);
+    return profiles.filter((item) => item.id !== user.id && !matchedIds.has(item.id) && !blockedIds.has(item.id));
+  }, [blockedIds, matches, profiles, user.id]);
 
   const suggestedProfiles = useMemo(
     () => (profile?.actief === false ? [] : unmatchedProfiles.filter((item) => isPotentialMatch(profile, item))),
@@ -1210,6 +1236,20 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
 
       if (interestsError) throw interestsError;
       setInterestedIds(new Set((interests ?? []).map((item) => item.to_user)));
+
+      const { data: blockRows, error: blocksError } = await supabase
+        .from("blocks")
+        .select("blocked_id")
+        .eq("blocker_id", user.id);
+      if (blocksError && !isMissingSafetyTableError(blocksError)) throw blocksError;
+      setBlockedIds(new Set((blockRows ?? []).map((item) => item.blocked_id).filter(Boolean)));
+
+      const { data: reportRows, error: reportsError } = await supabase
+        .from("reports")
+        .select("reported_id")
+        .eq("reporter_id", user.id);
+      if (reportsError && !isMissingSafetyTableError(reportsError)) throw reportsError;
+      setReportedIds(new Set((reportRows ?? []).map((item) => item.reported_id).filter(Boolean)));
 
       const { data: matchRows, error: matchesError } = await supabase
         .from("matches")
@@ -1377,6 +1417,80 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     await loadData();
   };
 
+  const blockProfile = async (targetProfile) => {
+    if (!targetProfile?.id || targetProfile.id === user.id) return;
+
+    if (demoMode) {
+      setBlockedIds((current) => new Set([...current, targetProfile.id]));
+      setNotice(`${targetProfile.naam} is verborgen in de demo.`);
+      return;
+    }
+
+    if (!hasSupabaseConfig || !supabase) {
+      setNotice("Supabase is nog niet gekoppeld.");
+      return;
+    }
+
+    const { error } = await supabase.from("blocks").insert({
+      blocker_id: user.id,
+      blocked_id: targetProfile.id,
+    });
+
+    if (error && error.code !== "23505") {
+      setNotice(
+        isMissingSafetyTableError(error)
+          ? "Run eerst de nieuwste schema.sql in Supabase om blokkeren en rapporteren te activeren."
+          : error.message,
+      );
+      return;
+    }
+
+    setBlockedIds((current) => new Set([...current, targetProfile.id]));
+    setNotice(`${targetProfile.naam} is verborgen. Je ziet dit profiel niet meer in Ontdek of Matches.`);
+  };
+
+  const reportProfile = async (targetProfile, reason, details = "") => {
+    if (!targetProfile?.id || targetProfile.id === user.id) return false;
+
+    if (demoMode) {
+      setReportedIds((current) => new Set([...current, targetProfile.id]));
+      setNotice(`Demo-rapportage voor ${targetProfile.naam} opgeslagen.`);
+      return true;
+    }
+
+    if (!hasSupabaseConfig || !supabase) {
+      setNotice("Supabase is nog niet gekoppeld.");
+      return false;
+    }
+
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: user.id,
+      reported_id: targetProfile.id,
+      reason,
+      details: details.trim() || null,
+      status: "open",
+    });
+
+    if (error && error.code === "23505") {
+      setReportedIds((current) => new Set([...current, targetProfile.id]));
+      setNotice(`Je rapportage over ${targetProfile.naam} stond al opgeslagen.`);
+      return true;
+    }
+
+    if (error) {
+      setNotice(
+        isMissingSafetyTableError(error)
+          ? "Run eerst de nieuwste schema.sql in Supabase om blokkeren en rapporteren te activeren."
+          : error.message,
+      );
+      return false;
+    }
+
+    setReportedIds((current) => new Set([...current, targetProfile.id]));
+    setNotice(`Rapportage over ${targetProfile.naam} is opgeslagen.`);
+    return true;
+  };
+
   const sendMessage = async (content) => {
     if (!selectedMatch || !content.trim()) return;
 
@@ -1473,7 +1587,10 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
           <DiscoverView
             profiles={suggestedProfiles}
             interestedIds={interestedIds}
+            reportedIds={reportedIds}
             onLike={likeProfile}
+            onBlock={blockProfile}
+            onReport={reportProfile}
             loading={loading}
             viewerProfile={profile}
             hiddenByPreferenceCount={hiddenByPreferenceCount}
@@ -1483,7 +1600,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
 
         {activeTab === "matches" && (
           <MatchesView
-            matches={matches}
+            matches={visibleMatches}
             matchProfiles={matchProfiles}
             userId={user.id}
             selectedMatchId={selectedMatchId}
@@ -1503,6 +1620,9 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             messages={selectedMatch ? messages[selectedMatch.id] ?? [] : []}
             userId={user.id}
             onSend={sendMessage}
+            onBlock={blockProfile}
+            onReport={reportProfile}
+            reportedIds={reportedIds}
             demoMode={demoMode}
             onJourneyStep={setJourneyStep}
           />
@@ -1857,7 +1977,10 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
 function DiscoverView({
   profiles,
   interestedIds,
+  reportedIds,
   onLike,
+  onBlock,
+  onReport,
   loading,
   viewerProfile,
   hiddenByPreferenceCount = 0,
@@ -1902,7 +2025,10 @@ function DiscoverView({
             key={profile.id}
             profile={profile}
             liked={interestedIds.has(profile.id)}
+            reported={reportedIds.has(profile.id)}
             onLike={() => onLike(profile)}
+            onBlock={() => onBlock(profile)}
+            onReport={(reason, details) => onReport(profile, reason, details)}
           />
         ))}
       </div>
@@ -1936,7 +2062,7 @@ function MatchFilterNote({ profile, hiddenByPreferenceCount = 0 }) {
   );
 }
 
-function ProfileCard({ profile, liked, onLike }) {
+function ProfileCard({ profile, liked, reported, onLike, onBlock, onReport }) {
   return (
     <article className="member-card">
       <div className="member-avatar" aria-hidden="true">
@@ -1953,7 +2079,67 @@ function ProfileCard({ profile, liked, onLike }) {
       <button className={classNames("like-button", liked && "liked")} onClick={onLike} disabled={liked}>
         {liked ? "Interesse verstuurd" : "Toon interesse"}
       </button>
+      <SafetyActions
+        context="card"
+        reported={reported}
+        onBlock={onBlock}
+        onReport={onReport}
+      />
     </article>
+  );
+}
+
+function SafetyActions({ context = "panel", reported = false, onBlock, onReport }) {
+  const [reason, setReason] = useState(REPORT_REASONS[0]);
+  const [details, setDetails] = useState("");
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const ok = await onReport(reason, details);
+      if (ok) {
+        setDetails("");
+        setOpen(false);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className={classNames("safety-actions", context === "card" && "compact")}>
+      <button className="text-button" type="button" onClick={onBlock}>
+        Verberg profiel
+      </button>
+      <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+        <summary>{reported ? "Rapportage verzonden" : "Rapporteer"}</summary>
+        <form className="report-form" onSubmit={submit}>
+          <label>
+            Reden
+            <select value={reason} onChange={(event) => setReason(event.target.value)}>
+              {REPORT_REASONS.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Toelichting
+            <textarea
+              value={details}
+              onChange={(event) => setDetails(event.target.value.slice(0, 1000))}
+              rows={3}
+              placeholder="Optioneel: wat gebeurde er?"
+            />
+          </label>
+          <button className="secondary-button wide" type="submit" disabled={submitting || reported}>
+            {reported ? "Al verzonden" : submitting ? "Versturen" : "Rapportage versturen"}
+          </button>
+        </form>
+      </details>
+    </div>
   );
 }
 
@@ -1999,7 +2185,18 @@ function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect
   );
 }
 
-function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode = false, onJourneyStep = () => {} }) {
+function MessagesView({
+  match,
+  otherProfile,
+  messages,
+  userId,
+  onSend,
+  onBlock,
+  onReport,
+  reportedIds = new Set(),
+  demoMode = false,
+  onJourneyStep = () => {},
+}) {
   const [draft, setDraft] = useState("");
   const [callStep, setCallStep] = useState("ready");
   const [callError, setCallError] = useState("");
@@ -2114,7 +2311,16 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
           <p className="eyebrow">Berichten</p>
           <h2>{otherProfile?.naam ?? "Je match"}</h2>
         </div>
-        <span className="call-badge">{callBadge}</span>
+        <div className="message-header-actions">
+          <span className="call-badge">{callBadge}</span>
+          {otherProfile && (
+            <SafetyActions
+              reported={reportedIds.has(otherProfile.id)}
+              onBlock={() => onBlock(otherProfile)}
+              onReport={(reason, details) => onReport(otherProfile, reason, details)}
+            />
+          )}
+        </div>
       </div>
 
       <ol className="conversation-steps" aria-label="Gespreksroute">

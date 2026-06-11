@@ -87,6 +87,25 @@ alter table messages add column if not exists sender_id uuid references profiles
 alter table messages add column if not exists content text;
 alter table messages add column if not exists created_at timestamptz default now();
 
+create table if not exists blocks (
+  id uuid primary key default gen_random_uuid()
+);
+
+alter table blocks add column if not exists blocker_id uuid references profiles(id) on delete cascade;
+alter table blocks add column if not exists blocked_id uuid references profiles(id) on delete cascade;
+alter table blocks add column if not exists created_at timestamptz default now();
+
+create table if not exists reports (
+  id uuid primary key default gen_random_uuid()
+);
+
+alter table reports add column if not exists reporter_id uuid references profiles(id) on delete cascade;
+alter table reports add column if not exists reported_id uuid references profiles(id) on delete cascade;
+alter table reports add column if not exists reason text;
+alter table reports add column if not exists details text;
+alter table reports add column if not exists status text default 'open';
+alter table reports add column if not exists created_at timestamptz default now();
+
 do $$
 begin
   if not exists (
@@ -137,6 +156,48 @@ begin
     alter table messages add constraint messages_content_check
       check (content is null or char_length(trim(content)) between 1 and 1000) not valid;
   end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'blocks_blocker_id_blocked_id_key'
+  ) then
+    alter table blocks add constraint blocks_blocker_id_blocked_id_key
+      unique (blocker_id, blocked_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'blocks_not_self_check'
+  ) then
+    alter table blocks add constraint blocks_not_self_check
+      check (blocker_id is null or blocked_id is null or blocker_id <> blocked_id) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'reports_not_self_check'
+  ) then
+    alter table reports add constraint reports_not_self_check
+      check (reporter_id is null or reported_id is null or reporter_id <> reported_id) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'reports_reporter_id_reported_id_key'
+  ) then
+    alter table reports add constraint reports_reporter_id_reported_id_key
+      unique (reporter_id, reported_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'reports_reason_check'
+  ) then
+    alter table reports add constraint reports_reason_check
+      check (reason is null or char_length(trim(reason)) between 2 and 80) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'reports_details_check'
+  ) then
+    alter table reports add constraint reports_details_check
+      check (details is null or char_length(trim(details)) <= 1000) not valid;
+  end if;
 end;
 $$;
 
@@ -146,6 +207,10 @@ create index if not exists matches_user_a_idx on matches(user_a);
 create index if not exists matches_user_b_idx on matches(user_b);
 create index if not exists messages_match_created_idx on messages(match_id, created_at);
 create index if not exists calls_match_started_idx on calls(match_id, started_at desc);
+create index if not exists blocks_blocker_idx on blocks(blocker_id);
+create index if not exists blocks_blocked_idx on blocks(blocked_id);
+create index if not exists reports_reporter_idx on reports(reporter_id);
+create index if not exists reports_reported_status_idx on reports(reported_id, status);
 
 create or replace function touch_updated_at()
 returns trigger language plpgsql as $$
@@ -169,6 +234,30 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 
+create or replace function has_block_between(first_user uuid, second_user uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from blocks b
+    where (b.blocker_id = first_user and b.blocked_id = second_user)
+       or (b.blocker_id = second_user and b.blocked_id = first_user)
+  );
+$$;
+
+create or replace function close_matches_on_block()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.blocker_id is null or new.blocked_id is null then
+    return new;
+  end if;
+
+  delete from matches
+  where user_a = least(new.blocker_id, new.blocked_id)
+    and user_b = greatest(new.blocker_id, new.blocked_id);
+
+  return new;
+end;
+$$;
+
 create or replace function create_match_on_mutual_interest()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -180,7 +269,7 @@ begin
     select 1 from interests
     where from_user = new.to_user
       and to_user = new.from_user
-  ) then
+  ) and not has_block_between(new.from_user, new.to_user) then
     insert into matches (user_a, user_b)
     values (least(new.from_user, new.to_user), greatest(new.from_user, new.to_user))
     on conflict do nothing;
@@ -194,12 +283,19 @@ create trigger on_interest_inserted
   after insert on interests
   for each row execute function create_match_on_mutual_interest();
 
+drop trigger if exists on_block_inserted on blocks;
+create trigger on_block_inserted
+  after insert on blocks
+  for each row execute function close_matches_on_block();
+
 alter table profiles enable row level security;
 alter table waitlist enable row level security;
 alter table interests enable row level security;
 alter table matches enable row level security;
 alter table calls enable row level security;
 alter table messages enable row level security;
+alter table blocks enable row level security;
+alter table reports enable row level security;
 
 do $$
 declare
@@ -209,7 +305,7 @@ begin
     select schemaname, tablename, policyname
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('profiles', 'interests', 'matches', 'calls', 'messages')
+      and tablename in ('profiles', 'interests', 'matches', 'calls', 'messages', 'blocks', 'reports')
   loop
     execute format(
       'drop policy if exists %I on %I.%I',
@@ -278,6 +374,28 @@ create policy "Match deelnemers lezen berichten"
 
 create policy "Match deelnemers versturen berichten"
   on messages for insert with check (auth.uid() = sender_id and is_match_participant(match_id));
+
+drop policy if exists "Eigen blokkades lezen" on blocks;
+drop policy if exists "Blokkade toevoegen" on blocks;
+drop policy if exists "Eigen blokkade verwijderen" on blocks;
+
+create policy "Eigen blokkades lezen"
+  on blocks for select using (auth.uid() = blocker_id);
+
+create policy "Blokkade toevoegen"
+  on blocks for insert with check (auth.uid() = blocker_id and blocker_id <> blocked_id);
+
+create policy "Eigen blokkade verwijderen"
+  on blocks for delete using (auth.uid() = blocker_id);
+
+drop policy if exists "Eigen rapportages lezen" on reports;
+drop policy if exists "Rapportage toevoegen" on reports;
+
+create policy "Eigen rapportages lezen"
+  on reports for select using (auth.uid() = reporter_id);
+
+create policy "Rapportage toevoegen"
+  on reports for insert with check (auth.uid() = reporter_id and reporter_id <> reported_id);
 
 alter table messages replica identity full;
 alter table matches replica identity full;

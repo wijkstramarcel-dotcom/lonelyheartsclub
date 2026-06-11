@@ -56,6 +56,8 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [ ] Geen analytics of marketingcookies zonder aparte toestemming.
 - [ ] Privacy-contactadres werkt.
 - [ ] Verwijderverzoek-proces is bekend.
+- [ ] `blocks` en `reports` uit `schema.sql` zijn actief in Supabase.
+- [ ] Rapportages worden handmatig opgevolgd en afgesloten.
 - [ ] Demo/testaccounts zijn herkenbaar en niet verwarrend voor echte leden.
 
 ## 7. Go/no-go
