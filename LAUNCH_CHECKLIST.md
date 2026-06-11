@@ -54,8 +54,8 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 
 - [ ] Privacytekst klopt met wat de app werkelijk verwerkt.
 - [ ] Geen externe analytics of marketingcookies zonder aparte toestemming.
-- [ ] `analytics_events` uit `schema.sql` is actief in Supabase.
-- [ ] Conversie-events bevatten geen e-mailadres, profieldata, cookie-ID of volledige referrer.
+- [x] `analytics_events` uit `schema.sql` is actief in Supabase.
+- [x] Conversie-events bevatten geen e-mailadres, profieldata, cookie-ID of volledige referrer.
 - [ ] Privacy-contactadres werkt.
 - [ ] Verwijderverzoek-proces is bekend.
 - [ ] `blocks` en `reports` uit `schema.sql` zijn actief in Supabase.
