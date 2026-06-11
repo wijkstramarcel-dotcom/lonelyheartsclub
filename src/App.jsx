@@ -1501,6 +1501,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   );
 
   const hiddenByPreferenceCount = Math.max(unmatchedProfiles.length - suggestedProfiles.length, 0);
+  const selectedMatchMessages = selectedMatch ? messages[selectedMatch.id] ?? [] : [];
 
   const loadData = async () => {
     if (demoMode || !hasSupabaseConfig || !supabase) {
@@ -1696,7 +1697,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       setSelectedMatchId(matchId);
       setActiveTab("messages");
       setJourneyStep("messages");
-      setNotice(`Demo-match met ${targetProfile.naam}. Stuur een bericht en ga daarna door naar anoniem bellen.`);
+      setNotice(`Demo-match met ${targetProfile.naam}. Reageer op het bericht en ga daarna door naar anoniem bellen.`);
       return;
     }
 
@@ -1883,8 +1884,35 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
         <AppHeader profile={profile} notice={notice} onRefresh={loadData} loading={loading} />
 
         {demoMode && (
-          <DemoJourney activeStep={journeyStep} />
+          <DemoJourney
+            activeStep={journeyStep}
+            suggestedCount={suggestedProfiles.length}
+            matchCount={visibleMatches.length}
+            onCreateDemoMatch={() => suggestedProfiles[0] && likeProfile(suggestedProfiles[0])}
+            onOpenChat={() => {
+              if (selectedMatch) {
+                setActiveTab("messages");
+                setJourneyStep("messages");
+              }
+            }}
+          />
         )}
+
+        <NextStepPanel
+          activeTab={activeTab}
+          demoMode={demoMode}
+          profile={profile}
+          suggestedCount={suggestedProfiles.length}
+          hiddenByPreferenceCount={hiddenByPreferenceCount}
+          matchCount={visibleMatches.length}
+          hasSelectedMatch={Boolean(selectedMatch)}
+          selectedMatchHasMessages={selectedMatchMessages.length > 0}
+          onNavigate={(tabId) => {
+            setActiveTab(tabId);
+            if (demoMode && ["discover", "matches", "messages"].includes(tabId)) setJourneyStep(tabId);
+          }}
+          onCreateDemoMatch={() => suggestedProfiles[0] && likeProfile(suggestedProfiles[0])}
+        />
 
         {activeTab === "discover" && (
           <DiscoverView
@@ -1898,6 +1926,9 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             viewerProfile={profile}
             hiddenByPreferenceCount={hiddenByPreferenceCount}
             profilePaused={profile?.actief === false}
+            demoMode={demoMode}
+            onOpenProfile={() => setActiveTab("profile")}
+            onCreateDemoMatch={() => suggestedProfiles[0] && likeProfile(suggestedProfiles[0])}
           />
         )}
 
@@ -1912,6 +1943,10 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
               setSelectedMatchId(matchId);
               setActiveTab("messages");
               if (demoMode) setJourneyStep("messages");
+            }}
+            onOpenDiscover={() => {
+              setActiveTab("discover");
+              if (demoMode) setJourneyStep("discover");
             }}
           />
         )}
@@ -1928,6 +1963,10 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             reportedIds={reportedIds}
             demoMode={demoMode}
             onJourneyStep={setJourneyStep}
+            onOpenDiscover={() => {
+              setActiveTab("discover");
+              if (demoMode) setJourneyStep("discover");
+            }}
           />
         )}
 
@@ -1963,7 +2002,7 @@ function AppHeader({ profile, notice, onRefresh, loading }) {
   );
 }
 
-function DemoJourney({ activeStep }) {
+function DemoJourney({ activeStep, suggestedCount = 0, matchCount = 0, onCreateDemoMatch, onOpenChat }) {
   const flow = [
     ["discover", "Match zoeken"],
     ["matches", "Match kiezen"],
@@ -1982,16 +2021,149 @@ function DemoJourney({ activeStep }) {
         <p className="eyebrow">Demo-route</p>
         <h2>Test de echte volgorde: match, chat, bel en spreek pas daarna af.</h2>
       </div>
-      <div className="journey-steps">
-        {flow.map(([id, label], index) => (
-          <span
-            key={id}
-            className={classNames(index === activeIndex && "active", index < activeIndex && "complete")}
-          >
-            {index + 1}. {label}
-          </span>
-        ))}
+      <div className="journey-side">
+        <div className="journey-steps">
+          {flow.map(([id, label], index) => (
+            <span
+              key={id}
+              className={classNames(index === activeIndex && "active", index < activeIndex && "complete")}
+            >
+              {index + 1}. {label}
+            </span>
+          ))}
+        </div>
+        <div className="journey-actions">
+          {suggestedCount > 0 && (
+            <button className="secondary-button" type="button" onClick={onCreateDemoMatch}>
+              Maak demo-match
+            </button>
+          )}
+          {matchCount > 0 && (
+            <button className="secondary-button" type="button" onClick={onOpenChat}>
+              Open chat
+            </button>
+          )}
+        </div>
       </div>
+    </section>
+  );
+}
+
+function NextStepPanel({
+  activeTab,
+  demoMode,
+  profile,
+  suggestedCount,
+  hiddenByPreferenceCount,
+  matchCount,
+  hasSelectedMatch,
+  selectedMatchHasMessages,
+  onNavigate,
+  onCreateDemoMatch,
+}) {
+  if (profile?.actief === false) {
+    return (
+      <section className="next-step-panel">
+        <div>
+          <p className="eyebrow">Volgende stap</p>
+          <h2>Je profiel staat gepauzeerd.</h2>
+          <p>Maak je profiel weer actief als je gevonden wilt worden en passende leden wilt zien.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => onNavigate("profile")}>
+          Naar profiel
+        </button>
+      </section>
+    );
+  }
+
+  if (demoMode && suggestedCount > 0 && activeTab === "discover") {
+    return (
+      <section className="next-step-panel">
+        <div>
+          <p className="eyebrow">Volgende stap</p>
+          <h2>Maak nu een demo-match.</h2>
+          <p>In de demo laten we wederzijdse interesse meteen ontstaan, zodat je chat en bellen kunt testen.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={onCreateDemoMatch}>
+          Maak demo-match
+        </button>
+      </section>
+    );
+  }
+
+  if (matchCount > 0 && !hasSelectedMatch) {
+    return (
+      <section className="next-step-panel">
+        <div>
+          <p className="eyebrow">Volgende stap</p>
+          <h2>Kies een match om te chatten.</h2>
+          <p>Een match is pas nuttig als er daarna een echt gesprek begint.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => onNavigate("matches")}>
+          Naar matches
+        </button>
+      </section>
+    );
+  }
+
+  if (hasSelectedMatch && !selectedMatchHasMessages) {
+    return (
+      <section className="next-step-panel">
+        <div>
+          <p className="eyebrow">Volgende stap</p>
+          <h2>Stuur het eerste bericht.</h2>
+          <p>Begin met iets uit iemands verhaal. Bellen blijft dicht totdat er eerst is gechat.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => onNavigate("messages")}>
+          Naar chat
+        </button>
+      </section>
+    );
+  }
+
+  if (hasSelectedMatch && selectedMatchHasMessages) {
+    return (
+      <section className="next-step-panel">
+        <div>
+          <p className="eyebrow">Volgende stap</p>
+          <h2>Chat loopt. Daarna pas bellen.</h2>
+          <p>Als het gesprek goed voelt, open je vanuit Berichten het anonieme belmoment.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => onNavigate("messages")}>
+          Open gesprek
+        </button>
+      </section>
+    );
+  }
+
+  if (suggestedCount > 0) {
+    return (
+      <section className="next-step-panel">
+        <div>
+          <p className="eyebrow">Volgende stap</p>
+          <h2>Bekijk passende profielen.</h2>
+          <p>Toon interesse bij iemand waar je op verhaal, intentie en voorkeur op aanslaat.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => onNavigate("discover")}>
+          Naar Ontdek
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="next-step-panel">
+      <div>
+        <p className="eyebrow">Volgende stap</p>
+        <h2>Je profiel staat klaar.</h2>
+        <p>
+          Er zijn nu {hiddenByPreferenceCount > 0 ? "nog geen wederzijdse" : "nog geen"} passende profielen.
+          Controleer eventueel je voorkeuren of wacht tot er meer echte leden actief zijn.
+        </p>
+      </div>
+      <button className="secondary-button" type="button" onClick={() => onNavigate("profile")}>
+        Profiel controleren
+      </button>
     </section>
   );
 }
@@ -2288,6 +2460,9 @@ function DiscoverView({
   viewerProfile,
   hiddenByPreferenceCount = 0,
   profilePaused = false,
+  demoMode = false,
+  onOpenProfile,
+  onCreateDemoMatch,
 }) {
   if (loading) return <EmptyState title="Profielen laden" text="We halen de nieuwste leden op." />;
   if (profilePaused) {
@@ -2297,6 +2472,9 @@ function DiscoverView({
         text="Je wordt nu niet getoond aan andere leden. Maak je profiel weer actief via Profiel zodra je weer wilt daten."
       >
         <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
+        <button className="secondary-button" type="button" onClick={onOpenProfile}>
+          Naar profiel
+        </button>
       </EmptyState>
     );
   }
@@ -2311,6 +2489,16 @@ function DiscoverView({
         }
       >
         <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
+        <div className="empty-actions">
+          {demoMode && (
+            <button className="primary-button" type="button" onClick={onCreateDemoMatch}>
+              Maak demo-match
+            </button>
+          )}
+          <button className="secondary-button" type="button" onClick={onOpenProfile}>
+            Voorkeuren aanpassen
+          </button>
+        </div>
       </EmptyState>
     );
   }
@@ -2446,7 +2634,7 @@ function SafetyActions({ context = "panel", reported = false, onBlock, onReport 
   );
 }
 
-function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect, demoMode = false }) {
+function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect, onOpenDiscover, demoMode = false }) {
   if (!matches.length) {
     return (
       <EmptyState
@@ -2456,7 +2644,11 @@ function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect
             ? "Ga naar Ontdek en toon interesse. In de demo maken we daarna meteen een match, zodat je chat en bellen kunt testen."
             : "Een match ontstaat zodra twee leden allebei interesse tonen. Daarna kun je chatten en later anoniem bellen."
         }
-      />
+      >
+        <button className="primary-button" type="button" onClick={onOpenDiscover}>
+          Naar Ontdek
+        </button>
+      </EmptyState>
     );
   }
 
@@ -2499,6 +2691,7 @@ function MessagesView({
   reportedIds = new Set(),
   demoMode = false,
   onJourneyStep = () => {},
+  onOpenDiscover,
 }) {
   const [draft, setDraft] = useState("");
   const [callStep, setCallStep] = useState("ready");
@@ -2524,7 +2717,11 @@ function MessagesView({
       <EmptyState
         title="Zoek eerst een match"
         text="De volgorde is bewust: eerst matchen, daarna chatten, daarna pas anoniem bellen."
-      />
+      >
+        <button className="primary-button" type="button" onClick={onOpenDiscover}>
+          Naar Ontdek
+        </button>
+      </EmptyState>
     );
   }
 
@@ -2561,6 +2758,11 @@ function MessagesView({
             : "Start anoniem bellen";
   const canStartCall = voiceReady && hasChat && Boolean(recipientId) && callStep !== "connecting";
   const canProposeMeet = ["active", "ended", "meet"].includes(callStep);
+  const starterMessages = [
+    `Hoi ${otherProfile?.naam ?? "daar"}, wat in je verhaal zou ik als eerste moeten vragen?`,
+    "Ik vind je profiel rustig en oprecht overkomen. Waar krijg jij de laatste tijd energie van?",
+    "Zullen we eerst even chatten en daarna pas kijken of bellen goed voelt?",
+  ];
 
   const handleCall = async () => {
     setCallError("");
@@ -2663,7 +2865,15 @@ function MessagesView({
             compact
             title="Nog geen berichten"
             text="Stuur een korte opening die over iemands verhaal gaat."
-          />
+          >
+            <div className="starter-actions" aria-label="Berichtvoorstellen">
+              {starterMessages.map((message) => (
+                <button className="secondary-button" key={message} type="button" onClick={() => setDraft(message)}>
+                  {message}
+                </button>
+              ))}
+            </div>
+          </EmptyState>
         )}
       </div>
 
