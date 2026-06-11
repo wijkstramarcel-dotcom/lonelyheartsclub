@@ -208,7 +208,7 @@ const AUTH_MODES = [
     label: "Wachtwoord",
     hint: "bestaand account",
     title: "Inloggen met wachtwoord",
-    text: "Gebruik dit als je e-mailadres al bevestigd is en je ooit een wachtwoord hebt ingesteld. Anders kun je hieronder een wachtwoordlink aanvragen.",
+    text: "Gebruik dit alleen als je al een account hebt en je wachtwoord weet. Wachtwoord kwijt? Vraag hieronder een herstel-link aan.",
     submit: "Log in",
   },
   {
@@ -222,9 +222,9 @@ const AUTH_MODES = [
 ];
 
 const AUTH_GUIDE_ITEMS = [
-  ["Al eerder aangemeld?", "Kies Inloglink. Dat werkt ook als je je wachtwoord niet weet."],
-  ["Geen wachtwoord?", "Vraag bij Wachtwoord een link aan om er een in te stellen."],
-  ["Nieuw hier?", "Kies Nieuw account en bevestig daarna je e-mailadres."],
+  ["Al eerder aangemeld?", "Kies Inloglink. Dat werkt zonder wachtwoord."],
+  ["Wachtwoord kwijt?", "Kies Wachtwoord en vraag daar een herstel-link aan."],
+  ["Nieuw hier?", "Kies Nieuw account. Dan maak je voor het eerst een account aan."],
 ];
 
 const REPORT_REASONS = [
@@ -1134,7 +1134,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
     setStatus("");
 
     if (!validEmail) {
-      setError("Vul eerst je e-mailadres in. Dan kunnen we de wachtwoordlink sturen.");
+      setError("Vul eerst het e-mailadres van je bestaande account in. Dan kunnen we de herstel-link sturen.");
       return;
     }
     if (!hasSupabaseConfig || !supabase) {
@@ -1230,7 +1230,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
       } else if (message.toLowerCase().includes("email not confirmed")) {
         setError("Je e-mailadres is nog niet bevestigd. Open eerst de bevestigingsmail of stuur hem hieronder opnieuw.");
       } else if (message.toLowerCase().includes("invalid login credentials")) {
-        setError("E-mailadres of wachtwoord klopt niet. Had je nog geen wachtwoord? Gebruik hieronder Wachtwoord instellen/vergeten.");
+        setError("E-mailadres of wachtwoord klopt niet. Wachtwoord kwijt? Vraag hieronder een herstel-link aan.");
       } else if (mode === "signup" && message.toLowerCase().includes("already")) {
         setError("Dit e-mailadres heeft waarschijnlijk al een account. Kies Inloglink om veilig verder te gaan.");
       } else {
@@ -1334,15 +1334,15 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
 
           {mode === "login" && (
             <div className="auth-recovery-panel">
-              <strong>Geen wachtwoord of vergeten?</strong>
-              <span>Stuur jezelf een veilige link om een nieuw wachtwoord in te stellen.</span>
+              <strong>Wachtwoord kwijt?</strong>
+              <span>Alleen voor bestaande accounts: stuur jezelf een veilige herstel-link.</span>
               <button
                 className="secondary-button wide"
                 disabled={resetLoading || loading}
                 type="button"
                 onClick={requestPasswordReset}
               >
-                {resetLoading ? "Link wordt gestuurd" : "Wachtwoord instellen/vergeten"}
+                {resetLoading ? "Link wordt gestuurd" : "Stuur herstel-link"}
               </button>
             </div>
           )}
