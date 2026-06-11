@@ -126,7 +126,7 @@ const FAQ_ITEMS = [
   ],
   [
     "Kan ik me nu al aanmelden?",
-    "Ja. Je kunt je e-mailadres achterlaten op de wachtlijst. Zodra de eerste echte ledenronde opent, krijg je bericht om eventueel een profiel te maken.",
+    "Ja. Je kunt je e-mailadres achterlaten op de wachtlijst. Zodra we de eerste groep gebruikers toelaten, krijg je bericht om eventueel een profiel te maken.",
   ],
 ];
 
@@ -501,7 +501,7 @@ function LandingPage({ authOpen, setAuthOpen, onDemo, onPrivacy }) {
       <section className="closing-section">
         <div>
           <p className="eyebrow">Voor singles die eerst vertrouwen willen opbouwen</p>
-          <h2>Klaar om de eerste ledenronde mee te maken?</h2>
+          <h2>Wil je erbij zijn zodra we opengaan?</h2>
         </div>
         <a className="primary-button" href="#voorinschrijven">
           Voorinschrijven
@@ -586,7 +586,7 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
     <section className="pre-register-section" id="voorinschrijven">
       <div className="pre-register-copy">
         <p className="eyebrow">Pre-registratie</p>
-        <h2>Kom op de lijst voor de eerste echte ledenronde.</h2>
+        <h2>Kom op de wachtlijst voor vroege toegang.</h2>
         <p>
           Laat je e-mailadres achter als je interesse hebt in rustig, privacy-first daten zonder foto-oordeel.
           Je maakt nog geen profiel aan; dit is alleen de wachtlijst.
