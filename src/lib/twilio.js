@@ -42,10 +42,15 @@ export async function initTwilioDevice() {
 }
 
 // Start een uitgaand gesprek naar een andere gebruiker (via hun user_id als identity)
-export async function startCall(toUserId, { onAccepted, onDisconnected } = {}) {
+export async function startCall(toUserId, { onAccepted, onDisconnected, allowDemoFallback = false } = {}) {
+  if (!toUserId) throw new Error("Geen ontvanger voor het gesprek.");
+
   if (!hasSupabaseConfig || !supabase) {
-    currentCall = createDemoCall({ onAccepted, onDisconnected });
-    return currentCall;
+    if (allowDemoFallback) {
+      currentCall = createDemoCall({ onAccepted, onDisconnected });
+      return currentCall;
+    }
+    throw new Error("Supabase is nog niet gekoppeld voor anoniem bellen.");
   }
 
   try {
@@ -67,9 +72,12 @@ export async function startCall(toUserId, { onAccepted, onDisconnected } = {}) {
 
     return currentCall;
   } catch (err) {
-    console.warn("Twilio niet beschikbaar, demo-call gestart:", err);
-    currentCall = createDemoCall({ onAccepted, onDisconnected });
-    return currentCall;
+    if (allowDemoFallback) {
+      console.warn("Twilio niet beschikbaar, demo-call gestart:", err);
+      currentCall = createDemoCall({ onAccepted, onDisconnected });
+      return currentCall;
+    }
+    throw err;
   }
 }
 

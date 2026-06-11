@@ -1033,6 +1033,12 @@ textarea {
   background: #2f655d;
 }
 
+.journey-steps span.complete {
+  color: #2f655d;
+  border-color: rgba(47, 101, 93, 0.28);
+  background: rgba(47, 101, 93, 0.1);
+}
+
 .content-section,
 .message-layout {
   display: grid;
@@ -1172,7 +1178,7 @@ textarea {
 
 .message-layout {
   min-height: calc(100vh - 112px);
-  grid-template-rows: auto minmax(320px, 1fr) auto;
+  grid-template-rows: auto auto minmax(320px, 1fr) auto auto;
 }
 
 .message-header {
@@ -1180,6 +1186,38 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
+}
+
+.conversation-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conversation-steps li {
+  border: 1px solid rgba(29, 26, 22, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  color: #6e6258;
+  background: rgba(255, 253, 250, 0.62);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.conversation-steps li.active {
+  color: #fffdfa;
+  border-color: #2f655d;
+  background: #2f655d;
+}
+
+.conversation-steps li.complete {
+  color: #2f655d;
+  border-color: rgba(47, 101, 93, 0.26);
+  background: rgba(47, 101, 93, 0.1);
 }
 
 .messages-panel {
@@ -1258,6 +1296,10 @@ textarea {
 
 .call-note.success {
   color: #2f655d;
+}
+
+.call-note.error {
+  color: #8a2c1c;
 }
 
 .message-form {

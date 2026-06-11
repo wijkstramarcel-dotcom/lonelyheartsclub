@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { hasSupabaseConfig, supabase } from "./lib/supabase.js";
+import { hangUp, startCall } from "./lib/twilio.js";
 
 const PASSIONS = [
   "Hardlopen",
@@ -1134,6 +1135,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   const [messages, setMessages] = useState(demoMode ? DEMO_MESSAGES : {});
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(!demoMode);
+  const [journeyStep, setJourneyStep] = useState("discover");
 
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) ?? matches[0] ?? null;
   const selectedOther = selectedMatch ? matchProfiles[getOtherUserId(selectedMatch, user.id)] : null;
@@ -1297,6 +1299,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       setMessages((current) => (current[matchId] ? current : { ...current, [matchId]: [firstMessage] }));
       setSelectedMatchId(matchId);
       setActiveTab("messages");
+      setJourneyStep("messages");
       setNotice(`Demo-match met ${targetProfile.naam}. Stuur een bericht en ga daarna door naar anoniem bellen.`);
       return;
     }
@@ -1344,6 +1347,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
         ...current,
         [selectedMatch.id]: [...(current[selectedMatch.id] ?? []), message, reply],
       }));
+      setJourneyStep("call");
       setNotice("Chat werkt. Volgende stap: start de demo-belronde vanuit dit gesprek.");
       return;
     }
@@ -1384,7 +1388,12 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             <button
               key={tab.id}
               className={activeTab === tab.id ? "active" : ""}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (demoMode && ["discover", "matches", "messages"].includes(tab.id)) {
+                  setJourneyStep(tab.id);
+                }
+              }}
             >
               {tab.label}
             </button>
@@ -1404,7 +1413,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
         <AppHeader profile={profile} notice={notice} onRefresh={loadData} loading={loading} />
 
         {demoMode && (
-          <DemoJourney activeTab={activeTab} />
+          <DemoJourney activeStep={journeyStep} />
         )}
 
         {activeTab === "discover" && (
@@ -1428,6 +1437,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             onSelect={(matchId) => {
               setSelectedMatchId(matchId);
               setActiveTab("messages");
+              if (demoMode) setJourneyStep("messages");
             }}
           />
         )}
@@ -1440,6 +1450,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             userId={user.id}
             onSend={sendMessage}
             demoMode={demoMode}
+            onJourneyStep={setJourneyStep}
           />
         )}
 
@@ -1474,14 +1485,18 @@ function AppHeader({ profile, notice, onRefresh, loading }) {
   );
 }
 
-function DemoJourney({ activeTab }) {
+function DemoJourney({ activeStep }) {
   const flow = [
-    ["discover", "Match zoeken", activeTab === "discover"],
-    ["matches", "Match kiezen", activeTab === "matches"],
-    ["messages", "Chatten", activeTab === "messages"],
-    ["call", "Anoniem bellen", false],
-    ["meet", "Afspreken", false],
+    ["discover", "Match zoeken"],
+    ["matches", "Match kiezen"],
+    ["messages", "Chatten"],
+    ["call", "Anoniem bellen"],
+    ["meet", "Afspreken"],
   ];
+  const activeIndex = Math.max(
+    flow.findIndex(([id]) => id === activeStep),
+    0,
+  );
 
   return (
     <section className="demo-journey" aria-label="Demo route">
@@ -1490,8 +1505,11 @@ function DemoJourney({ activeTab }) {
         <h2>Test de echte volgorde: match, chat, bel, spreek af.</h2>
       </div>
       <div className="journey-steps">
-        {flow.map(([id, label, active], index) => (
-          <span key={id} className={active ? "active" : ""}>
+        {flow.map(([id, label], index) => (
+          <span
+            key={id}
+            className={classNames(index === activeIndex && "active", index < activeIndex && "complete")}
+          >
             {index + 1}. {label}
           </span>
         ))}
@@ -1861,12 +1879,17 @@ function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect
   );
 }
 
-function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode = false }) {
+function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode = false, onJourneyStep = () => {} }) {
   const [draft, setDraft] = useState("");
   const [callStep, setCallStep] = useState("ready");
+  const [callError, setCallError] = useState("");
 
   useEffect(() => {
     setCallStep("ready");
+    setCallError("");
+    return () => {
+      hangUp();
+    };
   }, [match?.id]);
 
   const submit = (event) => {
@@ -1885,6 +1908,82 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
     );
   }
 
+  const recipientId = getOtherUserId(match, userId);
+  const hasChat = messages.length > 0;
+  const conversationStep =
+    callStep === "meet"
+      ? "meet"
+      : ["connecting", "active", "ended"].includes(callStep)
+        ? "call"
+        : hasChat
+          ? "messages"
+          : "match";
+  const callBadge =
+    conversationStep === "meet"
+      ? "Stap 5: afspraak"
+      : conversationStep === "call"
+        ? "Stap 4: anoniem bellen"
+        : conversationStep === "messages"
+          ? "Stap 3: chatten"
+          : "Stap 2: eerste bericht";
+  const callButtonLabel =
+    callStep === "connecting"
+      ? "Verbinden"
+      : callStep === "active"
+        ? "Ophangen"
+        : callStep === "meet"
+          ? "Bel opnieuw"
+          : callStep === "ended"
+            ? "Bel opnieuw"
+            : "Start anoniem bellen";
+  const canStartCall = hasChat && Boolean(recipientId) && callStep !== "connecting";
+  const canProposeMeet = ["active", "ended", "meet"].includes(callStep);
+
+  const handleCall = async () => {
+    setCallError("");
+
+    if (callStep === "active") {
+      hangUp();
+      setCallStep("ended");
+      onJourneyStep("call");
+      return;
+    }
+
+    if (!hasChat) {
+      setCallError("Stuur eerst een bericht voordat je een belronde start.");
+      return;
+    }
+
+    setCallStep("connecting");
+    onJourneyStep("call");
+
+    try {
+      await startCall(recipientId, {
+        allowDemoFallback: demoMode,
+        onAccepted: () => {
+          setCallStep("active");
+          onJourneyStep("call");
+        },
+        onDisconnected: () => {
+          setCallStep((current) => (current === "meet" ? current : "ended"));
+        },
+      });
+    } catch (err) {
+      setCallStep("ready");
+      setCallError(
+        err.message ||
+          "Anoniem bellen is nog niet beschikbaar. Controleer de belprovider en Supabase Functions.",
+      );
+    }
+  };
+
+  const proposeMeet = () => {
+    if (callStep === "active") hangUp();
+    setCallStep("meet");
+    setCallError("");
+    onJourneyStep("meet");
+  };
+
   return (
     <section className="message-layout">
       <div className="message-header">
@@ -1892,8 +1991,29 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
           <p className="eyebrow">Berichten</p>
           <h2>{otherProfile?.naam ?? "Je match"}</h2>
         </div>
-        <span className="call-badge">Stap 3: chatten</span>
+        <span className="call-badge">{callBadge}</span>
       </div>
+
+      <ol className="conversation-steps" aria-label="Gespreksroute">
+        {[
+          ["match", "Match"],
+          ["messages", "Chat"],
+          ["call", "Belronde"],
+          ["meet", "Afspraak"],
+        ].map(([id, label]) => {
+          const order = ["match", "messages", "call", "meet"];
+          const activeIndex = order.indexOf(conversationStep);
+          const index = order.indexOf(id);
+          return (
+            <li
+              key={id}
+              className={classNames(index === activeIndex && "active", index < activeIndex && "complete")}
+            >
+              {label}
+            </li>
+          );
+        })}
+      </ol>
 
       <div className="messages-panel">
         {messages.length ? (
@@ -1915,45 +2035,49 @@ function MessagesView({ match, otherProfile, messages, userId, onSend, demoMode 
         )}
       </div>
 
-      {demoMode && (
-        <div className="call-panel">
-          <div>
-            <p className="eyebrow">Volgende stap</p>
-            <h3>Anoniem bellen voordat je afspreekt.</h3>
-            <p>
-              In de echte app blijven telefoonnummers afgeschermd. In deze demo zie je hoe het gesprek
-              verder gaat na de chat.
-            </p>
-          </div>
-          <div className="call-actions">
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => setCallStep((current) => (current === "ready" ? "calling" : current))}
-            >
-              {callStep === "ready" ? "Start demo-belronde" : "Belronde gestart"}
-            </button>
-            <button
-              className="text-button"
-              type="button"
-              disabled={callStep === "ready"}
-              onClick={() => setCallStep("meet")}
-            >
-              Afspraak voorstellen
-            </button>
-          </div>
-          {callStep === "calling" && (
-            <p className="call-note">
-              Demo-belronde actief: eerst vijf minuten praten, zonder nummers te delen.
-            </p>
-          )}
-          {callStep === "meet" && (
-            <p className="call-note success">
-              Afspraakvoorstel klaar: kies pas een plek en moment als de belronde goed voelde.
-            </p>
-          )}
+      <div className="call-panel">
+        <div>
+          <p className="eyebrow">Volgende stap</p>
+          <h3>Anoniem bellen voordat je afspreekt.</h3>
+          <p>
+            Telefoonnummers blijven afgeschermd. Eerst chatten, dan een korte belronde, en pas daarna
+            eventueel een afspraak voorstellen.
+          </p>
         </div>
-      )}
+        <div className="call-actions">
+          <button className="primary-button" type="button" disabled={!canStartCall} onClick={handleCall}>
+            {callButtonLabel}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={!canProposeMeet}
+            onClick={proposeMeet}
+          >
+            Afspraak voorstellen
+          </button>
+        </div>
+        {!hasChat && (
+          <p className="call-note">
+            Stuur eerst een bericht. De belronde hoort pas na een eerste gesprek open te gaan.
+          </p>
+        )}
+        {callStep === "connecting" && (
+          <p className="call-note">Belverbinding wordt voorbereid zonder telefoonnummers te delen.</p>
+        )}
+        {callStep === "active" && (
+          <p className="call-note success">Belronde actief. Houd het kort, veilig en gericht op vertrouwen.</p>
+        )}
+        {callStep === "ended" && (
+          <p className="call-note success">Belronde afgerond. Stel alleen een afspraak voor als het goed voelde.</p>
+        )}
+        {callStep === "meet" && (
+          <p className="call-note success">
+            Afspraakvoorstel klaar: kies pas een plek en moment als de belronde goed voelde.
+          </p>
+        )}
+        {callError && <p className="call-note error">{callError}</p>}
+      </div>
 
       <form className="message-form" onSubmit={submit}>
         <input
