@@ -136,6 +136,14 @@ button:disabled {
   color: #413832;
   background: rgba(255, 255, 255, 0.58);
   font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.secondary-button.danger {
+  color: #8a2c1c;
+  border-color: rgba(177, 78, 48, 0.24);
+  background: rgba(177, 78, 48, 0.08);
 }
 
 .primary-button {
@@ -1372,6 +1380,53 @@ textarea {
   padding: 18px;
 }
 
+.profile-privacy-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.46fr);
+  gap: 18px;
+  border: 1px solid rgba(29, 26, 22, 0.11);
+  border-radius: 8px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 20px 46px rgba(29, 26, 22, 0.08);
+}
+
+.profile-privacy-controls h3 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.profile-privacy-controls p {
+  margin: 0;
+  color: #5d5147;
+  line-height: 1.6;
+}
+
+.profile-status-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.profile-status {
+  display: inline-flex;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.profile-status.active {
+  color: #2f655d;
+  background: rgba(47, 101, 93, 0.1);
+}
+
+.profile-status.paused {
+  color: #8a2c1c;
+  background: rgba(177, 78, 48, 0.1);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1463,6 +1518,7 @@ textarea {
   .closing-section,
   .app-shell,
   .form-grid,
+  .profile-privacy-controls,
   .privacy-grid {
     grid-template-columns: 1fr;
   }

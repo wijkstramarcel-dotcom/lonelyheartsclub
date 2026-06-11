@@ -318,6 +318,20 @@ function consentMetadata(timestamp = consentTimestamp()) {
   };
 }
 
+function privacyRequestMailto(user, type = "Verwijderverzoek") {
+  const subject = `${type} Lonely Hearts Club`;
+  const body = [
+    `Hallo Lonely Hearts Club,`,
+    "",
+    `Ik wil een ${type.toLowerCase()} indienen voor mijn account.`,
+    `Account e-mail: ${user?.email || ""}`,
+    `Gebruiker-id: ${user?.id || ""}`,
+    "",
+    "Graag ontvang ik een bevestiging en de vervolgstappen.",
+  ].join("\n");
+  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 function isMissingConsentColumnError(error) {
   const message = String(error?.message || "");
   return (
@@ -862,6 +876,13 @@ function PrivacyDialog({ onClose }) {
             </p>
           </article>
           <article>
+            <h3>Profiel pauzeren</h3>
+            <p>
+              In je profiel kun je je zichtbaarheid pauzeren. Je profiel wordt dan niet getoond aan andere
+              leden, terwijl je account niet direct wordt verwijderd.
+            </p>
+          </article>
+          <article>
             <h3>Contact</h3>
             <p>
               Stuur privacyverzoeken naar <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Gebruik
@@ -1146,7 +1167,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   }, [matches, profiles, user.id]);
 
   const suggestedProfiles = useMemo(
-    () => unmatchedProfiles.filter((item) => isPotentialMatch(profile, item)),
+    () => (profile?.actief === false ? [] : unmatchedProfiles.filter((item) => isPotentialMatch(profile, item))),
     [profile, unmatchedProfiles],
   );
 
@@ -1275,6 +1296,38 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     loadData().then(() => {
       setNotice("Profiel opgeslagen. Je ziet nu alleen leden die wederzijds bij je voorkeur passen.");
     });
+  };
+
+  const toggleProfileActive = async (nextActive) => {
+    if (!profile) return;
+
+    const nextProfile = normalizeProfile({ ...profile, actief: nextActive });
+
+    if (demoMode) {
+      setProfile(nextProfile);
+      setNotice(nextActive ? "Demo-profiel is weer actief." : "Demo-profiel is gepauzeerd en wordt niet getoond.");
+      return;
+    }
+
+    if (!hasSupabaseConfig || !supabase) {
+      setNotice("Supabase is nog niet gekoppeld.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ actief: nextActive })
+      .eq("id", user.id)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      setNotice(error.message || "Profielstatus aanpassen lukte niet.");
+      return;
+    }
+
+    setProfile(normalizeProfile(data ?? nextProfile));
+    setNotice(nextActive ? "Je profiel is weer actief." : "Je profiel is gepauzeerd en wordt niet getoond aan anderen.");
   };
 
   const likeProfile = async (targetProfile) => {
@@ -1424,6 +1477,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             loading={loading}
             viewerProfile={profile}
             hiddenByPreferenceCount={hiddenByPreferenceCount}
+            profilePaused={profile?.actief === false}
           />
         )}
 
@@ -1461,6 +1515,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             onSaved={handleProfileSaved}
             demoMode={demoMode}
             onPrivacy={onPrivacy}
+            onToggleActive={toggleProfileActive}
           />
         )}
       </section>
@@ -1536,7 +1591,7 @@ function Onboarding({ user, onSaved, demoMode, onLogout, onPrivacy }) {
   );
 }
 
-function ProfileView({ profile, user, onSaved, demoMode, onPrivacy }) {
+function ProfileView({ profile, user, onSaved, demoMode, onPrivacy, onToggleActive }) {
   return (
     <section className="content-section">
       <div className="section-heading">
@@ -1544,6 +1599,53 @@ function ProfileView({ profile, user, onSaved, demoMode, onPrivacy }) {
         <h2>Houd je verhaal actueel.</h2>
       </div>
       <ProfileForm user={user} profile={profile} onSaved={onSaved} demoMode={demoMode} onPrivacy={onPrivacy} />
+      <ProfilePrivacyControls
+        profile={profile}
+        user={user}
+        onPrivacy={onPrivacy}
+        onToggleActive={onToggleActive}
+      />
+    </section>
+  );
+}
+
+function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
+  const [updating, setUpdating] = useState(false);
+  const active = profile?.actief !== false;
+
+  const toggle = async () => {
+    setUpdating(true);
+    try {
+      await onToggleActive(!active);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <section className="profile-privacy-controls" aria-label="Profiel privacy en gegevens">
+      <div>
+        <p className="eyebrow">Privacycontrole</p>
+        <h3>Jij bepaalt of je profiel zichtbaar is.</h3>
+        <p>
+          Pauzeren verbergt je profiel voor andere leden zonder je account direct te verwijderen. Voor inzage,
+          export of definitieve verwijdering stuur je een privacyverzoek.
+        </p>
+      </div>
+      <div className="profile-status-card">
+        <span className={classNames("profile-status", active ? "active" : "paused")}>
+          {active ? "Profiel actief" : "Profiel gepauzeerd"}
+        </span>
+        <button className="secondary-button wide" type="button" disabled={updating} onClick={toggle}>
+          {updating ? "Aanpassen" : active ? "Pauzeer profiel" : "Maak profiel weer actief"}
+        </button>
+        <a className="secondary-button wide danger" href={privacyRequestMailto(user, "Verwijderverzoek")}>
+          Verwijderverzoek mailen
+        </a>
+        <button className="text-button" type="button" onClick={onPrivacy}>
+          Bekijk privacyrechten
+        </button>
+      </div>
     </section>
   );
 }
@@ -1609,7 +1711,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       verhaal: form.verhaal.trim(),
       passies: passionList,
       tags: passionList,
-      actief: true,
+      actief: profile?.actief ?? true,
       privacy_consent_at: profile?.privacy_consent_at || acceptedAt,
       privacy_consent_version: CONSENT_VERSION,
       sensitive_data_consent_at: acceptedAt,
@@ -1752,8 +1854,26 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
   );
 }
 
-function DiscoverView({ profiles, interestedIds, onLike, loading, viewerProfile, hiddenByPreferenceCount = 0 }) {
+function DiscoverView({
+  profiles,
+  interestedIds,
+  onLike,
+  loading,
+  viewerProfile,
+  hiddenByPreferenceCount = 0,
+  profilePaused = false,
+}) {
   if (loading) return <EmptyState title="Profielen laden" text="We halen de nieuwste leden op." />;
+  if (profilePaused) {
+    return (
+      <EmptyState
+        title="Je profiel is gepauzeerd"
+        text="Je wordt nu niet getoond aan andere leden. Maak je profiel weer actief via Profiel zodra je weer wilt daten."
+      >
+        <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
+      </EmptyState>
+    );
+  }
   if (!profiles.length) {
     return (
       <EmptyState
