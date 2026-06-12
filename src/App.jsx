@@ -69,33 +69,8 @@ const DEMO_PROFILES = [
   },
 ];
 
-const DEMO_MATCHES = [
-  {
-    id: "demo-match-sarah",
-    user_a: DEMO_USER.id,
-    user_b: "demo-sarah",
-    created_at: new Date().toISOString(),
-  },
-];
-
-const DEMO_MESSAGES = {
-  "demo-match-sarah": [
-    {
-      id: "demo-message-1",
-      match_id: "demo-match-sarah",
-      sender_id: "demo-sarah",
-      content: "Leuk dat we matchen. Hardlopen of koffie als eerste onderwerp?",
-      created_at: new Date(Date.now() - 3600_000).toISOString(),
-    },
-    {
-      id: "demo-message-2",
-      match_id: "demo-match-sarah",
-      sender_id: DEMO_USER.id,
-      content: "Koffie na hardlopen klinkt als de juiste volgorde.",
-      created_at: new Date(Date.now() - 2800_000).toISOString(),
-    },
-  ],
-};
+const DEMO_MATCHES = [];
+const DEMO_MESSAGES = {};
 
 const tabs = [
   { id: "discover", label: "Ontdek" },
@@ -214,9 +189,9 @@ const AUTH_MODES = [
   {
     id: "signup",
     label: "Nieuw account",
-    hint: "registreren",
-    title: "Nieuw account maken",
-    text: "Gebruik dit alleen als je nog geen account hebt. Je kiest een wachtwoord en bevestigt daarna je e-mail voordat je profiel echt actief wordt.",
+    hint: "na uitnodiging",
+    title: "Account maken na uitnodiging",
+    text: "Gebruik dit zodra je van de wachtlijst bent toegelaten of een uitnodiging hebt ontvangen. Geen uitnodiging? Schrijf je eerst in voor de wachtlijst.",
     submit: "Maak account",
   },
 ];
@@ -224,7 +199,7 @@ const AUTH_MODES = [
 const AUTH_GUIDE_ITEMS = [
   ["Al eerder aangemeld?", "Kies Inloglink. Dat werkt zonder wachtwoord."],
   ["Wachtwoord kwijt?", "Kies Wachtwoord en vraag daar een herstel-link aan."],
-  ["Nieuw hier?", "Kies Nieuw account. Dan maak je voor het eerst een account aan."],
+  ["Nog geen uitnodiging?", "Schrijf je eerst in voor de wachtlijst. Account maken is voor toegelaten leden."],
 ];
 
 const AUTH_RETURN_COPY = {
@@ -1293,7 +1268,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
     } catch (err) {
       const message = err.message || "Inloggen lukte niet. Probeer het opnieuw.";
       if (mode === "link" && (message.toLowerCase().includes("signup") || message.toLowerCase().includes("signups"))) {
-        setError("Geen bestaand account gevonden. Kies Nieuw account om je eerst te registreren.");
+        setError("Geen bestaand account gevonden. Heb je een uitnodiging? Kies Nieuw account. Anders kun je je eerst inschrijven voor de wachtlijst.");
       } else if (message.toLowerCase().includes("email not confirmed")) {
         setError("Je e-mailadres is nog niet bevestigd. Open eerst de bevestigingsmail of stuur hem hieronder opnieuw.");
       } else if (message.toLowerCase().includes("invalid login credentials")) {
@@ -1318,7 +1293,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         <h2 id="auth-title">Inloggen of account maken</h2>
         <p>
           Begin met het e-mailadres waarmee je eerder bent aangemeld. Profielen blijven aan dat adres
-          gekoppeld; maak alleen een nieuw account als je echt nieuw bent.
+          gekoppeld; maak alleen een nieuw account als je bent toegelaten of een uitnodiging hebt.
         </p>
 
         <div className="auth-guide" aria-label="Welke keuze past bij mij?">
@@ -1568,7 +1543,9 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   );
 
   const hiddenByPreferenceCount = Math.max(unmatchedProfiles.length - suggestedProfiles.length, 0);
+  const suggestedProfileName = suggestedProfiles[0]?.naam ?? "het eerste profiel";
   const selectedMatchMessages = selectedMatch ? messages[selectedMatch.id] ?? [] : [];
+  const selectedMatchHasMyReply = selectedMatchMessages.some((message) => message.sender_id === user.id);
 
   const loadData = async () => {
     if (demoMode || !hasSupabaseConfig || !supabase) {
@@ -1764,7 +1741,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       setSelectedMatchId(matchId);
       setActiveTab("messages");
       setJourneyStep("messages");
-      setNotice(`Demo-match met ${targetProfile.naam}. Reageer op het bericht en ga daarna door naar anoniem bellen.`);
+      setNotice(`Match met ${targetProfile.naam} gestart. Reageer op het bericht en ga daarna door naar anoniem bellen.`);
       return;
     }
 
@@ -1954,6 +1931,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
           <DemoJourney
             activeStep={journeyStep}
             suggestedCount={suggestedProfiles.length}
+            suggestedProfileName={suggestedProfileName}
             matchCount={visibleMatches.length}
             onCreateDemoMatch={() => suggestedProfiles[0] && likeProfile(suggestedProfiles[0])}
             onOpenChat={() => {
@@ -1970,10 +1948,12 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
           demoMode={demoMode}
           profile={profile}
           suggestedCount={suggestedProfiles.length}
+          suggestedProfileName={suggestedProfileName}
           hiddenByPreferenceCount={hiddenByPreferenceCount}
           matchCount={visibleMatches.length}
           hasSelectedMatch={Boolean(selectedMatch)}
           selectedMatchHasMessages={selectedMatchMessages.length > 0}
+          selectedMatchHasMyReply={selectedMatchHasMyReply}
           onNavigate={(tabId) => {
             setActiveTab(tabId);
             if (demoMode && ["discover", "matches", "messages"].includes(tabId)) setJourneyStep(tabId);
@@ -2069,7 +2049,14 @@ function AppHeader({ profile, notice, onRefresh, loading }) {
   );
 }
 
-function DemoJourney({ activeStep, suggestedCount = 0, matchCount = 0, onCreateDemoMatch, onOpenChat }) {
+function DemoJourney({
+  activeStep,
+  suggestedCount = 0,
+  suggestedProfileName = "het eerste profiel",
+  matchCount = 0,
+  onCreateDemoMatch,
+  onOpenChat,
+}) {
   const flow = [
     ["discover", "Match zoeken"],
     ["matches", "Match kiezen"],
@@ -2086,7 +2073,8 @@ function DemoJourney({ activeStep, suggestedCount = 0, matchCount = 0, onCreateD
     <section className="demo-journey" aria-label="Demo route">
       <div>
         <p className="eyebrow">Demo-route</p>
-        <h2>Test de echte volgorde: match, chat, bel en spreek pas daarna af.</h2>
+        <h2>Geen swipe-demo: loop door de echte route.</h2>
+        <p>Bekijk een kleine selectie, toon bewust interesse, chat daarna en test het anonieme belmoment.</p>
       </div>
       <div className="journey-side">
         <div className="journey-steps">
@@ -2102,7 +2090,7 @@ function DemoJourney({ activeStep, suggestedCount = 0, matchCount = 0, onCreateD
         <div className="journey-actions">
           {suggestedCount > 0 && (
             <button className="secondary-button" type="button" onClick={onCreateDemoMatch}>
-              Maak demo-match
+              Start met {suggestedProfileName}
             </button>
           )}
           {matchCount > 0 && (
@@ -2121,10 +2109,12 @@ function NextStepPanel({
   demoMode,
   profile,
   suggestedCount,
+  suggestedProfileName = "het eerste profiel",
   hiddenByPreferenceCount,
   matchCount,
   hasSelectedMatch,
   selectedMatchHasMessages,
+  selectedMatchHasMyReply,
   onNavigate,
   onCreateDemoMatch,
 }) {
@@ -2148,11 +2138,14 @@ function NextStepPanel({
       <section className="next-step-panel">
         <div>
           <p className="eyebrow">Volgende stap</p>
-          <h2>Maak nu een demo-match.</h2>
-          <p>In de demo laten we wederzijdse interesse meteen ontstaan, zodat je chat en bellen kunt testen.</p>
+          <h2>Kies bewust interesse.</h2>
+          <p>
+            Dit is geen swipe-stapel. Kies een passend profiel; daarna zie je match, chat en
+            anoniem bellen.
+          </p>
         </div>
         <button className="primary-button" type="button" onClick={onCreateDemoMatch}>
-          Maak demo-match
+          Start met {suggestedProfileName}
         </button>
       </section>
     );
@@ -2189,6 +2182,21 @@ function NextStepPanel({
   }
 
   if (hasSelectedMatch && selectedMatchHasMessages) {
+    if (!selectedMatchHasMyReply) {
+      return (
+        <section className="next-step-panel">
+          <div>
+            <p className="eyebrow">Volgende stap</p>
+            <h2>Reageer eerst in de chat.</h2>
+            <p>De match heeft de opening gemaakt. Bellen blijft dicht totdat jij ook een bericht hebt gestuurd.</p>
+          </div>
+          <button className="secondary-button" type="button" onClick={() => onNavigate("messages")}>
+            Open gesprek
+          </button>
+        </section>
+      );
+    }
+
     return (
       <section className="next-step-panel">
         <div>
@@ -2559,7 +2567,7 @@ function DiscoverView({
         <div className="empty-actions">
           {demoMode && (
             <button className="primary-button" type="button" onClick={onCreateDemoMatch}>
-              Maak demo-match
+              Start demo-route
             </button>
           )}
           <button className="secondary-button" type="button" onClick={onOpenProfile}>
@@ -2708,7 +2716,7 @@ function MatchesView({ matches, matchProfiles, userId, selectedMatchId, onSelect
         title="Nog geen matches"
         text={
           demoMode
-            ? "Ga naar Ontdek en toon interesse. In de demo maken we daarna meteen een match, zodat je chat en bellen kunt testen."
+            ? "Ga naar Ontdek en toon bewust interesse. De demo maakt daarna wederzijdse interesse aan, zodat je chat en bellen kunt testen."
             : "Een match ontstaat zodra twee leden allebei interesse tonen. Daarna kun je chatten en later anoniem bellen."
         }
       >
@@ -2793,14 +2801,15 @@ function MessagesView({
   }
 
   const recipientId = getOtherUserId(match, userId);
-  const hasChat = messages.length > 0;
+  const hasConversation = messages.length > 0;
+  const hasUserReply = messages.some((message) => message.sender_id === userId);
   const voiceReady = demoMode || isVoiceCallingEnabled();
   const conversationStep =
     callStep === "meet"
       ? "meet"
       : ["connecting", "active", "ended"].includes(callStep)
         ? "call"
-        : hasChat
+        : hasConversation
           ? "messages"
           : "match";
   const callBadge =
@@ -2823,7 +2832,7 @@ function MessagesView({
           : callStep === "ended"
             ? "Bel opnieuw"
             : "Start anoniem bellen";
-  const canStartCall = voiceReady && hasChat && Boolean(recipientId) && callStep !== "connecting";
+  const canStartCall = voiceReady && hasUserReply && Boolean(recipientId) && callStep !== "connecting";
   const canProposeMeet = ["active", "ended", "meet"].includes(callStep);
   const starterMessages = [
     `Hoi ${otherProfile?.naam ?? "daar"}, wat in je verhaal zou ik als eerste moeten vragen?`,
@@ -2841,8 +2850,8 @@ function MessagesView({
       return;
     }
 
-    if (!hasChat) {
-      setCallError("Stuur eerst een bericht voordat je anoniem gaat bellen.");
+    if (!hasUserReply) {
+      setCallError("Reageer eerst in de chat voordat je anoniem gaat bellen.");
       return;
     }
 
@@ -2966,12 +2975,12 @@ function MessagesView({
             Afspraak voorstellen
           </button>
         </div>
-        {!hasChat && (
+        {!hasUserReply && (
           <p className="call-note">
-            Stuur eerst een bericht. Anoniem bellen hoort pas na een eerste gesprek open te gaan.
+            Reageer eerst in de chat. Anoniem bellen hoort pas na een eerste uitwisseling open te gaan.
           </p>
         )}
-        {!voiceReady && hasChat && (
+        {!voiceReady && hasUserReply && (
           <p className="call-note">
             Anoniem bellen is technisch voorbereid, maar nog niet live geactiveerd. Eerst moeten de
             belprovider, Supabase Functions en microfoon-test gecontroleerd zijn.
