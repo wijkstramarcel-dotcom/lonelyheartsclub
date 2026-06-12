@@ -449,6 +449,79 @@ button:disabled {
   box-shadow: 0 20px 46px rgba(29, 26, 22, 0.08);
 }
 
+.form-intro,
+.account-note,
+.waitlist-result {
+  border-radius: 8px;
+}
+
+.form-intro {
+  border: 1px solid rgba(177, 78, 48, 0.16);
+  padding: 13px 14px;
+  background: rgba(177, 78, 48, 0.07);
+}
+
+.form-intro strong,
+.form-intro span {
+  display: block;
+}
+
+.form-intro strong {
+  color: #1d1a16;
+  font-size: 14px;
+}
+
+.form-intro span {
+  margin-top: 4px;
+  color: #5d5147;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.waitlist-result {
+  border: 1px solid rgba(47, 101, 93, 0.22);
+  padding: 14px;
+  background: rgba(47, 101, 93, 0.09);
+}
+
+.waitlist-result strong {
+  display: block;
+  color: #1d1a16;
+  font-size: 15px;
+}
+
+.waitlist-result p {
+  margin: 6px 0 0;
+  color: #2f655d;
+  font-size: 13px;
+  font-weight: 780;
+  line-height: 1.45;
+}
+
+.waitlist-result ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: #5d5147;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.account-note {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid rgba(29, 26, 22, 0.1);
+  padding-top: 2px;
+  color: #6e6258;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.account-note .text-button {
+  justify-self: start;
+  padding: 0;
+  text-align: left;
+}
+
 .story-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

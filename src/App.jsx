@@ -943,11 +943,7 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
     try {
       const result = await upsertWaitlist(normalizedEmail, consentTimestamp());
       void trackConversionEvent("waitlist_submit", { duplicate: Boolean(result?.duplicate) });
-      setStatus(
-        result?.duplicate
-          ? "Je stond al op de wachtlijst. We mailen je zodra de volgende groep leden wordt toegelaten."
-          : "Je staat op de wachtlijst. We mailen je zodra de volgende groep leden wordt toegelaten.",
-      );
+      setStatus(result?.duplicate ? "duplicate" : "saved");
       setEmail("");
       setPrivacyAccepted(false);
     } catch (err) {
@@ -961,19 +957,24 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
     <section className="pre-register-section" id="voorinschrijven" ref={sectionRef}>
       <div className="pre-register-copy">
         <p className="eyebrow">Wachtlijst</p>
-        <h2>Schrijf je in voor vroege toegang.</h2>
+        <h2>Meld je aan voor de wachtlijst.</h2>
         <p>
-          Laat je e-mailadres achter als je interesse hebt in rustig, privacyvriendelijk daten zonder
-          foto als eerste oordeel. Je maakt nog geen profiel aan; dit is alleen de wachtlijst.
+          Laat je e-mailadres achter als je interesse hebt in rustig, privacyvriendelijk daten. Je maakt
+          nog geen profiel aan en je zit nergens aan vast.
         </p>
         <ul>
-          <li>Geen marketingruis, alleen updates over toegang.</li>
-          <li>Je kunt later zelf kiezen of je een profiel maakt.</li>
-          <li>We starten bewust klein, zodat matches betekenisvoller blijven.</li>
+          <li>We mailen alleen over toegang en belangrijke productupdates.</li>
+          <li>Je kiest later zelf of je echt een profiel maakt.</li>
+          <li>We laten leden gecontroleerd toe, zodat de eerste matches genoeg aandacht krijgen.</li>
         </ul>
       </div>
 
       <form className="pre-register-form" onSubmit={submit} noValidate>
+        <div className="form-intro">
+          <strong>Voorinschrijven</strong>
+          <span>Alleen je e-mailadres. Geen profiel, geen foto's, geen verplichting.</span>
+        </div>
+
         <label>
           E-mailadres
           <input
@@ -1002,14 +1003,27 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
         </div>
 
         {error && <p className="form-message error">{error}</p>}
-        {status && <p className="form-message success">{status}</p>}
+        {status && (
+          <div className="waitlist-result" role="status" aria-live="polite">
+            <strong>{status === "duplicate" ? "Je stond al op de wachtlijst." : "Je staat op de wachtlijst."}</strong>
+            <p>We sturen je een uitnodiging zodra we de volgende groep leden toelaten.</p>
+            <ul>
+              <li>Je account is nog niet aangemaakt.</li>
+              <li>Je kunt later zelf kiezen of je een profiel maakt.</li>
+              <li>We gebruiken dit e-mailadres alleen voor toegangsupdates.</li>
+            </ul>
+          </div>
+        )}
 
         <button className="primary-button wide" disabled={loading} type="submit">
-          {loading ? "Inschrijven" : "Zet mij op de wachtlijst"}
+          {loading ? "Aanmelden" : "Meld mij aan"}
         </button>
-        <button className="text-button" type="button" onClick={onCreateAccount}>
-          Ik wil nu direct een account maken
-        </button>
+        <div className="account-note">
+          <span>Heb je al een uitnodiging of bestaand account?</span>
+          <button className="text-button" type="button" onClick={onCreateAccount}>
+            Inloggen of account maken
+          </button>
+        </div>
       </form>
     </section>
   );
