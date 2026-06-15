@@ -1057,6 +1057,23 @@ textarea {
   background: rgba(47, 101, 93, 0.1);
 }
 
+.auth-email-help {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid rgba(47, 101, 93, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(247, 241, 231, 0.82);
+  color: #413832;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.auth-email-help strong {
+  color: #2f655d;
+}
+
 .loading-screen {
   min-height: 100vh;
   display: grid;

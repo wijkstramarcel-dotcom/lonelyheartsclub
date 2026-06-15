@@ -183,7 +183,7 @@ const AUTH_MODES = [
     label: "Wachtwoord",
     hint: "als je het weet",
     title: "Inloggen met wachtwoord",
-    text: "Gebruik dit alleen als je al een account hebt en je wachtwoord weet. Wachtwoord kwijt? Vraag hieronder een herstel-link aan.",
+    text: "Gebruik dit als je al een account hebt en je wachtwoord weet. Deze route werkt zonder e-mail. Wachtwoord kwijt? Vraag hieronder een herstel-link aan.",
     submit: "Log in",
   },
   {
@@ -414,6 +414,31 @@ function privacyRequestMailto(user, type = "Verwijderverzoek") {
     "Graag ontvang ik een bevestiging en de vervolgstappen.",
   ].join("\n");
   return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+function authHelpMailto(email, modeLabel) {
+  const subject = "Hulp met toegang Lonely Hearts Club";
+  const body = [
+    "Hallo Lonely Hearts Club,",
+    "",
+    "Ik probeer in te loggen of mijn account te bevestigen, maar ik ontvang geen e-mail.",
+    `E-mailadres: ${email || ""}`,
+    `Stap: ${modeLabel || "Onbekend"}`,
+    "",
+    "Kunnen jullie mijn toegang controleren?",
+  ].join("\n");
+  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+function isEmailDeliveryMessage(value) {
+  const message = String(value || "").toLowerCase();
+  return (
+    message.includes("inbox") ||
+    message.includes("bevestig") ||
+    message.includes("bevestigingsmail") ||
+    message.includes("inloglink") ||
+    message.includes("herstel-link")
+  );
 }
 
 function isMissingConsentColumnError(error) {
@@ -1221,6 +1246,9 @@ function AuthDialog({ onClose, onDemo, onPrivacy, onWaitlist }) {
   const canResendConfirmation =
     validEmail &&
     (error.toLowerCase().includes("bevestig") || status.toLowerCase().includes("bevestig"));
+  const showEmailHelp =
+    validEmail &&
+    (isEmailDeliveryMessage(status) || isEmailDeliveryMessage(error));
 
   const resendConfirmation = async () => {
     setError("");
@@ -1487,6 +1515,19 @@ function AuthDialog({ onClose, onDemo, onPrivacy, onWaitlist }) {
 
           {error && <p className="form-message error">{error}</p>}
           {status && <p className="form-message success">{status}</p>}
+
+          {showEmailHelp && (
+            <div className="auth-email-help">
+              <strong>Geen mail ontvangen?</strong>
+              <span>
+                Wacht een paar minuten en check ook spam of reclame. Komt er niets binnen, stuur ons
+                dan vanaf hetzelfde e-mailadres een bericht zodat we je account kunnen controleren.
+              </span>
+              <a className="secondary-button wide" href={authHelpMailto(normalizedEmail, activeAuthMode.label)}>
+                Vraag hulp met toegang
+              </a>
+            </div>
+          )}
 
           {mode === "login" && (
             <div className="auth-recovery-panel">
