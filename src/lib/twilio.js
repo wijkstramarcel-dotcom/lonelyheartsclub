@@ -10,6 +10,26 @@ export function isVoiceCallingEnabled() {
   return enabledVoiceValues.has(String(import.meta.env.VITE_ENABLE_VOICE_CALLS || "").trim().toLowerCase());
 }
 
+function bindCallEvents(call, { onAccepted, onDisconnected, onError } = {}) {
+  call.on?.("accept", () => onAccepted?.());
+  call.on?.("disconnect", () => {
+    if (currentCall === call) currentCall = null;
+    onDisconnected?.();
+  });
+  call.on?.("cancel", () => {
+    if (currentCall === call) currentCall = null;
+    onDisconnected?.();
+  });
+  call.on?.("reject", () => {
+    if (currentCall === call) currentCall = null;
+    onDisconnected?.();
+  });
+  call.on?.("error", (error) => {
+    if (currentCall === call) currentCall = null;
+    onError?.(error);
+  });
+}
+
 async function getDeviceConstructor() {
   if (!DeviceConstructor) {
     const module = await import("@twilio/voice-sdk");
@@ -82,15 +102,7 @@ export async function startCall(toUserId, { onAccepted, onDisconnected, allowDem
       params: { To: toUserId },
     });
 
-    currentCall.on("accept", () => onAccepted?.());
-    currentCall.on("disconnect", () => {
-      currentCall = null;
-      onDisconnected?.();
-    });
-    currentCall.on("cancel", () => {
-      currentCall = null;
-      onDisconnected?.();
-    });
+    bindCallEvents(currentCall, { onAccepted, onDisconnected });
 
     return currentCall;
   } catch (err) {
@@ -114,8 +126,27 @@ export function mute(muted) {
 
 // Luister op inkomende gesprekken
 export function onIncomingCall(callback) {
-  if (!device) return;
-  device?.on("incoming", callback);
+  if (!device) return () => {};
+  device.on("incoming", callback);
+  return () => {
+    if (typeof device.off === "function") device.off("incoming", callback);
+    else if (typeof device.removeListener === "function") device.removeListener("incoming", callback);
+  };
+}
+
+export function answerIncomingCall(call, { onAccepted, onDisconnected, onError } = {}) {
+  if (!call) throw new Error("Geen inkomend gesprek om op te nemen.");
+  currentCall = call;
+  bindCallEvents(call, { onAccepted, onDisconnected, onError });
+  call.accept();
+  return call;
+}
+
+export function rejectIncomingCall(call) {
+  if (!call) return;
+  if (typeof call.reject === "function") call.reject();
+  else call.disconnect?.();
+  if (currentCall === call) currentCall = null;
 }
 
 export function getDevice() {

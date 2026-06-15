@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { hasSupabaseConfig, supabase } from "./lib/supabase.js";
-import { hangUp, isVoiceCallingEnabled, startCall } from "./lib/twilio.js";
+import {
+  answerIncomingCall,
+  hangUp,
+  initTwilioDevice,
+  isVoiceCallingEnabled,
+  onIncomingCall,
+  rejectIncomingCall,
+  startCall,
+} from "./lib/twilio.js";
 
 const PASSIONS = [
   "Hardlopen",
@@ -3295,14 +3303,56 @@ function MessagesView({
   const [draft, setDraft] = useState("");
   const [callStep, setCallStep] = useState("ready");
   const [callError, setCallError] = useState("");
+  const [incomingCall, setIncomingCall] = useState(null);
+  const recipientId = match ? getOtherUserId(match, userId) : "";
+  const voiceReady = demoMode || isVoiceCallingEnabled();
+  const hasConversation = messages.length > 0;
+  const hasUserReply = messages.some((message) => message.sender_id === userId);
 
   useEffect(() => {
     setCallStep("ready");
     setCallError("");
+    setIncomingCall(null);
     return () => {
       hangUp();
     };
   }, [match?.id]);
+
+  useEffect(() => {
+    if (!match || demoMode || !voiceReady || !hasSupabaseConfig || !supabase) return undefined;
+
+    let cleanupIncoming = null;
+    let active = true;
+
+    initTwilioDevice()
+      .then(() => {
+        if (!active) return;
+        cleanupIncoming = onIncomingCall((call) => {
+          setIncomingCall(call);
+          setCallStep("incoming");
+          setCallError("");
+          onJourneyStep("call");
+
+          call.on?.("cancel", () => {
+            setIncomingCall(null);
+            setCallStep((current) => (current === "incoming" ? "ready" : current));
+          });
+          call.on?.("disconnect", () => {
+            setIncomingCall(null);
+            setCallStep((current) => (current === "meet" ? current : "ended"));
+          });
+        });
+      })
+      .catch((err) => {
+        if (!active) return;
+        setCallError(err.message || "Belverbinding voorbereiden lukte niet.");
+      });
+
+    return () => {
+      active = false;
+      cleanupIncoming?.();
+    };
+  }, [demoMode, match?.id, onJourneyStep, voiceReady]);
 
   const submit = (event) => {
     event.preventDefault();
@@ -3324,14 +3374,10 @@ function MessagesView({
     );
   }
 
-  const recipientId = getOtherUserId(match, userId);
-  const hasConversation = messages.length > 0;
-  const hasUserReply = messages.some((message) => message.sender_id === userId);
-  const voiceReady = demoMode || isVoiceCallingEnabled();
   const conversationStep =
     callStep === "meet"
       ? "meet"
-      : ["connecting", "active", "ended"].includes(callStep)
+      : ["incoming", "connecting", "active", "ended"].includes(callStep)
         ? "call"
         : hasConversation
           ? "messages"
@@ -3349,6 +3395,8 @@ function MessagesView({
       ? "Belprovider nog niet actief"
       : callStep === "connecting"
       ? "Verbinden"
+      : callStep === "incoming"
+        ? "Inkomende oproep"
       : callStep === "active"
         ? "Ophangen"
         : callStep === "meet"
@@ -3356,7 +3404,11 @@ function MessagesView({
           : callStep === "ended"
             ? "Bel opnieuw"
             : "Start anoniem bellen";
-  const canStartCall = voiceReady && hasUserReply && Boolean(recipientId) && callStep !== "connecting";
+  const canStartCall =
+    voiceReady &&
+    hasUserReply &&
+    Boolean(recipientId) &&
+    !["incoming", "connecting"].includes(callStep);
   const canProposeMeet = ["active", "ended", "meet"].includes(callStep);
   const starterMessages = [
     `Hoi ${otherProfile?.naam ?? "daar"}, wat in je verhaal zou ik als eerste moeten vragen?`,
@@ -3405,6 +3457,37 @@ function MessagesView({
           "Anoniem bellen is nog niet beschikbaar. Controleer de belprovider en Supabase Functions.",
       );
     }
+  };
+
+  const acceptIncoming = () => {
+    setCallError("");
+    try {
+      answerIncomingCall(incomingCall, {
+        onAccepted: () => {
+          setIncomingCall(null);
+          setCallStep("active");
+          onJourneyStep("call");
+        },
+        onDisconnected: () => {
+          setIncomingCall(null);
+          setCallStep((current) => (current === "meet" ? current : "ended"));
+        },
+        onError: (err) => {
+          setIncomingCall(null);
+          setCallStep("ready");
+          setCallError(err?.message || "Inkomende oproep aannemen lukte niet.");
+        },
+      });
+    } catch (err) {
+      setCallError(err.message || "Inkomende oproep aannemen lukte niet.");
+    }
+  };
+
+  const declineIncoming = () => {
+    rejectIncomingCall(incomingCall);
+    setIncomingCall(null);
+    setCallStep("ready");
+    setCallError("Inkomende oproep geweigerd.");
   };
 
   const proposeMeet = () => {
@@ -3508,17 +3591,30 @@ function MessagesView({
           </p>
         </div>
         <div className="call-actions">
-          <button className="primary-button" type="button" disabled={!canStartCall} onClick={handleCall}>
-            {callButtonLabel}
-          </button>
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={!canProposeMeet}
-            onClick={proposeMeet}
-          >
-            Afspraak voorstellen
-          </button>
+          {incomingCall ? (
+            <>
+              <button className="primary-button" type="button" onClick={acceptIncoming}>
+                Neem op
+              </button>
+              <button className="secondary-button" type="button" onClick={declineIncoming}>
+                Weiger
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="primary-button" type="button" disabled={!canStartCall} onClick={handleCall}>
+                {callButtonLabel}
+              </button>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={!canProposeMeet}
+                onClick={proposeMeet}
+              >
+                Afspraak voorstellen
+              </button>
+            </>
+          )}
         </div>
         {!hasUserReply && (
           <p className="call-note">
@@ -3533,6 +3629,9 @@ function MessagesView({
         )}
         {callStep === "connecting" && (
           <p className="call-note">Belverbinding wordt voorbereid zonder telefoonnummers te delen.</p>
+        )}
+        {callStep === "incoming" && (
+          <p className="call-note success">Inkomende oproep. Neem alleen op als je klaar bent voor het gesprek.</p>
         )}
         {callStep === "active" && (
           <p className="call-note success">Gesprek actief. Houd het kort, veilig en gericht op vertrouwen.</p>
