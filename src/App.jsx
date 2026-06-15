@@ -172,34 +172,34 @@ const FAQ_ITEMS = [
 const AUTH_MODES = [
   {
     id: "link",
-    label: "Inloglink",
-    hint: "zonder wachtwoord",
-    title: "Ik heb al een account",
-    text: "Beste keuze als je al eerder bent aangemeld of je wachtwoord niet weet. Je krijgt een veilige link per e-mail. We maken hiermee geen nieuw account aan.",
-    submit: "Stuur inloglink",
+    label: "Bestaand account",
+    hint: "mail zonder wachtwoord",
+    title: "Log in met een veilige link",
+    text: "Gebruik dit als je al een account hebt of je wachtwoord niet weet. We sturen een eenmalige link per e-mail. Dit maakt geen nieuw account aan.",
+    submit: "Stuur veilige link",
   },
   {
     id: "login",
     label: "Wachtwoord",
-    hint: "bestaand account",
+    hint: "als je het weet",
     title: "Inloggen met wachtwoord",
     text: "Gebruik dit alleen als je al een account hebt en je wachtwoord weet. Wachtwoord kwijt? Vraag hieronder een herstel-link aan.",
     submit: "Log in",
   },
   {
     id: "signup",
-    label: "Nieuw account",
-    hint: "na uitnodiging",
-    title: "Account maken na uitnodiging",
-    text: "Gebruik dit zodra je van de wachtlijst bent toegelaten of een uitnodiging hebt ontvangen. Geen uitnodiging? Schrijf je eerst in voor de wachtlijst.",
+    label: "Uitnodiging",
+    hint: "nieuw account",
+    title: "Maak account met uitnodiging",
+    text: "Gebruik dit alleen als je een uitnodigingscode hebt ontvangen. Sta je alleen op de wachtlijst, dan heb je nog geen account.",
     submit: "Maak account",
   },
 ];
 
 const AUTH_GUIDE_ITEMS = [
-  ["Al eerder aangemeld?", "Kies Inloglink. Dat werkt zonder wachtwoord."],
-  ["Wachtwoord kwijt?", "Kies Wachtwoord en vraag daar een herstel-link aan."],
-  ["Nog geen uitnodiging?", "Schrijf je eerst in voor de wachtlijst. Account maken is voor toegelaten leden."],
+  ["Alleen op de wachtlijst?", "Dan heb je nog geen account. Wacht op je uitnodiging of schrijf je eerst in."],
+  ["Uitnodiging ontvangen?", "Kies Uitnodiging en vul je code in om een account te maken."],
+  ["Al een account?", "Kies Bestaand account voor een mail-link, of Wachtwoord als je je wachtwoord weet."],
 ];
 
 const AUTH_RETURN_COPY = {
@@ -686,6 +686,13 @@ function LandingPage({ authOpen, authReturnFlow, setAuthOpen, onDemo, onPrivacy 
     void trackConversionEvent("landing_view", {}, { onceKey: "landing" });
   }, []);
 
+  const scrollToWaitlist = () => {
+    window.location.hash = "voorinschrijven";
+    window.requestAnimationFrame(() => {
+      document.getElementById("voorinschrijven")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const trackWaitlistCta = () => {
     void trackConversionEvent("waitlist_cta_click");
   };
@@ -871,6 +878,11 @@ function LandingPage({ authOpen, authReturnFlow, setAuthOpen, onDemo, onPrivacy 
           onPrivacy={() => {
             setAuthOpen(false);
             onPrivacy();
+          }}
+          onWaitlist={() => {
+            setAuthOpen(false);
+            trackWaitlistCta();
+            scrollToWaitlist();
           }}
         />
       )}
@@ -1188,7 +1200,7 @@ function PrivacyDialog({ onClose }) {
   );
 }
 
-function AuthDialog({ onClose, onDemo, onPrivacy }) {
+function AuthDialog({ onClose, onDemo, onPrivacy, onWaitlist }) {
   const [mode, setMode] = useState("link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -1346,13 +1358,13 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
     } catch (err) {
       const message = err.message || "Inloggen lukte niet. Probeer het opnieuw.";
       if (mode === "link" && (message.toLowerCase().includes("signup") || message.toLowerCase().includes("signups"))) {
-        setError("Geen bestaand account gevonden. Heb je een uitnodiging? Kies Nieuw account. Anders kun je je eerst inschrijven voor de wachtlijst.");
+        setError("Geen bestaand account gevonden. Heb je een uitnodiging? Kies Uitnodiging. Anders kun je je eerst inschrijven voor de wachtlijst.");
       } else if (message.toLowerCase().includes("email not confirmed")) {
         setError("Je e-mailadres is nog niet bevestigd. Open eerst de bevestigingsmail of stuur hem hieronder opnieuw.");
       } else if (message.toLowerCase().includes("invalid login credentials")) {
         setError("E-mailadres of wachtwoord klopt niet. Wachtwoord kwijt? Vraag hieronder een herstel-link aan.");
       } else if (mode === "signup" && message.toLowerCase().includes("already")) {
-        setError("Dit e-mailadres heeft waarschijnlijk al een account. Kies Inloglink om veilig verder te gaan.");
+        setError("Dit e-mailadres heeft waarschijnlijk al een account. Kies Bestaand account om veilig verder te gaan.");
       } else {
         setError(message);
       }
@@ -1443,6 +1455,16 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
                 spellCheck="false"
               />
             </label>
+          )}
+
+          {mode === "signup" && (
+            <div className="auth-waitlist-panel">
+              <strong>Nog geen uitnodigingscode?</strong>
+              <span>Schrijf je eerst in voor de wachtlijst. Dat maakt nog geen account aan.</span>
+              <button className="secondary-button wide" type="button" onClick={onWaitlist}>
+                Naar wachtlijst
+              </button>
+            </div>
           )}
 
           {needsPrivacyConsent && (
