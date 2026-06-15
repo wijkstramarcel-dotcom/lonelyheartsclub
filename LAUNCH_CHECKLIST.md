@@ -54,8 +54,8 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [ ] Twilio TwiML App bestaat.
 - [ ] TwiML App Voice Request URL wijst naar `https://<project-ref>.supabase.co/functions/v1/twilio-voice`.
 - [ ] Supabase secrets staan ingesteld: `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_TWIML_APP_SID`.
-- [ ] `twilio-token` is gedeployd.
-- [ ] `twilio-voice` is gedeployd.
+- [x] `twilio-token` is gedeployd.
+- [x] `twilio-voice` is gedeployd.
 - [ ] Test met twee echte accounts werkt in twee browsers/apparaten.
 - [ ] Microfoontoestemming werkt.
 - [ ] Audio werkt beide kanten op.
