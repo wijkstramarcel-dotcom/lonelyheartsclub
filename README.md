@@ -22,9 +22,10 @@ npm run dev
 
 1. Kopieer `.env.example` naar `.env.local`.
 2. Vul `VITE_SUPABASE_URL` en `VITE_SUPABASE_ANON_KEY`.
-3. Laat `VITE_ENABLE_VOICE_CALLS=false` totdat Twilio volledig getest is.
-4. Run `schema.sql` in de Supabase SQL Editor.
-5. Deploy de Edge Functions:
+3. Zet `VITE_PUBLIC_SITE_URL=https://www.lonelyheartsclub.nl`, zodat Supabase mails altijd naar de live site terugkeren.
+4. Laat `VITE_ENABLE_VOICE_CALLS=false` totdat Twilio volledig getest is.
+5. Run `schema.sql` in de Supabase SQL Editor.
+6. Deploy de Edge Functions:
 
 ```bash
 supabase link --project-ref <project-ref>

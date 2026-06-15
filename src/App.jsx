@@ -236,6 +236,7 @@ const CONVERSION_EVENTS = new Set([
 const sentConversionEvents = new Set();
 
 const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
+const DEFAULT_SITE_URL = "https://www.lonelyheartsclub.nl";
 const CONSENT_VERSION = "2026-06-10";
 const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
 const PENDING_INVITE_KEY = "lhc-pending-invite";
@@ -373,8 +374,20 @@ function consentTimestamp() {
   return new Date().toISOString();
 }
 
+function appRedirectOrigin() {
+  const configuredSiteUrl = import.meta.env.VITE_PUBLIC_SITE_URL?.trim();
+  try {
+    const currentHost = window.location.hostname;
+    const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0", "::1"].includes(currentHost);
+    const baseUrl = configuredSiteUrl || (isLocalHost ? DEFAULT_SITE_URL : window.location.origin);
+    return new URL(baseUrl).origin;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
 function authRedirectUrl(flow = "login") {
-  const url = new URL("/auth/callback", window.location.origin);
+  const url = new URL("/auth/callback", appRedirectOrigin());
   url.searchParams.set("flow", flow);
   return url.toString();
 }
