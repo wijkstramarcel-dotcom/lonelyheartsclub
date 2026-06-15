@@ -1,7 +1,7 @@
 -- Lonely Hearts Club · Supabase repair/install schema
 -- Safe to run multiple times. Designed for fresh and partially-created projects.
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists profiles (
   id uuid primary key references auth.users on delete cascade
@@ -382,7 +382,7 @@ begin
     return jsonb_build_object('ok', true, 'already_redeemed', true);
   end if;
 
-  hashed_code := encode(digest(normalized_code, 'sha256'), 'hex');
+  hashed_code := encode(extensions.digest(normalized_code, 'sha256'), 'hex');
 
   select *
   into code_record
@@ -441,7 +441,7 @@ begin
     raise exception 'max_uses moet minimaal 1 zijn.';
   end if;
 
-  hashed_code := encode(digest(normalized_code, 'sha256'), 'hex');
+  hashed_code := encode(extensions.digest(normalized_code, 'sha256'), 'hex');
 
   insert into invite_codes (code_hash, label, max_uses, reserved_email, expires_at, disabled_at)
   values (hashed_code, nullif(trim(label), ''), max_uses, lower(nullif(trim(reserved_email), '')), expires_at, null)
