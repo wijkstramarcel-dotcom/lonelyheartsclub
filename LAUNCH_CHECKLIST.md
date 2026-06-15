@@ -15,6 +15,12 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [ ] `schema.sql` is uitgevoerd zonder fouten.
 - [ ] `VITE_SUPABASE_URL` staat in Vercel Production.
 - [ ] `VITE_SUPABASE_ANON_KEY` staat in Vercel Production.
+- [ ] `VITE_PUBLIC_SITE_URL=https://www.lonelyheartsclub.nl` staat in Vercel Production.
+- [ ] `VITE_ADMIN_EMAILS` staat in Vercel Production voor de beheerder(s).
+- [ ] Custom SMTP staat aan in Supabase Auth.
+- [ ] SPF, DKIM en DMARC zijn ingesteld voor het verzenddomein.
+- [ ] `app_admins` bevat minimaal één beheerder.
+- [ ] Live status-tab opent via `/?admin=1` of voor een geconfigureerd adminadres.
 - [ ] Nieuw account kan worden aangemaakt.
 - [ ] Bevestigingsmail komt aan.
 - [ ] Bestaand account kan inloggen via inloglink.

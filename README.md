@@ -23,9 +23,23 @@ npm run dev
 1. Kopieer `.env.example` naar `.env.local`.
 2. Vul `VITE_SUPABASE_URL` en `VITE_SUPABASE_ANON_KEY`.
 3. Zet `VITE_PUBLIC_SITE_URL=https://www.lonelyheartsclub.nl`, zodat Supabase mails altijd naar de live site terugkeren.
-4. Laat `VITE_ENABLE_VOICE_CALLS=false` totdat Twilio volledig getest is.
-5. Run `schema.sql` in de Supabase SQL Editor.
-6. Deploy de Edge Functions:
+4. Zet `VITE_ADMIN_EMAILS` op de e-mailadressen die de Live status-tab mogen zien.
+5. Laat `VITE_ENABLE_VOICE_CALLS=false` totdat Twilio volledig getest is.
+6. Run `schema.sql` in de Supabase SQL Editor.
+7. Voeg minimaal één adminaccount toe:
+
+```sql
+insert into app_admins (user_id)
+select id
+from auth.users
+where lower(email) in (
+  lower('marcel.wijkstra@oracle.com'),
+  lower('wijkstramarcel@hotmail.com')
+)
+on conflict (user_id) do nothing;
+```
+
+8. Deploy de Edge Functions:
 
 ```bash
 supabase link --project-ref <project-ref>

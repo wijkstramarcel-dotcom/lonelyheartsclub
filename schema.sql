@@ -143,6 +143,11 @@ alter table reports add column if not exists details text;
 alter table reports add column if not exists status text default 'open';
 alter table reports add column if not exists created_at timestamptz default now();
 
+create table if not exists app_admins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz default now()
+);
+
 do $$
 begin
   if not exists (
@@ -324,6 +329,7 @@ create index if not exists blocks_blocker_idx on blocks(blocker_id);
 create index if not exists blocks_blocked_idx on blocks(blocked_id);
 create index if not exists reports_reporter_idx on reports(reporter_id);
 create index if not exists reports_reported_status_idx on reports(reported_id, status);
+create index if not exists app_admins_created_idx on app_admins(created_at desc);
 
 create or replace function touch_updated_at()
 returns trigger language plpgsql as $$
@@ -345,6 +351,150 @@ returns boolean language sql stable security definer set search_path = public as
     where m.id = target_match_id
       and (m.user_a = auth.uid() or m.user_b = auth.uid())
   );
+$$;
+
+create or replace function is_app_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1
+    from app_admins a
+    where a.user_id = auth.uid()
+  );
+$$;
+
+create or replace function mask_admin_email(raw_email text)
+returns text language sql immutable as $$
+  select case
+    when raw_email is null or position('@' in raw_email) = 0 then null
+    else regexp_replace(lower(raw_email), '(^.).*(@.*$)', '\1***\2')
+  end;
+$$;
+
+create or replace function admin_launch_status()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  requester uuid := auth.uid();
+  payload jsonb;
+begin
+  if requester is null or not exists (select 1 from app_admins where user_id = requester) then
+    raise exception 'Geen adminrechten voor live status.';
+  end if;
+
+  select jsonb_build_object(
+    'generated_at', now(),
+    'counts', jsonb_build_object(
+      'waitlist', (select count(*) from waitlist),
+      'auth_users', (select count(*) from auth.users),
+      'confirmed_users', (select count(*) from auth.users where email_confirmed_at is not null),
+      'profiles', (select count(*) from profiles),
+      'active_profiles', (select count(*) from profiles where actief is true),
+      'complete_profiles', (
+        select count(*)
+        from profiles
+        where actief is true
+          and nullif(trim(coalesce(naam, '')), '') is not null
+          and leeftijd between 18 and 120
+          and nullif(trim(coalesce(geslacht, '')), '') is not null
+          and nullif(trim(coalesce(zoekt, '')), '') is not null
+          and nullif(trim(coalesce(verhaal, '')), '') is not null
+      ),
+      'invite_codes_active', (
+        select count(*)
+        from invite_codes
+        where disabled_at is null
+          and (expires_at is null or expires_at > now())
+          and used_count < max_uses
+      ),
+      'invite_redemptions', (select count(*) from invite_redemptions),
+      'matches', (select count(*) from matches),
+      'messages', (select count(*) from messages),
+      'open_reports', (select count(*) from reports where status = 'open'),
+      'analytics_7d', (select count(*) from analytics_events where created_at >= now() - interval '7 days')
+    ),
+    'recent', jsonb_build_object(
+      'waitlist', coalesce((
+        select jsonb_agg(row_data order by created_at desc)
+        from (
+          select
+            created_at,
+            jsonb_build_object(
+              'email', mask_admin_email(email),
+              'created_at', created_at,
+              'has_privacy_consent', privacy_consent_at is not null
+            ) as row_data
+          from waitlist
+          order by created_at desc
+          limit 10
+        ) rows
+      ), '[]'::jsonb),
+      'users', coalesce((
+        select jsonb_agg(row_data order by created_at desc)
+        from (
+          select
+            u.created_at,
+            jsonb_build_object(
+              'email', mask_admin_email(u.email),
+              'created_at', u.created_at,
+              'confirmed', u.email_confirmed_at is not null,
+              'last_sign_in_at', u.last_sign_in_at,
+              'has_profile', p.id is not null
+            ) as row_data
+          from auth.users u
+          left join profiles p on p.id = u.id
+          order by u.created_at desc
+          limit 10
+        ) rows
+      ), '[]'::jsonb),
+      'profiles', coalesce((
+        select jsonb_agg(row_data order by created_at desc)
+        from (
+          select
+            created_at,
+            jsonb_build_object(
+              'naam', coalesce(nullif(trim(naam), ''), 'Naam ontbreekt'),
+              'geslacht', geslacht,
+              'zoekt', zoekt,
+              'actief', actief,
+              'created_at', created_at
+            ) as row_data
+          from profiles
+          order by created_at desc
+          limit 10
+        ) rows
+      ), '[]'::jsonb),
+      'reports', coalesce((
+        select jsonb_agg(row_data order by created_at desc)
+        from (
+          select
+            created_at,
+            jsonb_build_object(
+              'reason', reason,
+              'status', status,
+              'created_at', created_at
+            ) as row_data
+          from reports
+          order by created_at desc
+          limit 10
+        ) rows
+      ), '[]'::jsonb)
+    ),
+    'warnings', coalesce((
+      select jsonb_agg(message)
+      from (
+        values
+          (case when (select count(*) from waitlist) = 0 then 'Nog geen wachtlijstinschrijvingen zichtbaar.' end),
+          (case when (select count(*) from profiles where actief is true) < 2 then 'Te weinig actieve profielen om matching goed te testen.' end),
+          (case when (select count(*) from invite_codes where disabled_at is null and (expires_at is null or expires_at > now()) and used_count < max_uses) = 0 then 'Geen actieve uitnodigingscodes beschikbaar.' end),
+          (case when (select count(*) from auth.users where email_confirmed_at is null) > 0 then 'Er zijn accounts zonder bevestigde e-mail.' end),
+          (case when (select count(*) from reports where status = 'open') > 0 then 'Er staan open rapportages klaar voor opvolging.' end)
+      ) warning(message)
+      where message is not null
+    ), '[]'::jsonb)
+  )
+  into payload;
+
+  return payload;
+end;
 $$;
 
 create or replace function normalize_invite_code(raw_code text)
@@ -459,8 +609,13 @@ $$;
 revoke all on function current_user_has_invite() from public;
 revoke all on function redeem_invite_code(text) from public;
 revoke all on function admin_create_invite_code(text, text, int, text, timestamptz) from public;
+revoke all on function is_app_admin() from public;
+revoke all on function mask_admin_email(text) from public;
+revoke all on function admin_launch_status() from public;
 grant execute on function current_user_has_invite() to authenticated;
 grant execute on function redeem_invite_code(text) to authenticated;
+grant execute on function is_app_admin() to authenticated;
+grant execute on function admin_launch_status() to authenticated;
 
 create or replace function has_block_between(first_user uuid, second_user uuid)
 returns boolean language sql stable security definer set search_path = public as $$
@@ -527,6 +682,7 @@ alter table calls enable row level security;
 alter table messages enable row level security;
 alter table blocks enable row level security;
 alter table reports enable row level security;
+alter table app_admins enable row level security;
 
 do $$
 declare
@@ -642,6 +798,11 @@ create policy "Eigen rapportages lezen"
 
 create policy "Rapportage toevoegen"
   on reports for insert with check (auth.uid() = reporter_id and reporter_id <> reported_id);
+
+drop policy if exists "Admin ziet eigen adminmarkering" on app_admins;
+
+create policy "Admin ziet eigen adminmarkering"
+  on app_admins for select using (auth.uid() = user_id);
 
 alter table messages replica identity full;
 alter table matches replica identity full;

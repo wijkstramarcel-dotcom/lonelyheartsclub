@@ -79,6 +79,8 @@ const tabs = [
   { id: "profile", label: "Profiel" },
 ];
 
+const ADMIN_TAB = { id: "admin", label: "Live status" };
+
 const PRODUCT_FLOW_STEPS = [
   ["01", "Match zoeken", "Ontdek leden op verhaal, intentie en voorkeuren, zonder foto als eerste oordeel."],
   ["02", "Interesse tonen", "Pas bij wederzijdse interesse ontstaat een match en gaat de chat open."],
@@ -324,12 +326,40 @@ function formatTime(value) {
   }).format(new Date(value));
 }
 
+function formatDateTime(value) {
+  if (!value) return "Nog niet";
+  return new Intl.DateTimeFormat("nl-NL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 function classNames(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function isConfiguredAdminEmail(email) {
+  const configured = String(import.meta.env.VITE_ADMIN_EMAILS || "")
+    .split(",")
+    .map(normalizeEmail)
+    .filter(Boolean);
+  return configured.includes(normalizeEmail(email));
+}
+
+function getAdminModeRequested() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.has("admin") || window.location.hash === "#admin";
+  } catch {
+    return false;
+  }
 }
 
 function normalizeInviteCode(value) {
@@ -1676,7 +1706,7 @@ function PasswordResetDialog({ onClose }) {
 }
 
 function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, onPrivacy }) {
-  const [activeTab, setActiveTab] = useState("discover");
+  const [activeTab, setActiveTab] = useState(() => (!demoMode && getAdminModeRequested() ? "admin" : "discover"));
   const [profile, setProfile] = useState(initialProfile ? normalizeProfile(initialProfile) : null);
   const [needsProfile, setNeedsProfile] = useState(!initialProfile);
   const [profiles, setProfiles] = useState(demoMode ? DEMO_PROFILES.map(normalizeProfile) : []);
@@ -1692,6 +1722,8 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(!demoMode);
   const [journeyStep, setJourneyStep] = useState("discover");
+  const showAdminTab = !demoMode && (isConfiguredAdminEmail(user.email) || getAdminModeRequested());
+  const appTabs = useMemo(() => (showAdminTab ? [...tabs, ADMIN_TAB] : tabs), [showAdminTab]);
 
   const visibleMatches = useMemo(
     () => matches.filter((match) => !blockedIds.has(getOtherUserId(match, user.id))),
@@ -2067,7 +2099,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
         </div>
 
         <nav className="app-tabs" aria-label="App navigatie">
-          {tabs.map((tab) => (
+          {appTabs.map((tab) => (
             <button
               key={tab.id}
               className={activeTab === tab.id ? "active" : ""}
@@ -2111,23 +2143,25 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
           />
         )}
 
-        <NextStepPanel
-          activeTab={activeTab}
-          demoMode={demoMode}
-          profile={profile}
-          suggestedCount={suggestedProfiles.length}
-          suggestedProfileName={suggestedProfileName}
-          hiddenByPreferenceCount={hiddenByPreferenceCount}
-          matchCount={visibleMatches.length}
-          hasSelectedMatch={Boolean(selectedMatch)}
-          selectedMatchHasMessages={selectedMatchMessages.length > 0}
-          selectedMatchHasMyReply={selectedMatchHasMyReply}
-          onNavigate={(tabId) => {
-            setActiveTab(tabId);
-            if (demoMode && ["discover", "matches", "messages"].includes(tabId)) setJourneyStep(tabId);
-          }}
-          onCreateDemoMatch={() => suggestedProfiles[0] && likeProfile(suggestedProfiles[0])}
-        />
+        {activeTab !== "admin" && (
+          <NextStepPanel
+            activeTab={activeTab}
+            demoMode={demoMode}
+            profile={profile}
+            suggestedCount={suggestedProfiles.length}
+            suggestedProfileName={suggestedProfileName}
+            hiddenByPreferenceCount={hiddenByPreferenceCount}
+            matchCount={visibleMatches.length}
+            hasSelectedMatch={Boolean(selectedMatch)}
+            selectedMatchHasMessages={selectedMatchMessages.length > 0}
+            selectedMatchHasMyReply={selectedMatchHasMyReply}
+            onNavigate={(tabId) => {
+              setActiveTab(tabId);
+              if (demoMode && ["discover", "matches", "messages"].includes(tabId)) setJourneyStep(tabId);
+            }}
+            onCreateDemoMatch={() => suggestedProfiles[0] && likeProfile(suggestedProfiles[0])}
+          />
+        )}
 
         {activeTab === "discover" && (
           <DiscoverView
@@ -2195,6 +2229,8 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             onToggleActive={toggleProfileActive}
           />
         )}
+
+        {activeTab === "admin" && showAdminTab && <AdminLaunchStatus />}
       </section>
     </main>
   );
@@ -2214,6 +2250,208 @@ function AppHeader({ profile, notice, onRefresh, loading }) {
         </button>
       </div>
     </header>
+  );
+}
+
+const ADMIN_COUNT_CARDS = [
+  ["waitlist", "Wachtlijst"],
+  ["auth_users", "Accounts"],
+  ["confirmed_users", "Bevestigd"],
+  ["profiles", "Profielen"],
+  ["active_profiles", "Actief"],
+  ["complete_profiles", "Compleet"],
+  ["invite_codes_active", "Codes actief"],
+  ["invite_redemptions", "Codes gebruikt"],
+  ["matches", "Matches"],
+  ["messages", "Berichten"],
+  ["open_reports", "Open rapporten"],
+  ["analytics_7d", "Events 7 dagen"],
+];
+
+function getCount(counts, key) {
+  const value = Number(counts?.[key] ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function AdminLaunchStatus() {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadStatus = async () => {
+    setLoading(true);
+    setError("");
+
+    if (!hasSupabaseConfig || !supabase) {
+      setError("Supabase is nog niet gekoppeld.");
+      setLoading(false);
+      return;
+    }
+
+    const { data, error: rpcError } = await supabase.rpc("admin_launch_status");
+    if (rpcError) {
+      setError(
+        rpcError.message?.includes("admin_launch_status")
+          ? "Run de nieuwste schema.sql in Supabase en voeg jezelf toe aan app_admins."
+          : rpcError.message || "Live status ophalen lukte niet.",
+      );
+      setReport(null);
+    } else {
+      setReport(data ?? null);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
+
+  const counts = report?.counts ?? {};
+  const warnings = Array.isArray(report?.warnings) ? report.warnings : [];
+  const liveReadyChecks = [
+    {
+      label: "Registratiebasis",
+      state: getCount(counts, "confirmed_users") > 0 ? "ok" : "attention",
+      detail:
+        getCount(counts, "confirmed_users") > 0
+          ? "Er zijn bevestigde accounts."
+          : "Nog geen bevestigde accounts gemeten.",
+    },
+    {
+      label: "Wachtlijst",
+      state: getCount(counts, "waitlist") > 0 ? "ok" : "attention",
+      detail:
+        getCount(counts, "waitlist") > 0
+          ? "Nieuwe interesse wordt opgeslagen."
+          : "Nog geen wachtlijst-inschrijvingen zichtbaar.",
+    },
+    {
+      label: "Profielen",
+      state: getCount(counts, "complete_profiles") >= 2 ? "ok" : "attention",
+      detail:
+        getCount(counts, "complete_profiles") >= 2
+          ? "Er zijn genoeg complete profielen voor matchingtests."
+          : "Maak of behoud minimaal twee complete testprofielen.",
+    },
+    {
+      label: "Veiligheid",
+      state: getCount(counts, "open_reports") === 0 ? "ok" : "attention",
+      detail:
+        getCount(counts, "open_reports") === 0
+          ? "Geen open rapportages."
+          : "Er staan rapportages open voor opvolging.",
+    },
+    {
+      label: "SMTP",
+      state: "manual",
+      detail: "Controleer in Supabase of custom SMTP met SPF/DKIM/DMARC actief is.",
+    },
+  ];
+
+  return (
+    <section className="content-section admin-status">
+      <div className="section-heading admin-heading">
+        <div>
+          <p className="eyebrow">Live status</p>
+          <h2>Launch cockpit.</h2>
+          <p>
+            Operationeel overzicht voor registratie, profielen, matching, veiligheid en zichtbaarheid.
+            Aantallen komen uit Supabase en e-mailadressen worden gemaskeerd.
+          </p>
+        </div>
+        <button className="secondary-button" type="button" onClick={loadStatus} disabled={loading}>
+          {loading ? "Laden" : "Verversen"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="admin-warning">
+          <strong>Status nog niet actief</strong>
+          <span>{error}</span>
+          <span>
+            Niet-destructief: voer `schema.sql` uit en voeg daarna je eigen account toe aan `app_admins`.
+          </span>
+        </div>
+      )}
+
+      {!error && report && (
+        <>
+          <div className="admin-count-grid">
+            {ADMIN_COUNT_CARDS.map(([key, label]) => (
+              <article key={key} className="admin-count-card">
+                <span>{label}</span>
+                <strong>{getCount(counts, key)}</strong>
+              </article>
+            ))}
+          </div>
+
+          <div className="admin-readiness-grid">
+            {liveReadyChecks.map((item) => (
+              <article key={item.label} className={classNames("admin-readiness-card", item.state)}>
+                <span>{item.label}</span>
+                <strong>{item.state === "ok" ? "OK" : item.state === "manual" ? "Check" : "Aandacht"}</strong>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
+
+          {warnings.length > 0 && (
+            <div className="admin-warning">
+              <strong>Waarschuwingen</strong>
+              <ul>
+                {warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="admin-recent-grid">
+            <AdminRecentList title="Recente wachtlijst" rows={report.recent?.waitlist} empty="Nog geen wachtlijst." />
+            <AdminRecentList title="Recente accounts" rows={report.recent?.users} empty="Nog geen accounts." />
+            <AdminRecentList title="Recente profielen" rows={report.recent?.profiles} empty="Nog geen profielen." />
+            <AdminRecentList title="Rapportages" rows={report.recent?.reports} empty="Geen rapportages." />
+          </div>
+
+          <p className="admin-updated">Bijgewerkt: {formatDateTime(report.generated_at)}</p>
+        </>
+      )}
+    </section>
+  );
+}
+
+function AdminRecentList({ title, rows = [], empty }) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+
+  return (
+    <article className="admin-recent-card">
+      <h3>{title}</h3>
+      {safeRows.length === 0 ? (
+        <p>{empty}</p>
+      ) : (
+        <ul>
+          {safeRows.map((row, index) => {
+            const main = row.email || row.naam || row.reason || "Onbekend";
+            const meta = [
+              row.confirmed === true ? "bevestigd" : row.confirmed === false ? "niet bevestigd" : "",
+              row.has_profile === true ? "profiel" : row.has_profile === false ? "geen profiel" : "",
+              row.actief === true ? "actief" : row.actief === false ? "gepauzeerd" : "",
+              row.status || "",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+
+            return (
+              <li key={`${main}-${row.created_at || index}`}>
+                <strong>{main}</strong>
+                <span>{meta || formatDateTime(row.created_at || row.last_sign_in_at)}</span>
+                {(row.created_at || row.last_sign_in_at) && <small>{formatDateTime(row.created_at || row.last_sign_in_at)}</small>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </article>
   );
 }
 
