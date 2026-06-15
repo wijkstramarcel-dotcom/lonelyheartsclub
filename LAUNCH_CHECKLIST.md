@@ -13,6 +13,9 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 
 - [ ] Supabase project is actief, niet gepauzeerd.
 - [ ] `schema.sql` is uitgevoerd zonder fouten.
+- [ ] `LIVE_SETUP.sql` is uitgevoerd zonder fouten.
+- [ ] Supabase Auth Site URL is `https://www.lonelyheartsclub.nl`.
+- [ ] Supabase Auth Redirect URL bevat `https://www.lonelyheartsclub.nl/auth/callback`.
 - [ ] `VITE_SUPABASE_URL` staat in Vercel Production.
 - [ ] `VITE_SUPABASE_ANON_KEY` staat in Vercel Production.
 - [ ] `VITE_PUBLIC_SITE_URL=https://www.lonelyheartsclub.nl` staat in Vercel Production.

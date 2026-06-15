@@ -115,6 +115,15 @@ button:disabled {
   color: #1d1a16;
 }
 
+.auth-return-notice.error {
+  border-color: rgba(177, 78, 48, 0.24);
+  background: rgba(177, 78, 48, 0.09);
+}
+
+.auth-return-notice.error strong {
+  color: #8a2c1c;
+}
+
 .auth-return-notice strong,
 .auth-return-notice span {
   display: block;

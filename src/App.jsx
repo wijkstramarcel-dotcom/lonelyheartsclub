@@ -205,18 +205,39 @@ const AUTH_GUIDE_ITEMS = [
 ];
 
 const AUTH_RETURN_COPY = {
-  signup: [
-    "E-mailadres bevestigd",
-    "Als je niet automatisch bent ingelogd, log dan in met je wachtwoord of vraag een inloglink aan.",
-  ],
-  login: [
-    "Inloglink geopend",
-    "Als je sessie niet automatisch actief is, vraag dan een nieuwe inloglink aan of log in met je wachtwoord.",
-  ],
-  recovery: [
-    "Herstel-link geopend",
-    "Als het wachtwoordformulier niet verschijnt, vraag dan via Inloggen > Wachtwoord een nieuwe herstel-link aan.",
-  ],
+  signup: {
+    title: "E-mailadres bevestigd",
+    text: "Als je niet automatisch bent ingelogd, log dan in met je wachtwoord of vraag een inloglink aan.",
+    action: "Open inloggen",
+  },
+  login: {
+    title: "Inloglink geopend",
+    text: "Als je sessie niet automatisch actief is, vraag dan een nieuwe inloglink aan of log in met je wachtwoord.",
+    action: "Open inloggen",
+  },
+  recovery: {
+    title: "Herstel-link geopend",
+    text: "Als het wachtwoordformulier niet verschijnt, vraag dan via Inloggen > Wachtwoord een nieuwe herstel-link aan.",
+    action: "Open inloggen",
+  },
+};
+
+const AUTH_ERROR_COPY = {
+  otp_expired: {
+    title: "Link verlopen",
+    text: "Deze e-maillink is eenmalig of te oud. Vraag via Inloggen een nieuwe veilige link of bevestigingsmail aan.",
+    action: "Nieuwe link aanvragen",
+  },
+  access_denied: {
+    title: "Link niet geaccepteerd",
+    text: "De e-maillink kon niet worden gebruikt. Vraag een nieuwe link aan vanaf de live site en open de nieuwste mail.",
+    action: "Nieuwe link aanvragen",
+  },
+  default: {
+    title: "Inloggen niet gelukt",
+    text: "De e-maillink werkte niet. Vraag een nieuwe link aan of log in met je wachtwoord als je al een account hebt.",
+    action: "Open inloggen",
+  },
 };
 
 const REPORT_REASONS = [
@@ -422,20 +443,35 @@ function authRedirectUrl(flow = "login") {
   return url.toString();
 }
 
-function getAuthReturnFlow() {
+function getAuthReturnNotice() {
   try {
-    const flow = new URLSearchParams(window.location.search).get("flow");
-    if (Object.prototype.hasOwnProperty.call(AUTH_RETURN_COPY, flow)) return flow;
-
+    const searchParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash.replace(/^#/, "");
-    const hashType = new URLSearchParams(hash).get("type");
-    if (hashType === "recovery") return "recovery";
-    if (hashType === "signup") return "signup";
-    if (hashType === "magiclink") return "login";
+    const hashParams = new URLSearchParams(hash);
+    const errorKey =
+      hashParams.get("error_code") ||
+      searchParams.get("error_code") ||
+      hashParams.get("error") ||
+      searchParams.get("error");
+
+    if (errorKey || hashParams.get("error_description") || searchParams.get("error_description")) {
+      const copy = AUTH_ERROR_COPY[errorKey] || AUTH_ERROR_COPY.default;
+      return { ...copy, variant: "error" };
+    }
+
+    const flow = searchParams.get("flow");
+    if (Object.prototype.hasOwnProperty.call(AUTH_RETURN_COPY, flow)) {
+      return { ...AUTH_RETURN_COPY[flow], variant: "success" };
+    }
+
+    const hashType = hashParams.get("type");
+    if (hashType === "recovery") return { ...AUTH_RETURN_COPY.recovery, variant: "success" };
+    if (hashType === "signup") return { ...AUTH_RETURN_COPY.signup, variant: "success" };
+    if (hashType === "magiclink") return { ...AUTH_RETURN_COPY.login, variant: "success" };
   } catch {
     // The return notice is best effort; auth itself is handled by Supabase.
   }
-  return "";
+  return null;
 }
 
 function consentMetadata(timestamp = consentTimestamp()) {
@@ -650,7 +686,7 @@ export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [passwordRecoveryOpen, setPasswordRecoveryOpen] = useState(false);
-  const [authReturnFlow] = useState(() => getAuthReturnFlow());
+  const [authReturnNotice] = useState(() => getAuthReturnNotice());
 
   useEffect(() => {
     if (!hasSupabaseConfig || !supabase) {
@@ -729,7 +765,7 @@ export default function App() {
     <>
       <LandingPage
         authOpen={authOpen}
-        authReturnFlow={authReturnFlow}
+        authReturnNotice={authReturnNotice}
         setAuthOpen={setAuthOpen}
         onDemo={() => setDemoMode(true)}
         onPrivacy={() => setPrivacyOpen(true)}
@@ -749,7 +785,7 @@ function LoadingScreen() {
   );
 }
 
-function LandingPage({ authOpen, authReturnFlow, setAuthOpen, onDemo, onPrivacy }) {
+function LandingPage({ authOpen, authReturnNotice, setAuthOpen, onDemo, onPrivacy }) {
   useEffect(() => {
     void trackConversionEvent("landing_view", {}, { onceKey: "landing" });
   }, []);
@@ -779,7 +815,7 @@ function LandingPage({ authOpen, authReturnFlow, setAuthOpen, onDemo, onPrivacy 
     <main className="site-shell">
       <HeaderNav onLogin={() => setAuthOpen(true)} onPrivacy={onPrivacy} />
 
-      {authReturnFlow && <AuthReturnNotice flow={authReturnFlow} onLogin={() => setAuthOpen(true)} />}
+      {authReturnNotice && <AuthReturnNotice notice={authReturnNotice} onLogin={() => setAuthOpen(true)} />}
 
       <section className="hero-section">
         <div className="hero-copy">
@@ -958,17 +994,15 @@ function LandingPage({ authOpen, authReturnFlow, setAuthOpen, onDemo, onPrivacy 
   );
 }
 
-function AuthReturnNotice({ flow, onLogin }) {
-  const [title, text] = AUTH_RETURN_COPY[flow] ?? AUTH_RETURN_COPY.login;
-
+function AuthReturnNotice({ notice, onLogin }) {
   return (
-    <section className="auth-return-notice" role="status" aria-live="polite">
+    <section className={classNames("auth-return-notice", notice.variant)} role="status" aria-live="polite">
       <div>
-        <strong>{title}</strong>
-        <span>{text}</span>
+        <strong>{notice.title}</strong>
+        <span>{notice.text}</span>
       </div>
       <button className="secondary-button" type="button" onClick={onLogin}>
-        Open inloggen
+        {notice.action}
       </button>
     </section>
   );
@@ -2292,7 +2326,7 @@ function AdminLaunchStatus() {
     if (rpcError) {
       setError(
         rpcError.message?.includes("admin_launch_status")
-          ? "Run de nieuwste schema.sql in Supabase en voeg jezelf toe aan app_admins."
+          ? "Run eerst schema.sql en daarna LIVE_SETUP.sql in Supabase."
           : rpcError.message || "Live status ophalen lukte niet.",
       );
       setReport(null);
@@ -2369,7 +2403,7 @@ function AdminLaunchStatus() {
           <strong>Status nog niet actief</strong>
           <span>{error}</span>
           <span>
-            Niet-destructief: voer `schema.sql` uit en voeg daarna je eigen account toe aan `app_admins`.
+            Niet-destructief: `schema.sql` maakt de tabellen/functies; `LIVE_SETUP.sql` zet adminrechten en de eerste invitecode klaar.
           </span>
         </div>
       )}
