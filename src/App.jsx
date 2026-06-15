@@ -2165,8 +2165,8 @@ function DemoJourney({
     <section className="demo-journey" aria-label="Demo route">
       <div>
         <p className="eyebrow">Demo-route</p>
-        <h2>Geen swipe-demo: loop door de echte route.</h2>
-        <p>Bekijk een kleine selectie, toon bewust interesse, chat daarna en test het anonieme belmoment.</p>
+        <h2>Test de echte route in een paar minuten.</h2>
+        <p>Begin met een passend profiel, reageer in de chat, open daarna het anonieme belmoment en rond af met een afspraakvoorstel.</p>
       </div>
       <div className="journey-side">
         <div className="journey-steps">
@@ -2180,14 +2180,14 @@ function DemoJourney({
           ))}
         </div>
         <div className="journey-actions">
-          {suggestedCount > 0 && (
+          {suggestedCount > 0 && matchCount === 0 && (
             <button className="secondary-button" type="button" onClick={onCreateDemoMatch}>
-              Start met {suggestedProfileName}
+              Start match met {suggestedProfileName}
             </button>
           )}
           {matchCount > 0 && (
             <button className="secondary-button" type="button" onClick={onOpenChat}>
-              Open chat
+              Open gesprek
             </button>
           )}
         </div>
@@ -2280,10 +2280,10 @@ function NextStepPanel({
           <div>
             <p className="eyebrow">Volgende stap</p>
             <h2>Reageer eerst in de chat.</h2>
-            <p>De match heeft de opening gemaakt. Bellen blijft dicht totdat jij ook een bericht hebt gestuurd.</p>
+            <p>De match heeft de opening gemaakt. Na jouw reactie gaat het anonieme belmoment open.</p>
           </div>
           <button className="secondary-button" type="button" onClick={() => onNavigate("messages")}>
-            Open gesprek
+            Open gesprek en reageer
           </button>
         </section>
       );
@@ -3015,6 +3015,11 @@ function MessagesView({
     "Ik vind je profiel rustig en oprecht overkomen. Waar krijg jij de laatste tijd energie van?",
     "Zullen we eerst even chatten en daarna pas kijken of bellen goed voelt?",
   ];
+  const replySuggestions = [
+    `Hoi ${otherProfile?.naam ?? "daar"}, leuk dat je dit zegt. Waar zou jij graag over doorpraten?`,
+    "Ik herken dat rustige tempo wel. Wat maakt voor jou een eerste gesprek prettig?",
+    "Dit voelt als een fijne start. Laten we nog even chatten en daarna kort anoniem bellen.",
+  ];
 
   const handleCall = async () => {
     setCallError("");
@@ -3128,6 +3133,22 @@ function MessagesView({
           </EmptyState>
         )}
       </div>
+
+      {hasConversation && !hasUserReply && (
+        <section className="reply-prompt" aria-label="Reactievoorstellen">
+          <div>
+            <strong>Reageer om de volgende stap te openen</strong>
+            <span>Na jouw eerste bericht kan het anonieme belmoment gestart worden.</span>
+          </div>
+          <div className="starter-actions">
+            {replySuggestions.map((message) => (
+              <button className="secondary-button" key={message} type="button" onClick={() => setDraft(message)}>
+                {message}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="call-panel">
         <div>

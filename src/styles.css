@@ -1479,6 +1479,34 @@ textarea {
   background: rgba(255, 253, 250, 0.62);
 }
 
+.reply-prompt {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(280px, 1fr);
+  gap: 14px;
+  align-items: start;
+  border: 1px solid rgba(177, 78, 48, 0.16);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(177, 78, 48, 0.07);
+}
+
+.reply-prompt strong,
+.reply-prompt span {
+  display: block;
+}
+
+.reply-prompt strong {
+  color: #1d1a16;
+  font-size: 14px;
+}
+
+.reply-prompt span {
+  margin-top: 4px;
+  color: #5d5147;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .message-bubble {
   max-width: min(640px, 82%);
   align-self: flex-start;
@@ -1768,6 +1796,7 @@ textarea {
   .demo-journey,
   .next-step-panel,
   .call-panel,
+  .reply-prompt,
   .closing-section,
   .app-shell,
   .form-grid,
