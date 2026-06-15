@@ -20,6 +20,9 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [ ] Bestaand account kan inloggen via inloglink.
 - [ ] Bestaand account kan inloggen via wachtwoord.
 - [ ] Wachtlijst-inschrijving wordt opgeslagen.
+- [ ] Uitnodigingscode kan worden aangemaakt met `admin_create_invite_code`.
+- [ ] Nieuw profiel maken lukt alleen na geldige uitnodigingscode.
+- [ ] Ongeldige of verlopen uitnodigingscode blokkeert profiel-aanmaak.
 
 ## 3. Profiel en matching
 

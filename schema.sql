@@ -52,6 +52,33 @@ create table if not exists waitlist (
 alter table waitlist add column if not exists privacy_consent_at timestamptz;
 alter table waitlist add column if not exists consent_version text;
 
+create table if not exists invite_codes (
+  code_hash text primary key
+);
+
+alter table invite_codes add column if not exists label text;
+alter table invite_codes add column if not exists max_uses int default 1;
+alter table invite_codes add column if not exists used_count int default 0;
+alter table invite_codes add column if not exists reserved_email text;
+alter table invite_codes add column if not exists expires_at timestamptz;
+alter table invite_codes add column if not exists disabled_at timestamptz;
+alter table invite_codes add column if not exists created_at timestamptz default now();
+alter table invite_codes add column if not exists created_by uuid references auth.users(id) on delete set null;
+
+update invite_codes set max_uses = 1 where max_uses is null;
+update invite_codes set used_count = 0 where used_count is null;
+alter table invite_codes alter column max_uses set not null;
+alter table invite_codes alter column used_count set not null;
+
+create table if not exists invite_redemptions (
+  id uuid primary key default gen_random_uuid()
+);
+
+alter table invite_redemptions add column if not exists code_hash text references invite_codes(code_hash) on delete restrict;
+alter table invite_redemptions add column if not exists user_id uuid references auth.users(id) on delete cascade;
+alter table invite_redemptions add column if not exists email text;
+alter table invite_redemptions add column if not exists redeemed_at timestamptz default now();
+
 create table if not exists analytics_events (
   id uuid primary key default gen_random_uuid()
 );
@@ -205,6 +232,41 @@ begin
   end if;
 
   if not exists (
+    select 1 from pg_constraint where conname = 'invite_codes_max_uses_check'
+  ) then
+    alter table invite_codes add constraint invite_codes_max_uses_check
+      check (max_uses > 0) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'invite_codes_used_count_check'
+  ) then
+    alter table invite_codes add constraint invite_codes_used_count_check
+      check (used_count >= 0 and used_count <= max_uses) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'invite_codes_reserved_email_check'
+  ) then
+    alter table invite_codes add constraint invite_codes_reserved_email_check
+      check (reserved_email is null or reserved_email ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$') not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'invite_redemptions_user_id_key'
+  ) then
+    alter table invite_redemptions add constraint invite_redemptions_user_id_key
+      unique (user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'invite_redemptions_code_hash_user_id_key'
+  ) then
+    alter table invite_redemptions add constraint invite_redemptions_code_hash_user_id_key
+      unique (code_hash, user_id);
+  end if;
+
+  if not exists (
     select 1 from pg_constraint where conname = 'blocks_blocker_id_blocked_id_key'
   ) then
     alter table blocks add constraint blocks_blocker_id_blocked_id_key
@@ -251,6 +313,9 @@ $$;
 create index if not exists interests_from_user_idx on interests(from_user);
 create index if not exists interests_to_user_idx on interests(to_user);
 create index if not exists analytics_events_event_created_idx on analytics_events(event_name, created_at desc);
+create index if not exists invite_codes_expires_idx on invite_codes(expires_at);
+create index if not exists invite_redemptions_user_idx on invite_redemptions(user_id);
+create index if not exists invite_redemptions_code_idx on invite_redemptions(code_hash);
 create index if not exists matches_user_a_idx on matches(user_a);
 create index if not exists matches_user_b_idx on matches(user_b);
 create index if not exists messages_match_created_idx on messages(match_id, created_at);
@@ -281,6 +346,121 @@ returns boolean language sql stable security definer set search_path = public as
       and (m.user_a = auth.uid() or m.user_b = auth.uid())
   );
 $$;
+
+create or replace function normalize_invite_code(raw_code text)
+returns text language sql immutable as $$
+  select upper(regexp_replace(trim(coalesce(raw_code, '')), '[^A-Za-z0-9]', '', 'g'));
+$$;
+
+create or replace function current_user_has_invite()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1
+    from invite_redemptions r
+    where r.user_id = auth.uid()
+  );
+$$;
+
+create or replace function redeem_invite_code(raw_code text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  requester uuid := auth.uid();
+  requester_email text := lower(coalesce(auth.jwt() ->> 'email', ''));
+  normalized_code text := normalize_invite_code(raw_code);
+  hashed_code text;
+  code_record invite_codes%rowtype;
+begin
+  if requester is null then
+    raise exception 'Log eerst in om je uitnodiging te activeren.';
+  end if;
+
+  if char_length(normalized_code) < 6 or char_length(normalized_code) > 48 then
+    raise exception 'Vul een geldige uitnodigingscode in.';
+  end if;
+
+  if exists (select 1 from invite_redemptions where user_id = requester) then
+    return jsonb_build_object('ok', true, 'already_redeemed', true);
+  end if;
+
+  hashed_code := encode(digest(normalized_code, 'sha256'), 'hex');
+
+  select *
+  into code_record
+  from invite_codes
+  where code_hash = hashed_code
+  for update;
+
+  if not found then
+    raise exception 'Deze uitnodigingscode klopt niet of is niet meer actief.';
+  end if;
+
+  if code_record.disabled_at is not null then
+    raise exception 'Deze uitnodigingscode is uitgeschakeld.';
+  end if;
+
+  if code_record.expires_at is not null and code_record.expires_at < now() then
+    raise exception 'Deze uitnodigingscode is verlopen.';
+  end if;
+
+  if code_record.reserved_email is not null and lower(code_record.reserved_email) <> requester_email then
+    raise exception 'Deze uitnodiging hoort bij een ander e-mailadres.';
+  end if;
+
+  if code_record.used_count >= code_record.max_uses then
+    raise exception 'Deze uitnodigingscode is al gebruikt.';
+  end if;
+
+  update invite_codes
+  set used_count = used_count + 1
+  where code_hash = hashed_code;
+
+  insert into invite_redemptions (code_hash, user_id, email)
+  values (hashed_code, requester, nullif(requester_email, ''));
+
+  return jsonb_build_object('ok', true, 'already_redeemed', false);
+end;
+$$;
+
+create or replace function admin_create_invite_code(
+  raw_code text,
+  label text default null,
+  max_uses int default 1,
+  reserved_email text default null,
+  expires_at timestamptz default null
+)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  normalized_code text := normalize_invite_code(raw_code);
+  hashed_code text;
+begin
+  if char_length(normalized_code) < 6 or char_length(normalized_code) > 48 then
+    raise exception 'Gebruik een code van 6 tot 48 letters/cijfers.';
+  end if;
+
+  if max_uses is null or max_uses < 1 then
+    raise exception 'max_uses moet minimaal 1 zijn.';
+  end if;
+
+  hashed_code := encode(digest(normalized_code, 'sha256'), 'hex');
+
+  insert into invite_codes (code_hash, label, max_uses, reserved_email, expires_at, disabled_at)
+  values (hashed_code, nullif(trim(label), ''), max_uses, lower(nullif(trim(reserved_email), '')), expires_at, null)
+  on conflict (code_hash) do update
+  set label = excluded.label,
+      max_uses = excluded.max_uses,
+      reserved_email = excluded.reserved_email,
+      expires_at = excluded.expires_at,
+      disabled_at = null;
+
+  return jsonb_build_object('ok', true, 'code', normalized_code, 'max_uses', max_uses);
+end;
+$$;
+
+revoke all on function current_user_has_invite() from public;
+revoke all on function redeem_invite_code(text) from public;
+revoke all on function admin_create_invite_code(text, text, int, text, timestamptz) from public;
+grant execute on function current_user_has_invite() to authenticated;
+grant execute on function redeem_invite_code(text) to authenticated;
 
 create or replace function has_block_between(first_user uuid, second_user uuid)
 returns boolean language sql stable security definer set search_path = public as $$
@@ -338,6 +518,8 @@ create trigger on_block_inserted
 
 alter table profiles enable row level security;
 alter table waitlist enable row level security;
+alter table invite_codes enable row level security;
+alter table invite_redemptions enable row level security;
 alter table analytics_events enable row level security;
 alter table interests enable row level security;
 alter table matches enable row level security;
@@ -376,7 +558,7 @@ create policy "Profielen lezen"
   on profiles for select using (auth.role() = 'authenticated');
 
 create policy "Eigen profiel aanmaken"
-  on profiles for insert with check (auth.uid() = id);
+  on profiles for insert with check (auth.uid() = id and current_user_has_invite());
 
 create policy "Eigen profiel bijwerken"
   on profiles for update using (auth.uid() = id) with check (auth.uid() = id);

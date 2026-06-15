@@ -238,6 +238,7 @@ const sentConversionEvents = new Set();
 const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
 const CONSENT_VERSION = "2026-06-10";
 const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
+const PENDING_INVITE_KEY = "lhc-pending-invite";
 
 function normalizeList(value) {
   const rawItems = Array.isArray(value) ? value : String(value || "").split(",");
@@ -330,6 +331,40 @@ function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeInviteCode(value) {
+  return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function pendingInviteKey(email) {
+  return `${PENDING_INVITE_KEY}:${normalizeEmail(email) || "unknown"}`;
+}
+
+function rememberPendingInviteCode(email, code) {
+  const normalizedCode = normalizeInviteCode(code);
+  if (!normalizedCode) return;
+  try {
+    window.localStorage.setItem(pendingInviteKey(email), normalizedCode);
+  } catch {
+    // Local storage is only a convenience for email-confirmation redirects.
+  }
+}
+
+function readPendingInviteCode(email) {
+  try {
+    return window.localStorage.getItem(pendingInviteKey(email)) || "";
+  } catch {
+    return "";
+  }
+}
+
+function clearPendingInviteCode(email) {
+  try {
+    window.localStorage.removeItem(pendingInviteKey(email));
+  } catch {
+    // Nothing to clean up.
+  }
+}
+
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
 }
@@ -409,6 +444,24 @@ function isMissingSafetyTableError(error) {
   );
 }
 
+function isMissingInviteSchemaError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    error?.code === "42883" ||
+    error?.code === "PGRST202" ||
+    message.includes("redeem_invite_code") ||
+    message.includes("current_user_has_invite") ||
+    message.includes("could not find the function")
+  );
+}
+
+function friendlyInviteError(error) {
+  if (isMissingInviteSchemaError(error)) {
+    return "De uitnodigingslaag staat nog niet in Supabase. Run eerst de nieuwste schema.sql.";
+  }
+  return error?.message || "Uitnodiging controleren lukte niet. Controleer je code en probeer opnieuw.";
+}
+
 async function upsertWaitlist(email, timestamp) {
   const fullPayload = {
     email,
@@ -440,6 +493,20 @@ async function upsertProfile(payload) {
     ...legacyPayload
   } = payload;
   return supabase.from("profiles").upsert(legacyPayload);
+}
+
+async function checkCurrentUserInvite() {
+  const { data, error } = await supabase.rpc("current_user_has_invite");
+  if (error) return { invited: false, error };
+  return { invited: Boolean(data), error: null };
+}
+
+async function redeemInviteCode(inviteCode) {
+  const { data, error } = await supabase.rpc("redeem_invite_code", {
+    raw_code: inviteCode,
+  });
+  if (error) return { ok: false, error };
+  return { ok: Boolean(data?.ok ?? data), error: null };
 }
 
 function getPagePath() {
@@ -1125,6 +1192,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
   const [mode, setMode] = useState("link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -1133,8 +1201,10 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
   const [resetLoading, setResetLoading] = useState(false);
 
   const normalizedEmail = normalizeEmail(email);
+  const normalizedInviteCode = normalizeInviteCode(inviteCode);
   const validEmail = isValidEmail(normalizedEmail);
   const needsPrivacyConsent = mode === "signup";
+  const needsInviteCode = mode === "signup";
   const activeAuthMode = AUTH_MODES.find((item) => item.id === mode) ?? AUTH_MODES[0];
   const canResendConfirmation =
     validEmail &&
@@ -1217,6 +1287,10 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
       setError("Accepteer eerst de privacyverklaring om een account te starten.");
       return;
     }
+    if (needsInviteCode && normalizedInviteCode.length < 6) {
+      setError("Vul je uitnodigingscode in. Zonder uitnodiging kun je je eerst inschrijven voor de wachtlijst.");
+      return;
+    }
     if (!hasSupabaseConfig || !supabase) {
       setError("Supabase is nog niet gekoppeld. Gebruik nu de demo.");
       return;
@@ -1240,7 +1314,10 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
         const acceptedAt = consentTimestamp();
         const authOptions = {
           emailRedirectTo: authRedirectUrl("signup"),
-          data: consentMetadata(acceptedAt),
+          data: {
+            ...consentMetadata(acceptedAt),
+            invite_pending: true,
+          },
         };
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: normalizedEmail,
@@ -1248,12 +1325,13 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
           options: authOptions,
         });
         if (signUpError) throw signUpError;
+        rememberPendingInviteCode(normalizedEmail, normalizedInviteCode);
         await upsertWaitlist(normalizedEmail, acceptedAt);
         if (signUpData.session) {
-          setStatus("Account aangemaakt. Je bent ingelogd; je kunt nu je profiel maken.");
+          setStatus("Account aangemaakt. Je bent ingelogd; activeer je uitnodiging bij het maken van je profiel.");
         } else {
           setStatus(
-            "Account gestart. Bevestig je e-mailadres via de link in je inbox. Daarna kom je automatisch terug en kun je je profiel maken.",
+            "Account gestart. Bevestig je e-mailadres via de link in je inbox. Daarna kom je terug om je uitnodiging te activeren en je profiel te maken.",
           );
         }
       }
@@ -1349,6 +1427,20 @@ function AuthDialog({ onClose, onDemo, onPrivacy }) {
                 type="password"
                 placeholder="Minimaal 6 tekens"
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              />
+            </label>
+          )}
+          {mode === "signup" && (
+            <label>
+              Uitnodigingscode
+              <input
+                value={inviteCode}
+                onChange={(event) => setInviteCode(event.target.value)}
+                type="text"
+                placeholder="Bijvoorbeeld LHC-..."
+                autoComplete="one-time-code"
+                autoCapitalize="characters"
+                spellCheck="false"
               />
             </label>
           )}
@@ -2253,7 +2345,7 @@ function Onboarding({ user, onSaved, demoMode, onLogout, onPrivacy }) {
         <p className="eyebrow">Eerste stap</p>
         <h1>Maak je profiel zonder foto.</h1>
         <p>
-          Andere leden zien je naam, leeftijd, verhaal en passies. Je foto blijft bewust buiten beeld.
+          Andere leden zien je naam, leeftijd, verhaal en passies. Nieuwe leden activeren eerst hun uitnodiging.
         </p>
         <ProfileForm user={user} onSaved={onSaved} demoMode={demoMode} onPrivacy={onPrivacy} />
       </section>
@@ -2321,6 +2413,7 @@ function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
 }
 
 function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivacy }) {
+  const needsInviteCode = !demoMode && !profile;
   const [form, setForm] = useState(() => ({
     naam: profile?.naam ?? "",
     leeftijd: profile?.leeftijd ? String(profile.leeftijd) : "",
@@ -2332,6 +2425,9 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
   const [sensitiveConsent, setSensitiveConsent] = useState(
     () => Boolean(profile?.sensitive_data_consent_at) || hasStoredSensitiveConsent(user.id),
   );
+  const [inviteCode, setInviteCode] = useState(() => readPendingInviteCode(user.email));
+  const [inviteStatus, setInviteStatus] = useState(needsInviteCode ? "checking" : "verified");
+  const [inviteCheckError, setInviteCheckError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -2339,6 +2435,38 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
   const passionList = normalizeList(form.passies);
   const age = Number(form.leeftijd);
   const matchFilter = describeMatchFilter(form);
+  const normalizedInviteCode = normalizeInviteCode(inviteCode);
+
+  useEffect(() => {
+    if (!needsInviteCode) return undefined;
+
+    if (!hasSupabaseConfig || !supabase) {
+      setInviteStatus("required");
+      return undefined;
+    }
+
+    let active = true;
+    setInviteStatus("checking");
+    setInviteCheckError("");
+
+    checkCurrentUserInvite()
+      .then(({ invited, error: inviteError }) => {
+        if (!active) return;
+        if (inviteError && isMissingInviteSchemaError(inviteError)) {
+          setInviteCheckError(friendlyInviteError(inviteError));
+        }
+        setInviteStatus(invited ? "verified" : "required");
+      })
+      .catch((inviteError) => {
+        if (!active) return;
+        setInviteCheckError(friendlyInviteError(inviteError));
+        setInviteStatus("required");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [needsInviteCode, user.id]);
 
   const save = async (event) => {
     event.preventDefault();
@@ -2366,6 +2494,10 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
     }
     if (!sensitiveConsent) {
       setError("Geef expliciet toestemming voor het verwerken van je datingvoorkeuren.");
+      return;
+    }
+    if (needsInviteCode && inviteStatus !== "verified" && normalizedInviteCode.length < 6) {
+      setError("Vul je uitnodigingscode in voordat je je profiel opslaat.");
       return;
     }
 
@@ -2400,6 +2532,19 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
     }
 
     setSaving(true);
+
+    if (needsInviteCode && inviteStatus !== "verified") {
+      const { error: inviteError } = await redeemInviteCode(normalizedInviteCode);
+      if (inviteError) {
+        setSaving(false);
+        setError(friendlyInviteError(inviteError));
+        return;
+      }
+      clearPendingInviteCode(user.email);
+      setInviteStatus("verified");
+      setInviteCheckError("");
+    }
+
     const { error: saveError } = await upsertProfile(payload);
     setSaving(false);
 
@@ -2427,6 +2572,37 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
           </div>
         </dl>
       </div>
+
+      {needsInviteCode && (
+        <section className="invite-gate" aria-label="Uitnodiging activeren">
+          <div>
+            <strong>Uitnodiging vereist</strong>
+            <span>
+              We starten gecontroleerd. Activeer je code eenmalig voordat je profiel zichtbaar kan worden.
+            </span>
+          </div>
+          {inviteStatus === "checking" && <p className="form-message success">Toegang controleren...</p>}
+          {inviteStatus === "verified" && (
+            <p className="form-message success">Uitnodiging actief. Je kunt je profiel opslaan.</p>
+          )}
+          {inviteStatus !== "checking" && inviteStatus !== "verified" && (
+            <>
+              {inviteCheckError && <p className="form-message error">{inviteCheckError}</p>}
+              <label>
+                Uitnodigingscode
+                <input
+                  value={inviteCode}
+                  onChange={(event) => setInviteCode(event.target.value)}
+                  placeholder="Bijvoorbeeld LHC-..."
+                  autoComplete="one-time-code"
+                  autoCapitalize="characters"
+                  spellCheck="false"
+                />
+              </label>
+            </>
+          )}
+        </section>
+      )}
 
       <div className="form-grid">
         <label>

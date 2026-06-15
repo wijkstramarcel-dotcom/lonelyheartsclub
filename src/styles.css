@@ -946,6 +946,32 @@ button:disabled {
   line-height: 1.45;
 }
 
+.invite-gate {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(177, 78, 48, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(177, 78, 48, 0.07);
+}
+
+.invite-gate strong,
+.invite-gate span {
+  display: block;
+}
+
+.invite-gate strong {
+  color: #1d1a16;
+  font-size: 14px;
+}
+
+.invite-gate span {
+  margin-top: 4px;
+  color: #5d5147;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .auth-form,
 .profile-form {
   display: grid;

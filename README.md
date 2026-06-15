@@ -33,6 +33,24 @@ supabase functions deploy twilio-token
 supabase functions deploy twilio-voice
 ```
 
+## Uitnodigingen
+
+Nieuwe accounts kunnen pas een profiel maken nadat een uitnodigingscode is verzilverd. Codes worden
+alleen gehasht opgeslagen in Supabase. Maak codes aan via de SQL Editor:
+
+```sql
+select admin_create_invite_code(
+  raw_code := 'LHC-EERSTE-RONDE-001',
+  label := 'Eerste ledenronde',
+  max_uses := 1,
+  reserved_email := null,
+  expires_at := now() + interval '30 days'
+);
+```
+
+Gebruik `reserved_email` als een code maar voor één specifiek e-mailadres mag werken. Deel de ruwe
+code alleen met de persoon die je wilt toelaten.
+
 ## Twilio instellen
 
 Maak in Twilio een TwiML App en zet de Voice Request URL op:
