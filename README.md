@@ -89,6 +89,9 @@ Gebruik de TwiML App SID als `TWILIO_TWIML_APP_SID`.
 De app houdt echte gesprekken standaard dicht. Demo-calls blijven werken, maar live gebruikers zien
 `Belprovider nog niet actief` totdat je de voice launch bewust aanzet.
 
+Gebruik `TWILIO_LAUNCH.md` als actuele go-live checklist voor Twilio-account, Supabase Functions,
+secrets en de test met twee echte gebruikers.
+
 Checklist:
 
 1. Maak of controleer een Twilio TwiML App.

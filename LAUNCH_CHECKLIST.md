@@ -60,6 +60,7 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [ ] Microfoontoestemming werkt.
 - [ ] Audio werkt beide kanten op.
 - [ ] Telefoonnummers worden nergens getoond.
+- [ ] Ontvanger ziet een inkomende oproep met `Neem op` en `Weiger`.
 - [ ] Pas daarna: `VITE_ENABLE_VOICE_CALLS=true` in Vercel Production en redeploy.
 
 ## 6. Privacy en vertrouwen
