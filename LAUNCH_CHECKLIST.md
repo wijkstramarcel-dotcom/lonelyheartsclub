@@ -50,10 +50,11 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 
 ## 5. Anoniem bellen
 
-- [ ] `VITE_ENABLE_VOICE_CALLS=false` zolang Twilio niet klaar is.
-- [ ] Twilio TwiML App bestaat.
-- [ ] TwiML App Voice Request URL wijst naar `https://<project-ref>.supabase.co/functions/v1/twilio-voice`.
-- [ ] Supabase secrets staan ingesteld: `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_TWIML_APP_SID`.
+- [x] `VITE_ENABLE_VOICE_CALLS=false` zolang Twilio niet klaar is.
+- [x] Twilio TwiML App bestaat.
+- [x] TwiML App Voice Request URL wijst naar `https://<project-ref>.supabase.co/functions/v1/twilio-voice`.
+- [x] Supabase secrets staan ingesteld: `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_TWIML_APP_SID`.
+- [ ] Twilio API key/secret is gevalideerd. Huidige check geeft `401 Authenticate`; maak een nieuwe Standard API key of kopieer de secret opnieuw.
 - [x] `twilio-token` is gedeployd.
 - [x] `twilio-voice` is gedeployd.
 - [ ] Test met twee echte accounts werkt in twee browsers/apparaten.
