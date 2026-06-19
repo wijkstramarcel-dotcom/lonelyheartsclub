@@ -358,7 +358,7 @@ function daysSince(value) {
 
 function scoreMatch(viewerProfile, candidateProfile) {
   if (!isPotentialMatch(viewerProfile, candidateProfile)) {
-    return { score: 0, reasons: [], sharedTags: [], level: "Geen match" };
+    return { score: 0, reasons: [], sharedTags: [], level: "Geen match", compass: [] };
   }
 
   const viewerTags = new Set(normalizeList(viewerProfile?.tags?.length ? viewerProfile.tags : viewerProfile?.passies).map(normalizeTextKey));
@@ -384,6 +384,16 @@ function scoreMatch(viewerProfile, candidateProfile) {
     else if (lastTouchedDays <= 30) score += 4;
   }
 
+  const lifeStageScore =
+    ageDistance === null ? 55 : ageDistance <= 4 ? 100 : ageDistance <= 8 ? 82 : ageDistance <= 14 ? 62 : 42;
+  const activityScore = lastTouchedDays === null ? 55 : lastTouchedDays <= 7 ? 100 : lastTouchedDays <= 30 ? 78 : 46;
+  const compass = [
+    { label: "Voorkeur", value: 100 },
+    { label: "Passies", value: Math.max(34, Math.min(100, sharedTags.length * 34)) },
+    { label: "Levensfase", value: lifeStageScore },
+    { label: "Verhaal", value: Math.max(38, Math.min(100, Math.round(completeness * 0.78 + activityScore * 0.22))) },
+  ];
+
   const reasons = [];
   if (sharedTags.length) reasons.push(`${sharedTags.length} gedeelde ${sharedTags.length === 1 ? "passie" : "passies"}`);
   if (ageDistance !== null && ageDistance <= 8) reasons.push("zelfde levensfase");
@@ -393,7 +403,7 @@ function scoreMatch(viewerProfile, candidateProfile) {
 
   const finalScore = Math.max(0, Math.min(99, score));
   const level = finalScore >= 82 ? "Sterke match" : finalScore >= 68 ? "Goede match" : "Rustige kans";
-  return { score: finalScore, reasons, sharedTags, level };
+  return { score: finalScore, reasons, sharedTags, level, compass };
 }
 
 function describeMatchFilter(profile) {
@@ -3449,6 +3459,19 @@ function ProfileCard({ profile, liked, reported, onLike, onBlock, onReport }) {
           <div className="match-reasons" aria-label="Waarom deze match wordt voorgesteld">
             {matchScore.reasons.slice(0, 3).map((reason) => (
               <span key={reason}>{reason}</span>
+            ))}
+          </div>
+        )}
+        {matchScore?.compass?.length > 0 && (
+          <div className="match-compass" aria-label="Matchkompas">
+            <strong>Matchkompas</strong>
+            {matchScore.compass.map((item) => (
+              <div className="match-compass-row" key={item.label}>
+                <span>{item.label}</span>
+                <div className="match-compass-bar" aria-label={`${item.label} ${item.value} procent`}>
+                  <span style={{ width: `${item.value}%` }} />
+                </div>
+              </div>
             ))}
           </div>
         )}

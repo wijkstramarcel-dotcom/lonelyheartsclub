@@ -1712,6 +1712,50 @@ textarea {
   font-weight: 850;
 }
 
+.match-compass {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 300px);
+  margin-top: 12px;
+  border: 1px solid rgba(29, 26, 22, 0.09);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 253, 250, 0.72);
+}
+
+.match-compass > strong {
+  color: #1d1a16;
+  font-size: 13px;
+}
+
+.match-compass-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.match-compass-row > span {
+  color: #6e6258;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.match-compass-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(29, 26, 22, 0.08);
+}
+
+.match-compass-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #b14e30, #2f655d);
+}
+
 .member-card p {
   grid-column: 1 / -1;
   margin: 0;
