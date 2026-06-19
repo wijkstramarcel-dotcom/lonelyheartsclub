@@ -256,6 +256,26 @@ const REPORT_REASONS = [
   "Anders",
 ];
 
+const CHAT_BLOCKED_WORDS = [
+  "kanker",
+  "hoer",
+  "slet",
+  "tering",
+  "mongool",
+  "idioot",
+  "stik",
+  "kill yourself",
+  "verkracht",
+  "neuk je",
+];
+
+const PHOTO_REVEAL_STEPS = [
+  ["match", "Match", 25],
+  ["messages", "Chat", 50],
+  ["call", "Bellen", 75],
+  ["meet", "Afspraak", 100],
+];
+
 const CONVERSION_EVENTS = new Set([
   "landing_view",
   "waitlist_cta_click",
@@ -404,6 +424,60 @@ function scoreMatch(viewerProfile, candidateProfile) {
   const finalScore = Math.max(0, Math.min(99, score));
   const level = finalScore >= 82 ? "Sterke match" : finalScore >= 68 ? "Goede match" : "Rustige kans";
   return { score: finalScore, reasons, sharedTags, level, compass };
+}
+
+function inspectChatMessage(message) {
+  const text = String(message || "").trim();
+  const normalized = text.toLowerCase().replace(/[^\p{L}\p{N}@.:/+_-]+/gu, " ");
+  const compactDigits = text.replace(/\D/g, "");
+  const hasPhone =
+    /\b(?:\+31|0031|0)\s*6(?:[\s().-]*\d){8}\b/i.test(text) ||
+    /\b06(?:[\s().-]*\d){8}\b/i.test(text) ||
+    /\b(?:nul|zero)\s*zes\b/i.test(text) ||
+    (compactDigits.length >= 10 && compactDigits.length <= 14 && /(?:^31|^0031|^0)?6/.test(compactDigits));
+  const hasEmail = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(text);
+  const hasLink = /\b(?:https?:\/\/|www\.|[a-z0-9-]+\.(?:nl|com|be|de|org|net|io)\b)/i.test(text);
+  const hasSocial =
+    /(?:^|\s)@[a-z0-9._-]{3,}/i.test(text) ||
+    /\b(?:instagram|insta|snapchat|snap|tiktok|facebook|whatsapp|telegram|signal)\b/i.test(text);
+  const asksForPhoto = /\b(?:stuur|send|deel|drop)\b.{0,24}\b(?:foto|pic|plaatje|selfie|naakt)\b/i.test(normalized);
+  const blockedWord = CHAT_BLOCKED_WORDS.find((word) => normalized.includes(word));
+  const hasThreat = /\b(?:ik maak je af|ik weet je te vinden|ga dood|stuur naakt|naaktfoto)\b/i.test(normalized);
+
+  if (hasPhone || hasEmail || hasLink || hasSocial || asksForPhoto) {
+    return {
+      blocked: true,
+      kind: "privacy",
+      title: "Contactgegevens nog niet delen",
+      message:
+        "Gebruik eerst de chat en het anonieme belmoment. Telefoonnummers, e-mailadressen, social handles, links en fotoverzoeken worden nu nog tegengehouden.",
+    };
+  }
+
+  if (blockedWord || hasThreat) {
+    return {
+      blocked: true,
+      kind: "safety",
+      title: "Bericht tegengehouden",
+      message:
+        "Dit bericht klinkt onveilig of respectloos. Schrijf het rustiger en blijf binnen de grenzen van veilig daten.",
+    };
+  }
+
+  return { blocked: false };
+}
+
+function getPhotoRevealState(step) {
+  const activeIndex = Math.max(
+    0,
+    PHOTO_REVEAL_STEPS.findIndex(([id]) => id === step),
+  );
+  const [, label, percentage] = PHOTO_REVEAL_STEPS[activeIndex] ?? PHOTO_REVEAL_STEPS[0];
+  return { activeIndex, label, percentage };
+}
+
+function getProfilePhotoUrl(profile) {
+  return profile?.foto_url || profile?.photo_url || profile?.fotoUrl || profile?.photoUrl || "";
 }
 
 function describeMatchFilter(profile) {
@@ -2164,7 +2238,13 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   };
 
   const sendMessage = async (content) => {
-    if (!selectedMatch || !content.trim()) return;
+    const inspection = inspectChatMessage(content);
+    if (!selectedMatch || !content.trim()) return false;
+
+    if (inspection.blocked) {
+      setNotice(`${inspection.title}. ${inspection.message}`);
+      return false;
+    }
 
     if (demoMode) {
       const now = Date.now();
@@ -2188,7 +2268,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       }));
       setJourneyStep("call");
       setNotice("Chat werkt. Volgende stap: start het anonieme belmoment vanuit dit gesprek.");
-      return;
+      return true;
     }
 
     const { error } = await supabase.from("messages").insert({
@@ -2196,7 +2276,11 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       sender_id: user.id,
       content: content.trim(),
     });
-    if (error) setNotice(error.message);
+    if (error) {
+      setNotice(error.message);
+      return false;
+    }
+    return true;
   };
 
   if (needsProfile) {
@@ -3605,6 +3689,7 @@ function MessagesView({
   onOpenDiscover,
 }) {
   const [draft, setDraft] = useState("");
+  const [guardNotice, setGuardNotice] = useState("");
   const [callStep, setCallStep] = useState("ready");
   const [callError, setCallError] = useState("");
   const [incomingCall, setIncomingCall] = useState(null);
@@ -3612,11 +3697,13 @@ function MessagesView({
   const voiceReady = demoMode || isVoiceCallingEnabled();
   const hasConversation = messages.length > 0;
   const hasUserReply = messages.some((message) => message.sender_id === userId);
+  const draftInspection = inspectChatMessage(draft);
 
   useEffect(() => {
     setCallStep("ready");
     setCallError("");
     setIncomingCall(null);
+    setGuardNotice("");
     return () => {
       hangUp();
     };
@@ -3658,11 +3745,21 @@ function MessagesView({
     };
   }, [demoMode, match?.id, onJourneyStep, voiceReady]);
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     if (!draft.trim()) return;
-    onSend(draft);
-    setDraft("");
+
+    const inspection = inspectChatMessage(draft);
+    if (inspection.blocked) {
+      setGuardNotice(inspection.message);
+      return;
+    }
+
+    const sent = await onSend(draft);
+    if (sent !== false) {
+      setDraft("");
+      setGuardNotice("");
+    }
   };
 
   if (!match) {
@@ -3841,6 +3938,8 @@ function MessagesView({
         })}
       </ol>
 
+      {otherProfile && <PhotoRevealPanel profile={otherProfile} step={conversationStep} />}
+
       <div className="messages-panel">
         {messages.length ? (
           messages.map((message) => (
@@ -3952,15 +4051,74 @@ function MessagesView({
       </div>
 
       <form className="message-form" onSubmit={submit}>
+        <div className="chat-guard-note">
+          <strong>Chat Guard actief</strong>
+          <span>
+            Geen telefoonnummers, e-mailadressen, social handles, links of respectloze berichten. Gebruik
+            anoniem bellen voordat je privégegevens deelt.
+          </span>
+        </div>
+        {(guardNotice || draftInspection.blocked) && (
+          <p className="form-message error chat-guard-alert">
+            {guardNotice || draftInspection.message}
+          </p>
+        )}
         <input
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setGuardNotice("");
+          }}
           placeholder="Schrijf een bericht..."
         />
         <button className="primary-button" type="submit">
           Stuur
         </button>
       </form>
+    </section>
+  );
+}
+
+function PhotoRevealPanel({ profile, step }) {
+  const photoUrl = getProfilePhotoUrl(profile);
+  const displayName = profile?.naam || profile?.voornaam || "Je match";
+  const reveal = getPhotoRevealState(step);
+  const hiddenPercentage = Math.max(0, 100 - reveal.percentage);
+
+  return (
+    <section className="photo-reveal-panel" aria-label="Geleidelijke foto-onthulling">
+      <div
+        className={classNames("photo-reveal-frame", photoUrl && "has-photo")}
+        style={{ "--hidden": `${hiddenPercentage}%` }}
+      >
+        {photoUrl ? (
+          <img src={photoUrl} alt="" />
+        ) : (
+          <div className="photo-reveal-placeholder" aria-hidden="true">
+            <span>{displayName.slice(0, 1).toUpperCase()}</span>
+          </div>
+        )}
+        <span className="photo-reveal-veil" aria-hidden="true" />
+      </div>
+      <div className="photo-reveal-copy">
+        <p className="eyebrow">Foto-onthulling</p>
+        <h3>{reveal.percentage}% zichtbaar na {reveal.label.toLowerCase()}</h3>
+        <p>
+          Het beeld komt stap voor stap vrij. Eerst verhaal en gedrag, daarna pas genoeg zicht om
+          met vertrouwen af te spreken.
+        </p>
+        <ol>
+          {PHOTO_REVEAL_STEPS.map(([id, label, percentage], index) => (
+            <li
+              key={id}
+              className={classNames(index < reveal.activeIndex && "complete", index === reveal.activeIndex && "active")}
+            >
+              <span>{label}</span>
+              <strong>{percentage}%</strong>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }
