@@ -75,19 +75,19 @@ Zet deze alleen in Supabase, nooit in Vercel of frontend code:
   TWILIO_TWIML_APP_SID=AP...
 ```
 
-Status 17 juni 2026: de secrets zijn in Supabase gezet, maar Twilio weigert de
-huidige API key/secret-combinatie met `401 Authenticate`. Laat de live feature
-flag uit totdat een nieuwe Standard API key met secret is gevalideerd.
+Status 19 juni 2026: de oude API key stond in Ireland (`ie1`) terwijl de TwiML
+App in US1 stond. Er is een nieuwe US1 Standard API key gemaakt, Supabase is
+bijgewerkt en Twilio accepteert de key tegen de bestaande TwiML App.
 
 ## Live feature flag
 
-Laat dit uit totdat de test met twee gebruikers werkt:
+Laat dit uit totdat Twilio API key, TwiML App en Supabase secrets groen zijn:
 
 ```text
 VITE_ENABLE_VOICE_CALLS=false
 ```
 
-Pas na succesvolle test in Vercel Production:
+Pas daarna in Vercel Production:
 
 ```text
 VITE_ENABLE_VOICE_CALLS=true

@@ -54,7 +54,7 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [x] Twilio TwiML App bestaat.
 - [x] TwiML App Voice Request URL wijst naar `https://<project-ref>.supabase.co/functions/v1/twilio-voice`.
 - [x] Supabase secrets staan ingesteld: `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_TWIML_APP_SID`.
-- [ ] Twilio API key/secret is gevalideerd. Huidige check geeft `401 Authenticate`; maak een nieuwe Standard API key of kopieer de secret opnieuw.
+- [x] Twilio API key/secret is gevalideerd tegen de US1 TwiML App.
 - [x] `twilio-token` is gedeployd.
 - [x] `twilio-voice` is gedeployd.
 - [ ] Test met twee echte accounts werkt in twee browsers/apparaten.
@@ -62,7 +62,7 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [ ] Audio werkt beide kanten op.
 - [ ] Telefoonnummers worden nergens getoond.
 - [ ] Ontvanger ziet een inkomende oproep met `Neem op` en `Weiger`.
-- [ ] Pas daarna: `VITE_ENABLE_VOICE_CALLS=true` in Vercel Production en redeploy.
+- [x] `VITE_ENABLE_VOICE_CALLS=true` in Vercel Production en redeploy.
 
 ## 6. Privacy en vertrouwen
 
