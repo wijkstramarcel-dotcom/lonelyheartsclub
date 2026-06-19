@@ -1515,6 +1515,49 @@ textarea {
   font-weight: 800;
 }
 
+.match-score-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: min(100%, 260px);
+  margin-top: 10px;
+  border: 1px solid rgba(47, 101, 93, 0.18);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(47, 101, 93, 0.07);
+}
+
+.match-score-strip span {
+  color: #2f655d;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.match-score-strip strong {
+  color: #1d1a16;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.match-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.match-reasons span {
+  border: 1px solid rgba(177, 78, 48, 0.16);
+  border-radius: 999px;
+  padding: 6px 8px;
+  color: #6a3326;
+  background: rgba(177, 78, 48, 0.08);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .member-card p {
   grid-column: 1 / -1;
   margin: 0;

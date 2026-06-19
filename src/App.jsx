@@ -332,13 +332,77 @@ function isPotentialMatch(viewerProfile, candidateProfile) {
   return fitsPreference(viewerProfile, candidateProfile) && fitsPreference(candidateProfile, viewerProfile);
 }
 
+function normalizeTextKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function profileCompletenessScore(profile) {
+  if (!profile) return 0;
+  let score = 0;
+  if (profile.naam || profile.voornaam) score += 12;
+  if (Number(profile.leeftijd)) score += 12;
+  if (profile.geslacht) score += 10;
+  if (profile.zoekt) score += 10;
+  if (String(profile.verhaal || "").trim().length >= 80) score += 26;
+  else if (String(profile.verhaal || "").trim().length >= 30) score += 16;
+  score += Math.min(normalizeList(profile.passies).length, 4) * 7;
+  return Math.min(score, 100);
+}
+
+function daysSince(value) {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return null;
+  return Math.max(0, (Date.now() - time) / 86400000);
+}
+
+function scoreMatch(viewerProfile, candidateProfile) {
+  if (!isPotentialMatch(viewerProfile, candidateProfile)) {
+    return { score: 0, reasons: [], sharedTags: [], level: "Geen match" };
+  }
+
+  const viewerTags = new Set(normalizeList(viewerProfile?.tags?.length ? viewerProfile.tags : viewerProfile?.passies).map(normalizeTextKey));
+  const candidateTags = normalizeList(candidateProfile?.tags?.length ? candidateProfile.tags : candidateProfile?.passies);
+  const sharedTags = candidateTags.filter((tag) => viewerTags.has(normalizeTextKey(tag))).slice(0, 3);
+  const ageDistance =
+    Number.isFinite(Number(viewerProfile?.leeftijd)) && Number.isFinite(Number(candidateProfile?.leeftijd))
+      ? Math.abs(Number(viewerProfile.leeftijd) - Number(candidateProfile.leeftijd))
+      : null;
+  const completeness = profileCompletenessScore(candidateProfile);
+  const lastTouchedDays = daysSince(candidateProfile?.updated_at || candidateProfile?.created_at);
+
+  let score = 46;
+  score += Math.min(sharedTags.length, 3) * 12;
+  if (ageDistance !== null) {
+    if (ageDistance <= 4) score += 14;
+    else if (ageDistance <= 8) score += 9;
+    else if (ageDistance <= 14) score += 4;
+  }
+  score += Math.round(completeness * 0.18);
+  if (lastTouchedDays !== null) {
+    if (lastTouchedDays <= 7) score += 8;
+    else if (lastTouchedDays <= 30) score += 4;
+  }
+
+  const reasons = [];
+  if (sharedTags.length) reasons.push(`${sharedTags.length} gedeelde ${sharedTags.length === 1 ? "passie" : "passies"}`);
+  if (ageDistance !== null && ageDistance <= 8) reasons.push("zelfde levensfase");
+  if (completeness >= 70) reasons.push("vol verhaal");
+  if (lastTouchedDays !== null && lastTouchedDays <= 30) reasons.push("recent actief");
+  if (!reasons.length) reasons.push("voorkeuren passen wederzijds");
+
+  const finalScore = Math.max(0, Math.min(99, score));
+  const level = finalScore >= 82 ? "Sterke match" : finalScore >= 68 ? "Goede match" : "Rustige kans";
+  return { score: finalScore, reasons, sharedTags, level };
+}
+
 function describeMatchFilter(profile) {
   return {
     gender: profile?.geslacht || "Nog niet ingevuld",
     seeking: profile?.zoekt || "Nog niet ingevuld",
     summary:
       profile?.geslacht && profile?.zoekt
-        ? "Je ziet alleen leden die bij jouw zoekvoorkeur passen én waarvan de zoekvoorkeur ook bij jou past."
+        ? "Je ziet leden die wederzijds bij je voorkeur passen. De volgorde kijkt daarna naar verhaal, passies en recente activiteit."
         : "Maak je profiel compleet om passende leden te kunnen tonen.",
   };
 }
@@ -1779,10 +1843,18 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     return profiles.filter((item) => item.id !== user.id && !matchedIds.has(item.id) && !blockedIds.has(item.id));
   }, [blockedIds, matches, profiles, user.id]);
 
-  const suggestedProfiles = useMemo(
-    () => (profile?.actief === false ? [] : unmatchedProfiles.filter((item) => isPotentialMatch(profile, item))),
-    [profile, unmatchedProfiles],
-  );
+  const suggestedProfiles = useMemo(() => {
+    if (profile?.actief === false) return [];
+    return unmatchedProfiles
+      .map((item) => ({ ...item, matchScore: scoreMatch(profile, item) }))
+      .filter((item) => item.matchScore.score > 0)
+      .sort(
+        (a, b) =>
+          b.matchScore.score - a.matchScore.score ||
+          profileCompletenessScore(b) - profileCompletenessScore(a) ||
+          String(a.naam || "").localeCompare(String(b.naam || "")),
+      );
+  }, [profile, unmatchedProfiles]);
 
   const hiddenByPreferenceCount = Math.max(unmatchedProfiles.length - suggestedProfiles.length, 0);
   const suggestedProfileName = suggestedProfiles[0]?.naam ?? "het eerste profiel";
@@ -3114,7 +3186,7 @@ function DiscoverView({
     <section className="content-section">
       <div className="section-heading">
         <p className="eyebrow">Ontdek</p>
-        <h2>Nieuwe leden zonder foto-oordeel.</h2>
+        <h2>Slim geselecteerd op verhaal en intentie.</h2>
       </div>
       <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
       <div className="profile-grid">
@@ -3139,7 +3211,7 @@ function MatchFilterNote({ profile, hiddenByPreferenceCount = 0 }) {
   return (
     <div className="match-filter-note">
       <div>
-        <strong>Wederzijdse matchfilter actief</strong>
+        <strong>Wederzijdse selectie actief</strong>
         <span>{filter.summary}</span>
       </div>
       <dl>
@@ -3161,16 +3233,32 @@ function MatchFilterNote({ profile, hiddenByPreferenceCount = 0 }) {
 }
 
 function ProfileCard({ profile, liked, reported, onLike, onBlock, onReport }) {
+  const displayName = profile.naam || profile.voornaam || "Lid";
+  const matchScore = profile.matchScore;
+
   return (
     <article className="member-card">
       <div className="member-avatar" aria-hidden="true">
-        {profile.naam.slice(0, 1).toUpperCase()}
+        {displayName.slice(0, 1).toUpperCase()}
       </div>
       <div className="member-main">
         <div className="member-title">
-          <h3>{profile.naam}</h3>
+          <h3>{displayName}</h3>
           {profile.leeftijd && <span>{profile.leeftijd}</span>}
         </div>
+        {matchScore?.score > 0 && (
+          <div className="match-score-strip" aria-label={`Matchscore ${matchScore.score} procent`}>
+            <span>{matchScore.level}</span>
+            <strong>{matchScore.score}%</strong>
+          </div>
+        )}
+        {matchScore?.reasons?.length > 0 && (
+          <div className="match-reasons" aria-label="Waarom deze match wordt voorgesteld">
+            {matchScore.reasons.slice(0, 3).map((reason) => (
+              <span key={reason}>{reason}</span>
+            ))}
+          </div>
+        )}
         <p>{profile.verhaal || "Dit lid vult binnenkort een verhaal in."}</p>
         <TagList tags={profile.tags} />
       </div>
