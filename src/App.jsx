@@ -2382,9 +2382,151 @@ const ADMIN_COUNT_CARDS = [
   ["analytics_7d", "Events 7 dagen"],
 ];
 
+const LAUNCH_TARGETS = [
+  {
+    key: "waitlist",
+    label: "Wachtlijst",
+    target: 20,
+    detail: "Genoeg mensen om de eerste uitnodigingen gecontroleerd te versturen.",
+  },
+  {
+    key: "confirmed_users",
+    label: "Bevestigde accounts",
+    target: 4,
+    detail: "Minimaal twee testkoppels om registratie, login en e-mail te bewijzen.",
+  },
+  {
+    key: "complete_profiles",
+    label: "Complete profielen",
+    target: 4,
+    detail: "Voldoende echte profielen om matching en voorkeuren te beoordelen.",
+  },
+  {
+    key: "matches",
+    label: "Matches",
+    target: 2,
+    detail: "Bewijs dat wederzijdse interesse en matchvorming werkt.",
+  },
+  {
+    key: "messages",
+    label: "Berichten",
+    target: 6,
+    detail: "Bewijs dat de route na een match natuurlijk naar chat gaat.",
+  },
+];
+
 function getCount(counts, key) {
   const value = Number(counts?.[key] ?? 0);
   return Number.isFinite(value) ? value : 0;
+}
+
+function getTargetProgress(counts, key, target) {
+  const value = getCount(counts, key);
+  const percentage = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 100;
+  return { value, percentage, complete: value >= target };
+}
+
+function getLaunchPhase(counts, warnings = []) {
+  const waitlist = getCount(counts, "waitlist");
+  const confirmedUsers = getCount(counts, "confirmed_users");
+  const completeProfiles = getCount(counts, "complete_profiles");
+  const matches = getCount(counts, "matches");
+  const messages = getCount(counts, "messages");
+  const openReports = getCount(counts, "open_reports");
+
+  if (openReports > 0 || warnings.length > 0) {
+    return {
+      label: "Aandacht nodig",
+      state: "attention",
+      detail: "Los rapportages of schemawaarschuwingen op voordat je nieuwe leden actief uitnodigt.",
+      next: "Veiligheid en database-status eerst glad trekken.",
+    };
+  }
+  if (confirmedUsers < 2 || completeProfiles < 2) {
+    return {
+      label: "Technische testfase",
+      state: "manual",
+      detail: "Maak minimaal twee accounts met volledige profielen om registratie, matching en login hard te testen.",
+      next: "Twee testaccounts maken en de hele route doorlopen.",
+    };
+  }
+  if (matches < 1 || messages < 2) {
+    return {
+      label: "Route-test",
+      state: "manual",
+      detail: "De basis staat, maar match en chat moeten nog zichtbaar bewezen worden met echte accounts.",
+      next: "Wederzijdse interesse maken, chatten en daarna bellen testen.",
+    };
+  }
+  if (waitlist < 20) {
+    return {
+      label: "Pre-launch",
+      state: "ok",
+      detail: "De productroute is klaar om gecontroleerd verkeer te ontvangen.",
+      next: "Wachtlijst naar 20 serieuze inschrijvingen brengen.",
+    };
+  }
+  return {
+    label: "Eerste ledenronde klaar",
+    state: "ok",
+    detail: "Er is genoeg tractie om de eerste uitnodigingen gefaseerd te versturen.",
+    next: "Nodig 5 tot 10 mensen uit en meet waar ze vastlopen.",
+  };
+}
+
+function getAdminActionPlan(counts, warnings = []) {
+  const openReports = getCount(counts, "open_reports");
+  const confirmedUsers = getCount(counts, "confirmed_users");
+  const completeProfiles = getCount(counts, "complete_profiles");
+  const matches = getCount(counts, "matches");
+  const messages = getCount(counts, "messages");
+  const waitlist = getCount(counts, "waitlist");
+  const actions = [];
+
+  if (openReports > 0 || warnings.length > 0) {
+    actions.push({
+      label: "Los blokkades op",
+      detail: "Bekijk open rapportages en waarschuwingen voordat je nieuwe leden uitnodigt.",
+      state: "attention",
+    });
+  }
+  if (confirmedUsers < 2) {
+    actions.push({
+      label: "Maak twee testaccounts",
+      detail: "Gebruik twee verschillende e-mailadressen en bevestig beide accounts via de live site.",
+      state: "manual",
+    });
+  }
+  if (completeProfiles < 2) {
+    actions.push({
+      label: "Vul twee echte profielen",
+      detail: "Zorg dat geslacht, zoekvoorkeur, verhaal en passies compleet zijn, anders kan matching niet overtuigen.",
+      state: "manual",
+    });
+  }
+  if (matches < 1) {
+    actions.push({
+      label: "Maak een wederzijdse match",
+      detail: "Laat beide accounts interesse tonen, controleer of de match verschijnt en of de chat opent.",
+      state: "manual",
+    });
+  }
+  if (messages < 2) {
+    actions.push({
+      label: "Test de chat",
+      detail: "Stuur berichten vanaf beide kanten. Daarna hoort anoniem bellen pas logisch te voelen.",
+      state: "manual",
+    });
+  }
+  if (waitlist < 20) {
+    actions.push({
+      label: "Breng wachtlijst naar 20",
+      detail: "Deel de live wachtlijstlink met een kleine, relevante groep. Liever 20 goede testers dan 200 vage kliks.",
+      state: "ok",
+    });
+  }
+
+  return actions.slice(0, 4);
 }
 
 function AdminLaunchStatus() {
@@ -2422,6 +2564,8 @@ function AdminLaunchStatus() {
 
   const counts = report?.counts ?? {};
   const warnings = Array.isArray(report?.warnings) ? report.warnings : [];
+  const launchPhase = getLaunchPhase(counts, warnings);
+  const actionPlan = getAdminActionPlan(counts, warnings);
   const liveReadyChecks = [
     {
       label: "Registratiebasis",
@@ -2490,6 +2634,18 @@ function AdminLaunchStatus() {
 
       {!error && report && (
         <>
+          <div className={classNames("admin-launch-summary", launchPhase.state)}>
+            <div>
+              <span>Eerste ledenronde</span>
+              <strong>{launchPhase.label}</strong>
+              <p>{launchPhase.detail}</p>
+            </div>
+            <div>
+              <span>Volgende stap</span>
+              <p>{launchPhase.next}</p>
+            </div>
+          </div>
+
           <div className="admin-count-grid">
             {ADMIN_COUNT_CARDS.map(([key, label]) => (
               <article key={key} className="admin-count-card">
@@ -2497,6 +2653,26 @@ function AdminLaunchStatus() {
                 <strong>{getCount(counts, key)}</strong>
               </article>
             ))}
+          </div>
+
+          <div className="admin-target-grid">
+            {LAUNCH_TARGETS.map((target) => {
+              const progress = getTargetProgress(counts, target.key, target.target);
+              return (
+                <article key={target.key} className={classNames("admin-target-card", progress.complete && "complete")}>
+                  <div>
+                    <span>{target.label}</span>
+                    <strong>
+                      {progress.value}/{target.target}
+                    </strong>
+                  </div>
+                  <div className="admin-progress-bar" aria-label={`${target.label} ${progress.percentage} procent`}>
+                    <span style={{ width: `${progress.percentage}%` }} />
+                  </div>
+                  <p>{target.detail}</p>
+                </article>
+              );
+            })}
           </div>
 
           <div className="admin-readiness-grid">
@@ -2517,6 +2693,23 @@ function AdminLaunchStatus() {
                   <li key={warning}>{warning}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {actionPlan.length > 0 && (
+            <div className="admin-action-plan">
+              <div>
+                <p className="eyebrow">Actieplan</p>
+                <h3>Wat nu eerst?</h3>
+              </div>
+              <ol>
+                {actionPlan.map((action) => (
+                  <li key={action.label} className={action.state}>
+                    <strong>{action.label}</strong>
+                    <span>{action.detail}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
           )}
 

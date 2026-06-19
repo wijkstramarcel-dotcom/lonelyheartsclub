@@ -1287,6 +1287,7 @@ textarea {
 }
 
 .admin-count-grid,
+.admin-target-grid,
 .admin-readiness-grid,
 .admin-recent-grid {
   display: grid;
@@ -1301,11 +1302,18 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
+.admin-target-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .admin-recent-grid {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.admin-launch-summary,
+.admin-action-plan,
 .admin-count-card,
+.admin-target-card,
 .admin-readiness-card,
 .admin-recent-card,
 .admin-warning {
@@ -1313,6 +1321,46 @@ textarea {
   border-radius: 8px;
   background: rgba(255, 253, 250, 0.72);
   box-shadow: 0 14px 34px rgba(29, 26, 22, 0.05);
+}
+
+.admin-launch-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr);
+  gap: 18px;
+  padding: 18px;
+  border-left: 6px solid #2f655d;
+}
+
+.admin-launch-summary.attention {
+  border-left-color: #b14e30;
+}
+
+.admin-launch-summary.manual {
+  border-left-color: #7e7167;
+}
+
+.admin-launch-summary span,
+.admin-target-card span,
+.admin-action-plan .eyebrow {
+  color: #6e6258;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-launch-summary strong {
+  display: block;
+  margin-top: 5px;
+  color: #1d1a16;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1;
+}
+
+.admin-launch-summary p {
+  margin: 8px 0 0;
+  color: #5d5147;
+  line-height: 1.5;
 }
 
 .admin-count-card {
@@ -1334,6 +1382,51 @@ textarea {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 34px;
   line-height: 1;
+}
+
+.admin-target-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.admin-target-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.admin-target-card strong {
+  color: #1d1a16;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.admin-target-card p {
+  margin: 0;
+  color: #5d5147;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.admin-target-card.complete {
+  border-color: rgba(47, 101, 93, 0.24);
+  background: rgba(47, 101, 93, 0.08);
+}
+
+.admin-progress-bar {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(29, 26, 22, 0.09);
+}
+
+.admin-progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2f655d;
 }
 
 .admin-readiness-card {
@@ -1383,6 +1476,67 @@ textarea {
 
 .admin-warning strong {
   color: #8a2c1c;
+}
+
+.admin-action-plan {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.admin-action-plan h3 {
+  margin: 4px 0 0;
+  color: #1d1a16;
+  font-size: 22px;
+}
+
+.admin-action-plan ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: launch-actions;
+}
+
+.admin-action-plan li {
+  counter-increment: launch-actions;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  border-left: 4px solid rgba(126, 113, 103, 0.34);
+  padding: 10px 12px;
+  background: rgba(255, 253, 250, 0.7);
+}
+
+.admin-action-plan li::before {
+  content: counter(launch-actions);
+  grid-row: span 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fffdfa;
+  background: #1d1a16;
+  font-weight: 900;
+}
+
+.admin-action-plan li.ok {
+  border-left-color: #2f655d;
+}
+
+.admin-action-plan li.attention {
+  border-left-color: #b14e30;
+}
+
+.admin-action-plan li strong {
+  color: #1d1a16;
+}
+
+.admin-action-plan li span {
+  color: #5d5147;
+  line-height: 1.45;
 }
 
 .admin-warning ul,
@@ -2045,6 +2199,7 @@ textarea {
   .audience-layout,
   .demo-journey,
   .next-step-panel,
+  .admin-launch-summary,
   .call-panel,
   .reply-prompt,
   .closing-section,
