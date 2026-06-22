@@ -786,6 +786,12 @@ async function uploadProfilePhoto(userId, file) {
   return path;
 }
 
+async function deleteProfilePhoto(photoPath) {
+  if (!photoPath || /^https?:\/\//i.test(photoPath)) return;
+  const { error } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).remove([photoPath]);
+  if (error) throw error;
+}
+
 async function createProfilePhotoUrl(photoPath, expiresIn = 60 * 30) {
   if (!photoPath || /^https?:\/\//i.test(photoPath)) return photoPath || "";
   if (!hasSupabaseConfig || !supabase) return "";
@@ -3182,6 +3188,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [savedPhotoUrl, setSavedPhotoUrl] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [photoRemoved, setPhotoRemoved] = useState(false);
   const [sensitiveConsent, setSensitiveConsent] = useState(
     () => Boolean(profile?.sensitive_data_consent_at) || hasStoredSensitiveConsent(user.id),
   );
@@ -3211,7 +3218,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
     let active = true;
     const photoPath = getProfilePhotoUrl(profile);
     setSavedPhotoUrl("");
-    if (!photoPath || photoFile) return undefined;
+    if (!photoPath || photoFile || photoRemoved) return undefined;
 
     createProfilePhotoUrl(photoPath)
       .then((url) => {
@@ -3224,15 +3231,26 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
     return () => {
       active = false;
     };
-  }, [profile?.foto_url, profile?.photo_url, photoFile]);
+  }, [profile?.foto_url, profile?.photo_url, photoFile, photoRemoved]);
 
   const selectedPhotoUrl = photoPreviewUrl || savedPhotoUrl;
+  const hasExistingPhoto = Boolean(getProfilePhotoUrl(profile));
+  const showRemovePhoto = Boolean(photoFile || selectedPhotoUrl || (hasExistingPhoto && !photoRemoved));
 
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0] ?? null;
     const validationError = validateProfilePhoto(file);
     setPhotoError(validationError);
     setPhotoFile(validationError ? null : file);
+    if (!validationError && file) setPhotoRemoved(false);
+  };
+
+  const removeSelectedPhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreviewUrl("");
+    setSavedPhotoUrl("");
+    setPhotoError("");
+    setPhotoRemoved(true);
   };
 
   useEffect(() => {
@@ -3315,7 +3333,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       verhaal: form.verhaal.trim(),
       passies: passionList,
       tags: passionList,
-      foto_url: profile?.foto_url || profile?.photo_url || "",
+      foto_url: photoRemoved ? "" : profile?.foto_url || profile?.photo_url || "",
       actief: profile?.actief ?? true,
       privacy_consent_at: profile?.privacy_consent_at || acceptedAt,
       privacy_consent_version: CONSENT_VERSION,
@@ -3356,6 +3374,14 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
         setError(photoUploadError.message || "Foto uploaden lukte niet. Controleer de storage policies.");
         return;
       }
+    } else if (photoRemoved && getProfilePhotoUrl(profile) && !demoMode) {
+      try {
+        await deleteProfilePhoto(getProfilePhotoUrl(profile));
+      } catch (photoDeleteError) {
+        setSaving(false);
+        setError(photoDeleteError.message || "Foto verwijderen lukte niet.");
+        return;
+      }
     }
 
     const { error: saveError } = await upsertProfile(payload);
@@ -3367,6 +3393,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
     }
     rememberSensitiveConsent(user.id);
     setPhotoFile(null);
+    setPhotoRemoved(false);
     onSaved(payload);
   };
 
@@ -3405,7 +3432,13 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
             Kies foto
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} />
           </label>
+          {showRemovePhoto && (
+            <button className="text-button" type="button" onClick={removeSelectedPhoto}>
+              Verwijder foto
+            </button>
+          )}
           {photoFile && <small>{photoFile.name}</small>}
+          {photoRemoved && <small>Foto wordt verwijderd zodra je je profiel opslaat.</small>}
           {photoError && <p className="form-message error">{photoError}</p>}
         </div>
       </section>
