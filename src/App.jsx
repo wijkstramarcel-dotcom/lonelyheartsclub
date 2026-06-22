@@ -289,6 +289,9 @@ const sentConversionEvents = new Set();
 const CONTACT_EMAIL = "privacy@lonelyheartsclub.nl";
 const DEFAULT_SITE_URL = "https://www.lonelyheartsclub.nl";
 const CONSENT_VERSION = "2026-06-10";
+const PROFILE_PHOTO_BUCKET = "profile-photos";
+const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const SENSITIVE_CONSENT_KEY = "lhc-sensitive-consent";
 const PENDING_INVITE_KEY = "lhc-pending-invite";
 
@@ -753,6 +756,44 @@ async function upsertProfile(payload) {
     ...legacyPayload
   } = payload;
   return supabase.from("profiles").upsert(legacyPayload);
+}
+
+function getProfilePhotoExtension(file) {
+  if (file?.type === "image/png") return "png";
+  if (file?.type === "image/webp") return "webp";
+  return "jpg";
+}
+
+function validateProfilePhoto(file) {
+  if (!file) return "";
+  if (!PROFILE_PHOTO_TYPES.includes(file.type)) {
+    return "Gebruik een JPG, PNG of WebP-foto.";
+  }
+  if (file.size > PROFILE_PHOTO_MAX_BYTES) {
+    return "Gebruik een foto van maximaal 5 MB.";
+  }
+  return "";
+}
+
+async function uploadProfilePhoto(userId, file) {
+  const path = `${userId}/profile.${getProfilePhotoExtension(file)}`;
+  const { error } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type,
+    upsert: true,
+  });
+  if (error) throw error;
+  return path;
+}
+
+async function createProfilePhotoUrl(photoPath, expiresIn = 60 * 30) {
+  if (!photoPath || /^https?:\/\//i.test(photoPath)) return photoPath || "";
+  if (!hasSupabaseConfig || !supabase) return "";
+  const { data, error } = await supabase.storage
+    .from(PROFILE_PHOTO_BUCKET)
+    .createSignedUrl(photoPath, expiresIn);
+  if (error) throw error;
+  return data?.signedUrl || "";
 }
 
 async function checkCurrentUserInvite() {
@@ -3137,6 +3178,10 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
     verhaal: profile?.verhaal ?? "",
     passies: normalizeList(profile?.passies).join(", "),
   }));
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [savedPhotoUrl, setSavedPhotoUrl] = useState("");
+  const [photoError, setPhotoError] = useState("");
   const [sensitiveConsent, setSensitiveConsent] = useState(
     () => Boolean(profile?.sensitive_data_consent_at) || hasStoredSensitiveConsent(user.id),
   );
@@ -3151,6 +3196,44 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
   const age = Number(form.leeftijd);
   const matchFilter = describeMatchFilter(form);
   const normalizedInviteCode = normalizeInviteCode(inviteCode);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreviewUrl("");
+      return undefined;
+    }
+    const objectUrl = URL.createObjectURL(photoFile);
+    setPhotoPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [photoFile]);
+
+  useEffect(() => {
+    let active = true;
+    const photoPath = getProfilePhotoUrl(profile);
+    setSavedPhotoUrl("");
+    if (!photoPath || photoFile) return undefined;
+
+    createProfilePhotoUrl(photoPath)
+      .then((url) => {
+        if (active) setSavedPhotoUrl(url);
+      })
+      .catch(() => {
+        if (active) setSavedPhotoUrl("");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.foto_url, profile?.photo_url, photoFile]);
+
+  const selectedPhotoUrl = photoPreviewUrl || savedPhotoUrl;
+
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0] ?? null;
+    const validationError = validateProfilePhoto(file);
+    setPhotoError(validationError);
+    setPhotoFile(validationError ? null : file);
+  };
 
   useEffect(() => {
     if (!needsInviteCode) return undefined;
@@ -3215,6 +3298,10 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       setError("Vul je uitnodigingscode in voordat je je profiel opslaat.");
       return;
     }
+    if (photoError) {
+      setError(photoError);
+      return;
+    }
 
     const acceptedAt = profile?.sensitive_data_consent_at || consentTimestamp();
 
@@ -3228,6 +3315,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       verhaal: form.verhaal.trim(),
       passies: passionList,
       tags: passionList,
+      foto_url: profile?.foto_url || profile?.photo_url || "",
       actief: profile?.actief ?? true,
       privacy_consent_at: profile?.privacy_consent_at || acceptedAt,
       privacy_consent_version: CONSENT_VERSION,
@@ -3260,6 +3348,16 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       setInviteCheckError("");
     }
 
+    if (photoFile) {
+      try {
+        payload.foto_url = await uploadProfilePhoto(user.id, photoFile);
+      } catch (photoUploadError) {
+        setSaving(false);
+        setError(photoUploadError.message || "Foto uploaden lukte niet. Controleer de storage policies.");
+        return;
+      }
+    }
+
     const { error: saveError } = await upsertProfile(payload);
     setSaving(false);
 
@@ -3268,6 +3366,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       return;
     }
     rememberSensitiveConsent(user.id);
+    setPhotoFile(null);
     onSaved(payload);
   };
 
@@ -3287,6 +3386,29 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
           </div>
         </dl>
       </div>
+
+      <section className="profile-photo-field" aria-label="Profielfoto">
+        <div className="profile-photo-preview" aria-hidden="true">
+          {selectedPhotoUrl ? (
+            <img src={selectedPhotoUrl} alt="" />
+          ) : (
+            <span>{form.naam.trim().slice(0, 1).toUpperCase() || "L"}</span>
+          )}
+        </div>
+        <div className="profile-photo-copy">
+          <strong>Profielfoto voor later in de route</strong>
+          <span>
+            Je foto wordt niet gebruikt als eerste oordeel. In een match komt hij stap voor stap vrij:
+            na match, chat, bellen en pas volledig bij afspreken.
+          </span>
+          <label className="file-button">
+            Kies foto
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} />
+          </label>
+          {photoFile && <small>{photoFile.name}</small>}
+          {photoError && <p className="form-message error">{photoError}</p>}
+        </div>
+      </section>
 
       {needsInviteCode && (
         <section className="invite-gate" aria-label="Uitnodiging activeren">
@@ -4080,10 +4202,29 @@ function MessagesView({
 }
 
 function PhotoRevealPanel({ profile, step }) {
-  const photoUrl = getProfilePhotoUrl(profile);
+  const photoPath = getProfilePhotoUrl(profile);
+  const [photoUrl, setPhotoUrl] = useState("");
   const displayName = profile?.naam || profile?.voornaam || "Je match";
   const reveal = getPhotoRevealState(step);
   const hiddenPercentage = Math.max(0, 100 - reveal.percentage);
+
+  useEffect(() => {
+    let active = true;
+    setPhotoUrl("");
+    if (!photoPath) return undefined;
+
+    createProfilePhotoUrl(photoPath)
+      .then((url) => {
+        if (active) setPhotoUrl(url);
+      })
+      .catch(() => {
+        if (active) setPhotoUrl("");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [photoPath]);
 
   return (
     <section className="photo-reveal-panel" aria-label="Geleidelijke foto-onthulling">
