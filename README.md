@@ -33,8 +33,9 @@ Redirect URLs: https://www.lonelyheartsclub.nl/auth/callback
 ```
 
 7. Run `schema.sql` in de Supabase SQL Editor.
-8. Run daarna `LIVE_SETUP.sql` voor adminrechten, eerste invitecode en een korte controle.
-9. Of voeg minimaal één adminaccount handmatig toe:
+8. Run daarna `CHAT_SAFETY.sql` om de server-side chatblokkade te installeren of te controleren.
+9. Run daarna `LIVE_SETUP.sql` voor adminrechten, eerste invitecode en een korte controle.
+10. Of voeg minimaal één adminaccount handmatig toe:
 
 ```sql
 insert into app_admins (user_id)

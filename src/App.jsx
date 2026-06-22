@@ -2277,7 +2277,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       content: content.trim(),
     });
     if (error) {
-      setNotice(error.message);
+      setNotice(error.details || error.message);
       return false;
     }
     return true;
