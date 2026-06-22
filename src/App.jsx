@@ -133,6 +133,12 @@ const AUDIENCE_ITEMS = [
   "Daters die privacy belangrijk vinden en rustig willen opbouwen.",
 ];
 
+const LAUNCH_PROMISES = [
+  ["Eerste groep", "We laten leden gecontroleerd toe, zodat matches genoeg aandacht krijgen."],
+  ["Rustig tempo", "Geen swipe-race: eerst verhaal, dan chat, daarna pas anoniem bellen."],
+  ["Veiliger starten", "Telefoonnummers, links en fotoverzoeken worden vroeg in de chat tegengehouden."],
+];
+
 const SAFETY_ITEMS = [
   [
     "Profielen niet openbaar",
@@ -370,6 +376,20 @@ function profileCompletenessScore(profile) {
   else if (String(profile.verhaal || "").trim().length >= 30) score += 16;
   score += Math.min(normalizeList(profile.passies).length, 4) * 7;
   return Math.min(score, 100);
+}
+
+function getProfileQualityItems(form, passionList, selectedPhotoUrl) {
+  const storyLength = String(form.verhaal || "").trim().length;
+  return [
+    ["Basis", Boolean(form.naam && form.leeftijd && form.geslacht && form.zoekt), "Naam, leeftijd en voorkeuren ingevuld."],
+    ["Verhaal", storyLength >= 120, "Minimaal 120 tekens zodat iemand echt kan reageren."],
+    ["Passies", passionList.length >= 3, "Minimaal drie passies voor betere matchredenen."],
+    ["Foto later", Boolean(selectedPhotoUrl), "Een foto helpt pas later in de route vertrouwen opbouwen."],
+  ];
+}
+
+function profileQualityScore(items) {
+  return Math.round((items.filter(([, done]) => done).length / items.length) * 100);
 }
 
 function daysSince(value) {
@@ -1066,6 +1086,8 @@ function LandingPage({ authOpen, authReturnNotice, setAuthOpen, onDemo, onPrivac
 
       <PreRegisterSection onPrivacy={onPrivacy} onCreateAccount={openAccount} />
 
+      <LaunchMarketingSection />
+
       <section className="section-band" id="waarom">
         <div className="section-inner">
           <p className="eyebrow">Dating zonder swipe-ruis</p>
@@ -1197,6 +1219,29 @@ function LandingPage({ authOpen, authReturnNotice, setAuthOpen, onDemo, onPrivac
   );
 }
 
+function LaunchMarketingSection() {
+  return (
+    <section className="section-inner launch-marketing" aria-label="Eerste ledenronde">
+      <div className="section-heading">
+        <p className="eyebrow">Eerste ledenronde</p>
+        <h2>Help ons de juiste eerste groep singles vinden.</h2>
+        <p>
+          Lonely Hearts Club groeit het best via mensen die het concept snappen: minder ruis,
+          meer aandacht en pas contactgegevens delen als vertrouwen logisch voelt.
+        </p>
+      </div>
+      <div className="launch-grid">
+        {LAUNCH_PROMISES.map(([title, text]) => (
+          <article key={title}>
+            <strong>{title}</strong>
+            <p>{text}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AuthReturnNotice({ notice, onLogin }) {
   return (
     <section className={classNames("auth-return-notice", notice.variant)} role="status" aria-live="polite">
@@ -1256,6 +1301,7 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [shareStatus, setShareStatus] = useState("");
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -1283,6 +1329,7 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
     event.preventDefault();
     setStatus("");
     setError("");
+    setShareStatus("");
 
     const normalizedEmail = normalizeEmail(email);
     if (!isValidEmail(normalizedEmail)) {
@@ -1309,6 +1356,28 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
       setError(err.message || "Inschrijven voor de wachtlijst lukte niet. Probeer het opnieuw.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const shareText =
+    "Ik sta op de wachtlijst van Lonely Hearts Club: een rustigere datingapp waar je eerst matcht, chat en anoniem belt voordat je afspreekt. https://www.lonelyheartsclub.nl/";
+
+  const shareWaitlist = async () => {
+    setShareStatus("");
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Lonely Hearts Club",
+          text: shareText,
+          url: "https://www.lonelyheartsclub.nl/",
+        });
+        setShareStatus("Gedeeld. Dank je.");
+        return;
+      }
+      await navigator.clipboard.writeText(shareText);
+      setShareStatus("Deeltekst gekopieerd.");
+    } catch {
+      setShareStatus("Kopieer deze link: lonelyheartsclub.nl");
     }
   };
 
@@ -1371,6 +1440,10 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
               <li>Je kunt later zelf kiezen of je een profiel maakt.</li>
               <li>We gebruiken dit e-mailadres alleen voor toegangsupdates.</li>
             </ul>
+            <button className="secondary-button wide" type="button" onClick={shareWaitlist}>
+              Deel met iemand die dit moet zien
+            </button>
+            {shareStatus && <small>{shareStatus}</small>}
           </div>
         )}
 
@@ -3236,6 +3309,8 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
   const selectedPhotoUrl = photoPreviewUrl || savedPhotoUrl;
   const hasExistingPhoto = Boolean(getProfilePhotoUrl(profile));
   const showRemovePhoto = Boolean(photoFile || selectedPhotoUrl || (hasExistingPhoto && !photoRemoved));
+  const qualityItems = getProfileQualityItems(form, passionList, selectedPhotoUrl);
+  const qualityScore = profileQualityScore(qualityItems);
 
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0] ?? null;
@@ -3414,6 +3489,8 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
         </dl>
       </div>
 
+      <ProfileQualityPanel score={qualityScore} items={qualityItems} />
+
       <section className="profile-photo-field" aria-label="Profielfoto">
         <div className="profile-photo-preview" aria-hidden="true">
           {selectedPhotoUrl ? (
@@ -3567,6 +3644,34 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
         {saving ? "Opslaan" : "Profiel opslaan"}
       </button>
     </form>
+  );
+}
+
+function ProfileQualityPanel({ score, items }) {
+  return (
+    <section className="profile-quality-panel" aria-label="Profielkwaliteit">
+      <div className="profile-quality-header">
+        <div>
+          <strong>Profielkwaliteit</strong>
+          <span>Hoe sterker je profiel, hoe beter de match en het eerste gesprek.</span>
+        </div>
+        <b>{score}%</b>
+      </div>
+      <div className="profile-quality-meter" aria-hidden="true">
+        <span style={{ width: `${score}%` }} />
+      </div>
+      <ul>
+        {items.map(([label, done, text]) => (
+          <li className={done ? "complete" : ""} key={label}>
+            <span>{done ? "Klaar" : "Nog doen"}</span>
+            <div>
+              <strong>{label}</strong>
+              <small>{text}</small>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
