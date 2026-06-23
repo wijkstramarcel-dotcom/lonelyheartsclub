@@ -1,0 +1,24 @@
+# Lonely Hearts Club
+
+Lonely Hearts Club is een Nederlandse datingapp in opbouw voor singles die rustiger en privacyvriendelijker willen daten.
+
+Belangrijkste concept:
+- Eerst matchen op verhaal, intentie en voorkeuren.
+- Daarna chatten binnen de app.
+- Daarna anoniem bellen zonder telefoonnummers te delen.
+- Profielfoto's worden stap voor stap zichtbaar naarmate er meer vertrouwen is.
+- Pas daarna eventueel afspreken.
+
+Doelgroep:
+- Singles in Nederland die genoeg hebben van eindeloos swipen.
+- Mensen die eerst karakter, aandacht en stem willen voelen.
+- Daters die privacy en veiligheid belangrijk vinden.
+
+Belangrijke URL's:
+- Website: https://www.lonelyheartsclub.nl/
+- Wachtlijst: https://www.lonelyheartsclub.nl/#voorinschrijven
+- Sitemap: https://www.lonelyheartsclub.nl/sitemap.xml
+
+Status:
+- Wachtlijst en demo zijn beschikbaar.
+- De eerste ledenronde wordt gecontroleerd opgebouwd.

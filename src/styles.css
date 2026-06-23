@@ -691,6 +691,22 @@ button:disabled {
   background: #2f655d;
 }
 
+.referral-story {
+  padding-top: 0;
+}
+
+.referral-story h2 {
+  margin: 0;
+}
+
+.referral-story p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 18px 0 24px;
+  color: #5d5147;
+  font-size: 18px;
+  line-height: 1.65;
+}
+
 .faq-section {
   background: rgba(248, 244, 237, 0.72);
 }

@@ -1168,6 +1168,18 @@ function LandingPage({ authOpen, authReturnNotice, setAuthOpen, onDemo, onPrivac
         </div>
       </section>
 
+      <section className="section-inner referral-story" aria-label="Waarom delen">
+        <p className="eyebrow">Vertel het door</p>
+        <h2>Ken je iemand die klaar is met swipen?</h2>
+        <p>
+          Stuur Lonely Hearts Club vooral naar singles die liever rustig beginnen: eerst een goed profiel,
+          dan een echt gesprek, daarna een anonieme stem en pas later een afspraak.
+        </p>
+        <a className="secondary-button" href="#voorinschrijven" onClick={trackWaitlistCta}>
+          Naar de wachtlijst
+        </a>
+      </section>
+
       <section className="section-band" id="hoe">
         <div className="section-inner">
           <p className="eyebrow">Hoe het werkt</p>

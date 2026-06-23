@@ -1,5 +1,7 @@
 Lonely Hearts Club
 Privacyvriendelijk daten: match, chat en bel anoniem voordat je afspreekt.
+Nederlandse datingapp in opbouw voor singles die minder swipe-ruis en meer vertrouwen willen.
+Concept: eerst verhaal en intentie, daarna chat, anoniem bellen, geleidelijke foto-onthulling en pas daarna afspreken.
 
 Site: https://www.lonelyheartsclub.nl
 Language: Dutch

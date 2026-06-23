@@ -1,7 +1,7 @@
 {
   "name": "Lonely Hearts Club",
   "short_name": "LHC",
-  "description": "Privacyvriendelijk daten: match, chat en bel anoniem voordat je afspreekt.",
+  "description": "Privacyvriendelijk daten in Nederland: eerst matchen op verhaal, daarna chatten, anoniem bellen en pas afspreken als het veilig voelt.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
