@@ -287,6 +287,7 @@ const CONVERSION_EVENTS = new Set([
   "waitlist_cta_click",
   "waitlist_view",
   "waitlist_submit",
+  "waitlist_share",
   "demo_open",
   "account_start",
 ]);
@@ -1371,8 +1372,26 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
     }
   };
 
+  const shareUrl = "https://www.lonelyheartsclub.nl/#voorinschrijven";
   const shareText =
-    "Ik sta op de wachtlijst van Lonely Hearts Club: een rustigere datingapp waar je eerst matcht, chat en anoniem belt voordat je afspreekt. https://www.lonelyheartsclub.nl/";
+    "Ik heb Lonely Hearts Club gevonden: een Nederlandse datingapp in opbouw waar je eerst matcht op verhaal, dan chat, anoniem belt en pas daarna afspreekt. Misschien iets voor jou?";
+  const fullShareText = `${shareText} ${shareUrl}`;
+  const encodedShareText = encodeURIComponent(fullShareText);
+  const encodedShareUrl = encodeURIComponent(shareUrl);
+  const shareLinks = [
+    {
+      label: "WhatsApp",
+      href: `https://wa.me/?text=${encodedShareText}`,
+    },
+    {
+      label: "LinkedIn",
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedShareUrl}`,
+    },
+    {
+      label: "E-mail",
+      href: `mailto:?subject=${encodeURIComponent("Lonely Hearts Club")}&body=${encodedShareText}`,
+    },
+  ];
 
   const shareWaitlist = async () => {
     setShareStatus("");
@@ -1381,16 +1400,22 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
         await navigator.share({
           title: "Lonely Hearts Club",
           text: shareText,
-          url: "https://www.lonelyheartsclub.nl/",
+          url: shareUrl,
         });
+        void trackConversionEvent("waitlist_share", { method: "native" });
         setShareStatus("Gedeeld. Dank je.");
         return;
       }
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(fullShareText);
+      void trackConversionEvent("waitlist_share", { method: "clipboard" });
       setShareStatus("Deeltekst gekopieerd.");
     } catch {
       setShareStatus("Kopieer deze link: lonelyheartsclub.nl");
     }
+  };
+
+  const trackShareLink = (method) => {
+    void trackConversionEvent("waitlist_share", { method });
   };
 
   return (
@@ -1452,8 +1477,26 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
               <li>Je kunt later zelf kiezen of je een profiel maakt.</li>
               <li>We gebruiken dit e-mailadres alleen voor toegangsupdates.</li>
             </ul>
+            <div className="waitlist-share-card">
+              <span>Help ons de eerste goede groep singles vinden.</span>
+              <p>Deel dit met iemand die liever rustig begint dan eindeloos swipet.</p>
+              <div className="share-link-grid" aria-label="Deel Lonely Hearts Club">
+                {shareLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    className="share-link"
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => trackShareLink(link.label.toLowerCase())}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
             <button className="secondary-button wide" type="button" onClick={shareWaitlist}>
-              Deel met iemand die dit moet zien
+              Kopieer deeltekst
             </button>
             {shareStatus && <small>{shareStatus}</small>}
           </div>

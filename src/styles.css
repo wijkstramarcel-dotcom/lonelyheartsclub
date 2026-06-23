@@ -534,6 +534,51 @@ button:disabled {
   font-weight: 800;
 }
 
+.waitlist-share-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid rgba(47, 101, 93, 0.18);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 253, 250, 0.7);
+}
+
+.waitlist-share-card span {
+  color: #1d1a16;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.waitlist-share-card p {
+  margin: 0;
+  color: #5d5147;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.share-link-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.share-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid rgba(29, 26, 22, 0.14);
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: #413832;
+  background: #fffdfa;
+  font-size: 13px;
+  font-weight: 820;
+  text-align: center;
+  text-decoration: none;
+}
+
 .launch-marketing {
   padding-top: 0;
 }
