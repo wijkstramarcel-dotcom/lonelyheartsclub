@@ -35,8 +35,11 @@ Redirect URLs: https://www.lonelyheartsclub.nl/auth/callback
 7. Run `schema.sql` in de Supabase SQL Editor.
 8. Run daarna `CHAT_SAFETY.sql` om de server-side chatblokkade te installeren of te controleren.
 9. Run daarna `PROFILE_PHOTOS.sql` om de private profielfoto-bucket en policies te installeren.
-10. Run daarna `LIVE_SETUP.sql` voor adminrechten, eerste invitecode en een korte controle.
-11. Of voeg minimaal één adminaccount handmatig toe:
+10. Run `PROFILE_RLS_REPAIR.sql` als bestaande wachtlijst-, test- of adminaccounts geen profiel kunnen opslaan.
+11. Run `PROFILE_ACCESS_FIX.sql` als de bekende owner/testaccounts nog geen profiel mogen aanmaken.
+12. Run `PROFILE_INSERT_POLICY_OPEN_OWN.sql` als gebruikers nog steeds een RLS-fout krijgen bij profiel opslaan.
+13. Run daarna `LIVE_SETUP.sql` voor adminrechten, eerste invitecode en een korte controle.
+14. Of voeg minimaal één adminaccount handmatig toe:
 
 ```sql
 insert into app_admins (user_id)

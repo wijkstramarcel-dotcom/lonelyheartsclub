@@ -595,11 +595,25 @@ $$;
 
 create or replace function current_user_has_invite()
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1
-    from invite_redemptions r
-    where r.user_id = auth.uid()
-  );
+  select
+    auth.uid() is not null
+    and (
+      exists (
+        select 1
+        from invite_redemptions r
+        where r.user_id = auth.uid()
+      )
+      or exists (
+        select 1
+        from app_admins a
+        where a.user_id = auth.uid()
+      )
+      or exists (
+        select 1
+        from waitlist w
+        where lower(w.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+      )
+    );
 $$;
 
 create or replace function redeem_invite_code(raw_code text)
@@ -805,7 +819,7 @@ create policy "Profielen lezen"
   on profiles for select using (auth.role() = 'authenticated');
 
 create policy "Eigen profiel aanmaken"
-  on profiles for insert with check (auth.uid() = id and current_user_has_invite());
+  on profiles for insert with check (auth.uid() = id);
 
 create policy "Eigen profiel bijwerken"
   on profiles for update using (auth.uid() = id) with check (auth.uid() = id);
