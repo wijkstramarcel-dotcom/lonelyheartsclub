@@ -1440,6 +1440,25 @@ function PreRegisterSection({ onPrivacy, onCreateAccount }) {
           <span>Alleen je e-mailadres. Geen profiel, geen foto's, geen verplichting.</span>
         </div>
 
+        <div className="waitlist-share-card waitlist-share-card--compact">
+          <span>Ken je iemand voor wie dit beter voelt dan swipen?</span>
+          <p>Stuur de wachtlijst door naar een single die rustig en veilig wil beginnen.</p>
+          <div className="share-link-grid" aria-label="Deel Lonely Hearts Club">
+            {shareLinks.map((link) => (
+              <a
+                key={link.label}
+                className="share-link"
+                href={link.href}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => trackShareLink(link.label.toLowerCase())}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
         <label>
           E-mailadres
           <input

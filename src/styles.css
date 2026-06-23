@@ -544,6 +544,10 @@ button:disabled {
   background: rgba(255, 253, 250, 0.7);
 }
 
+.waitlist-share-card--compact {
+  margin-top: 0;
+}
+
 .waitlist-share-card span {
   color: #1d1a16;
   font-size: 13px;
