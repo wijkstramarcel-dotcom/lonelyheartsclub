@@ -2466,6 +2466,21 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     return true;
   };
 
+  const addDemoMatchMessage = (content) => {
+    if (!demoMode || !selectedMatch) return;
+    const message = {
+      id: `demo-moment-${Date.now()}`,
+      match_id: selectedMatch.id,
+      sender_id: getOtherUserId(selectedMatch, user.id),
+      content,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((current) => ({
+      ...current,
+      [selectedMatch.id]: [...(current[selectedMatch.id] ?? []), message],
+    }));
+  };
+
   const sendMessage = async (content) => {
     const inspection = inspectChatMessage(content);
     if (!selectedMatch || !content.trim()) return false;
@@ -2650,6 +2665,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             onReport={reportProfile}
             reportedIds={reportedIds}
             demoMode={demoMode}
+            onDemoMoment={addDemoMatchMessage}
             onJourneyStep={setJourneyStep}
             onOpenDiscover={() => {
               setActiveTab("discover");
@@ -4056,10 +4072,12 @@ function MessagesView({
   onReport,
   reportedIds = new Set(),
   demoMode = false,
+  onDemoMoment = () => {},
   onJourneyStep = () => {},
   onOpenDiscover,
 }) {
   const [draft, setDraft] = useState("");
+  const demoMomentsFired = useRef(new Set());
   const [guardNotice, setGuardNotice] = useState("");
   const [callStep, setCallStep] = useState("ready");
   const [callError, setCallError] = useState("");
@@ -4200,6 +4218,12 @@ function MessagesView({
       hangUp();
       setCallStep("ended");
       onJourneyStep("call");
+      if (demoMode && match && !demoMomentsFired.current.has(`${match.id}-call`)) {
+        demoMomentsFired.current.add(`${match.id}-call`);
+        onDemoMoment(
+          "Wat fijn om je stem even te horen — dat zegt zoveel meer dan tekst. Van mij mag je een afspraak voorstellen.",
+        );
+      }
       return;
     }
 
@@ -4267,6 +4291,12 @@ function MessagesView({
     setCallStep("meet");
     setCallError("");
     onJourneyStep("meet");
+    if (demoMode && match && !demoMomentsFired.current.has(`${match.id}-meet`)) {
+      demoMomentsFired.current.add(`${match.id}-meet`);
+      onDemoMoment(
+        "Leuk, dat durf ik wel aan. Zaterdagmiddag koffie in de stad? Rustige plek, geen verwachtingen — gewoon kijken of het klopt.",
+      );
+    }
   };
 
   return (
