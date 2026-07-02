@@ -13,7 +13,7 @@ insert into app_admins (user_id)
 select id
 from auth.users
 where lower(email) in (
-  lower('owner@example.com')
+  lower('wijkstramarcel@hotmail.com')
 )
 on conflict (user_id) do nothing;
 
