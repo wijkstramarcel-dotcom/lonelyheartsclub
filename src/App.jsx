@@ -30,12 +30,13 @@ const DEMO_USER = {
 
 const DEMO_PROFILE = {
   id: DEMO_USER.id,
-  naam: "Marcel",
-  voornaam: "Marcel",
-  leeftijd: 48,
+  naam: "Daan",
+  voornaam: "Daan",
+  leeftijd: 45,
   geslacht: "Man",
   zoekt: "Ik zoek vrouwen",
-  verhaal: "Avontuurlijk, eerlijk en op zoek naar een gesprek dat langer blijft hangen.",
+  verhaal:
+    "Ik werk graag met mijn handen, kook beter dan ik toegeef en zoek iemand met wie een gesprek vanzelf blijft lopen. Liever één goed gesprek dan tien snelle matches.",
   passies: ["Hardlopen", "Kunst", "Reizen"],
   tags: ["Hardlopen", "Kunst", "Reizen"],
   actief: true,
@@ -70,11 +71,41 @@ const DEMO_PROFILES = [
     leeftijd: 39,
     geslacht: "Vrouw",
     zoekt: "Ik zoek mannen",
-    verhaal: "Muziek, koken, buiten zijn. Geen haast, wel aandacht.",
+    verhaal:
+      "Muziek, koken, buiten zijn. Geen haast, wel aandacht. Ik merk snel of een gesprek echt is of alleen beleefd — en ik blijf voor het eerste.",
     passies: ["Muziek", "Koken", "Wandelen"],
     tags: ["Muziek", "Koken", "Wandelen"],
     actief: true,
   },
+  {
+    id: "demo-eva",
+    naam: "Eva",
+    leeftijd: 47,
+    geslacht: "Vrouw",
+    zoekt: "Ik zoek mannen",
+    verhaal:
+      "Na jaren hard werken heb ik geleerd wat ik belangrijk vind: humor, eerlijkheid en iemand die zelf ook een leven heeft. Fotograferen is mijn uitlaatklep.",
+    passies: ["Fotografie", "Koffie", "Theater"],
+    tags: ["Fotografie", "Koffie", "Theater"],
+    actief: true,
+  },
+];
+
+const DEMO_INTRO_MESSAGES = {
+  "demo-sarah": (name) =>
+    `Hoi ${name}, jouw verhaal voelt rustig en oprecht. Ik ben benieuwd: wat is een plek waar jij helemaal tot rust komt?`,
+  "demo-linda": (name) =>
+    `Hoi ${name}, ik moest lachen om je profiel — op een goede manier. Wat doe jij op een vrije zondag als niemand iets van je verwacht?`,
+  "demo-nora": (name) =>
+    `Hoi ${name}, fijn dat je interesse toonde. Ik lees dat je van reizen houdt: welke plek heeft je het meest verrast?`,
+  "demo-eva": (name) =>
+    `Hoi ${name}, jouw passies spreken me aan. Vertel eens — waar word jij enthousiast van als je erover praat?`,
+};
+
+const DEMO_REPLIES = [
+  "Leuk antwoord — dat had ik niet verwacht. Zo voelt een gesprek meteen echter dan een rijtje standaardvragen.",
+  "Daar kan ik me veel bij voorstellen. Ik merk dat dit prettig chat; geen haast, gewoon nieuwsgierigheid.",
+  "Fijn bericht. Als dit zo blijft voelen, wil ik eerst anoniem bellen voordat we iets afspreken — dan hoor je meteen of de klik er ook in stem is.",
 ];
 
 const DEMO_MATCHES = [];
@@ -2315,11 +2346,15 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       const matchId = `demo-match-${targetProfile.id}`;
       const createdAt = new Date().toISOString();
       const otherProfile = normalizeProfile(targetProfile);
+      const introFor = DEMO_INTRO_MESSAGES[targetProfile.id];
+      const introName = profile?.voornaam || profile?.naam || "daar";
       const firstMessage = {
         id: `${matchId}-intro`,
         match_id: matchId,
         sender_id: targetProfile.id,
-        content: `Hoi ${profile?.voornaam || "Marcel"}, jouw verhaal voelt rustig en oprecht. Zullen we eerst even chatten?`,
+        content: introFor
+          ? introFor(introName)
+          : `Hoi ${introName}, jouw verhaal voelt rustig en oprecht. Zullen we eerst even chatten?`,
         created_at: createdAt,
       };
 
@@ -2449,11 +2484,13 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
         content: content.trim(),
         created_at: new Date(now).toISOString(),
       };
+      const existing = messages[selectedMatch.id] ?? [];
+      const ownCount = existing.filter((item) => item.sender_id === user.id).length;
       const reply = {
         id: `demo-reply-${now}`,
         match_id: selectedMatch.id,
         sender_id: getOtherUserId(selectedMatch, user.id),
-        content: "Fijn bericht. Als dit zo blijft voelen, wil ik eerst anoniem bellen voordat we iets afspreken.",
+        content: DEMO_REPLIES[Math.min(ownCount, DEMO_REPLIES.length - 1)],
         created_at: new Date(now + 45_000).toISOString(),
       };
       setMessages((current) => ({
@@ -3628,7 +3665,7 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
       <div className="form-grid">
         <label>
           Voornaam
-          <input value={form.naam} onChange={(event) => update("naam", event.target.value)} placeholder="Marcel" />
+          <input value={form.naam} onChange={(event) => update("naam", event.target.value)} placeholder="Je voornaam" />
         </label>
         <label>
           Leeftijd
