@@ -2949,3 +2949,31 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+.grow-club-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(177, 78, 48, 0.22);
+  border-radius: 8px;
+  padding: 18px;
+  background: rgba(177, 78, 48, 0.06);
+}
+
+.grow-club-panel strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.grow-club-panel p {
+  margin: 0;
+  color: rgba(29, 26, 22, 0.78);
+}
+
+.grow-club-panel .starter-actions a {
+  text-decoration: none;
+  text-align: center;
+}
+
+.grow-club-panel.compact {
+  padding: 14px;
+}

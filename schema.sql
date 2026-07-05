@@ -608,11 +608,6 @@ returns boolean language sql stable security definer set search_path = public as
         from app_admins a
         where a.user_id = auth.uid()
       )
-      or exists (
-        select 1
-        from waitlist w
-        where lower(w.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
-      )
     );
 $$;
 
@@ -816,10 +811,22 @@ drop policy if exists "Eigen profiel aanmaken" on profiles;
 drop policy if exists "Eigen profiel bijwerken" on profiles;
 
 create policy "Profielen lezen"
-  on profiles for select using (auth.role() = 'authenticated');
+  on profiles for select using (
+    auth.uid() = id
+    or exists (
+      select 1 from matches m
+      where (m.user_a = auth.uid() and m.user_b = profiles.id)
+         or (m.user_b = auth.uid() and m.user_a = profiles.id)
+    )
+    or (
+      auth.role() = 'authenticated'
+      and actief is true
+      and not has_block_between(auth.uid(), profiles.id)
+    )
+  );
 
 create policy "Eigen profiel aanmaken"
-  on profiles for insert with check (auth.uid() = id);
+  on profiles for insert with check (auth.uid() = id and current_user_has_invite());
 
 create policy "Eigen profiel bijwerken"
   on profiles for update using (auth.uid() = id) with check (auth.uid() = id);

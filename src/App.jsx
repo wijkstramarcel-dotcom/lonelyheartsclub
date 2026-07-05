@@ -2300,6 +2300,35 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     };
   }, [demoMode, selectedMatch?.id]);
 
+  useEffect(() => {
+    if (demoMode || !hasSupabaseConfig || !supabase) return undefined;
+
+    const notifyNewMatch = (payload) => {
+      const row = payload?.new;
+      if (!row || (row.user_a !== user.id && row.user_b !== user.id)) return;
+      setNotice("Nieuwe match! Iemand toonde ook interesse in jou. Bekijk je matches.");
+      loadData();
+    };
+
+    const channel = supabase
+      .channel(`matches:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "matches", filter: `user_a=eq.${user.id}` },
+        notifyNewMatch,
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "matches", filter: `user_b=eq.${user.id}` },
+        notifyNewMatch,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [demoMode, user.id]);
+
   const handleProfileSaved = (savedProfile) => {
     setProfile(normalizeProfile(savedProfile));
     setNeedsProfile(false);
@@ -3852,6 +3881,7 @@ function DiscoverView({
             Voorkeuren aanpassen
           </button>
         </div>
+        {!demoMode && <GrowClubPanel />}
       </EmptyState>
     );
   }
@@ -3863,6 +3893,7 @@ function DiscoverView({
         <h2>Slim geselecteerd op verhaal en intentie.</h2>
       </div>
       <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
+      {!demoMode && profiles.length < 4 && <GrowClubPanel compact />}
       <div className="profile-grid">
         {profiles.map((profile) => (
           <ProfileCard
@@ -3875,6 +3906,34 @@ function DiscoverView({
             onReport={(reason, details) => onReport(profile, reason, details)}
           />
         ))}
+      </div>
+    </section>
+  );
+}
+
+function GrowClubPanel({ compact = false }) {
+  const shareText = encodeURIComponent(
+    "Ik ben lid van Lonely Hearts Club: rustig, privacyvriendelijk daten zonder swipe-ruis. Eerst iemands verhaal, dan pas de rest. Misschien iets voor jou? https://www.lonelyheartsclub.nl",
+  );
+  return (
+    <section className={classNames("grow-club-panel", compact && "compact")} aria-label="Help de club groeien">
+      <div>
+        <strong>We starten bewust klein.</strong>
+        <p>
+          Elke match verdient aandacht, dus we laten leden gecontroleerd toe. Ken jij een single voor wie dit
+          beter voelt dan swipen? Jouw uitnodiging is de beste groei die deze club kan krijgen.
+        </p>
+      </div>
+      <div className="starter-actions" aria-label="Deel de club">
+        <a className="secondary-button" href={`https://wa.me/?text=${shareText}`} target="_blank" rel="noreferrer">
+          Deel via WhatsApp
+        </a>
+        <a
+          className="secondary-button"
+          href={`mailto:?subject=${encodeURIComponent("Misschien iets voor jou: Lonely Hearts Club")}&body=${shareText}`}
+        >
+          Deel via e-mail
+        </a>
       </div>
     </section>
   );
