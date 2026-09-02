@@ -1596,6 +1596,9 @@ function SiteFooter({ onPrivacy }) {
       <button className="inline-link" type="button" onClick={onPrivacy}>
         Privacy & gegevens
       </button>
+      <a href="/daten-zonder-swipen/">Daten zonder swipen</a>
+      <a href="/privacyvriendelijk-daten/">Privacyvriendelijk daten</a>
+      <a href="/swipemoeheid/">Swipemoeheid</a>
       <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
     </footer>
   );
