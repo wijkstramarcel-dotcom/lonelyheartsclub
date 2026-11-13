@@ -50,6 +50,17 @@ create policy "Eigen profiel aanmaken"
 --    jezelf, en je match-partners (ook als die gepauzeerd zijn)
 -- ─────────────────────────────────────────────────────────────
 
+-- Alleen leden met een eigen profiel mogen andere profielen bekijken.
+-- Zonder deze check kon een account zonder uitnodiging (dus zonder profiel)
+-- via de API alsnog alle actieve profielen uitlezen.
+create or replace function current_user_has_profile()
+returns boolean language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null
+    and exists (select 1 from profiles p where p.id = auth.uid());
+$$;
+
+grant execute on function current_user_has_profile() to authenticated;
+
 drop policy if exists "Profielen lezen" on profiles;
 
 create policy "Profielen lezen"
@@ -62,6 +73,7 @@ create policy "Profielen lezen"
     )
     or (
       auth.role() = 'authenticated'
+      and current_user_has_profile()
       and actief is true
       and not has_block_between(auth.uid(), profiles.id)
     )
@@ -85,6 +97,27 @@ create policy "Profile photos are readable by signed-in members"
            or (m.user_b = auth.uid() and m.user_a::text = (storage.foldername(name))[1])
       )
     )
+  );
+
+-- ─────────────────────────────────────────────────────────────
+-- 5. Conversie-events: 'waitlist_share' werd door de app verstuurd
+--    maar door de policy geweigerd
+-- ─────────────────────────────────────────────────────────────
+
+drop policy if exists "Conversie event toevoegen" on analytics_events;
+
+create policy "Conversie event toevoegen"
+  on analytics_events for insert with check (
+    event_name in (
+      'landing_view',
+      'waitlist_cta_click',
+      'waitlist_view',
+      'waitlist_submit',
+      'waitlist_share',
+      'demo_open',
+      'account_start'
+    )
+    and (metadata is null or (jsonb_typeof(metadata) = 'object' and char_length(metadata::text) <= 1000))
   );
 
 -- ─────────────────────────────────────────────────────────────

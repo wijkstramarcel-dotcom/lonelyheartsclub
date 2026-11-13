@@ -726,6 +726,14 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 
+create or replace function current_user_has_profile()
+returns boolean language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null
+    and exists (select 1 from profiles p where p.id = auth.uid());
+$$;
+
+grant execute on function current_user_has_profile() to authenticated;
+
 create or replace function close_matches_on_block()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -820,6 +828,7 @@ create policy "Profielen lezen"
     )
     or (
       auth.role() = 'authenticated'
+      and current_user_has_profile()
       and actief is true
       and not has_block_between(auth.uid(), profiles.id)
     )
@@ -846,6 +855,7 @@ create policy "Conversie event toevoegen"
       'waitlist_cta_click',
       'waitlist_view',
       'waitlist_submit',
+      'waitlist_share',
       'demo_open',
       'account_start'
     )
