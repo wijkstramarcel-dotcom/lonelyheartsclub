@@ -20,18 +20,13 @@ drop policy if exists "Members upload own profile photo" on storage.objects;
 drop policy if exists "Members update own profile photo" on storage.objects;
 drop policy if exists "Members delete own profile photo" on storage.objects;
 
+-- Alleen de eigenaar; matches krijgen toegang per onthullingsniveau via PHOTO_REVEAL.sql
+-- (draai dat script hierna opnieuw).
 create policy "Profile photos are readable by signed-in members"
   on storage.objects for select
   using (
     bucket_id = 'profile-photos'
-    and (
-      auth.uid()::text = (storage.foldername(name))[1]
-      or exists (
-        select 1 from matches m
-        where (m.user_a = auth.uid() and m.user_b::text = (storage.foldername(name))[1])
-           or (m.user_b = auth.uid() and m.user_a::text = (storage.foldername(name))[1])
-      )
-    )
+    and auth.uid()::text = (storage.foldername(name))[1]
   );
 
 create policy "Members upload own profile photo"

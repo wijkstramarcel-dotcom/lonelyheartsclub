@@ -934,6 +934,101 @@ function validateProfilePhoto(file) {
   return "";
 }
 
+// Foto-onthulling: van elke profielfoto bestaan vier varianten. Een match kan
+// alleen de varianten ophalen tot het niveau dat bij de fase van het contact
+// hoort (zie PHOTO_REVEAL.sql); het origineel is alleen voor de eigenaar.
+const PHOTO_REVEAL_LEVELS = [25, 50, 75, 100];
+// Breedte in pixels waarnaar de foto eerst wordt verkleind; daarna wordt hij
+// weer uitvergroot. Hoe kleiner, hoe vager. Werkt in elke browser.
+const PHOTO_REVEAL_DETAIL = { 25: 10, 50: 22, 75: 48 };
+const PHOTO_REVEAL_MAX_SIDE = 720;
+
+function revealVariantPath(userId, level) {
+  return `${userId}/reveal-${level}.jpg`;
+}
+
+function loadImageFromBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Foto kon niet worden gelezen."));
+    };
+    image.src = url;
+  });
+}
+
+function canvasToJpegBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Foto kon niet worden verwerkt."))),
+      "image/jpeg",
+      0.86,
+    );
+  });
+}
+
+async function buildRevealVariant(image, level) {
+  const scale = Math.min(1, PHOTO_REVEAL_MAX_SIDE / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const output = document.createElement("canvas");
+  output.width = width;
+  output.height = height;
+  const context = output.getContext("2d");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+
+  const detailWidth = PHOTO_REVEAL_DETAIL[level];
+  if (!detailWidth) {
+    context.drawImage(image, 0, 0, width, height);
+  } else {
+    const small = document.createElement("canvas");
+    small.width = detailWidth;
+    small.height = Math.max(1, Math.round((detailWidth * height) / width));
+    const smallContext = small.getContext("2d");
+    smallContext.imageSmoothingEnabled = true;
+    smallContext.imageSmoothingQuality = "high";
+    smallContext.drawImage(image, 0, 0, small.width, small.height);
+    context.drawImage(small, 0, 0, width, height);
+  }
+  return canvasToJpegBlob(output);
+}
+
+async function uploadRevealVariants(userId, sourceBlob) {
+  const image = await loadImageFromBlob(sourceBlob);
+  for (const level of PHOTO_REVEAL_LEVELS) {
+    const blob = await buildRevealVariant(image, level);
+    const { error } = await supabase.storage
+      .from(PROFILE_PHOTO_BUCKET)
+      .upload(revealVariantPath(userId, level), blob, {
+        cacheControl: "300",
+        contentType: "image/jpeg",
+        upsert: true,
+      });
+    if (error) throw error;
+  }
+}
+
+// Voor foto's die zijn geüpload voordat de varianten bestonden.
+async function ensureRevealVariants(userId, photoPath) {
+  if (!hasSupabaseConfig || !supabase || !photoPath || /^https?:\/\//i.test(photoPath)) return;
+  try {
+    const { data: files } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).list(userId, { limit: 100 });
+    if ((files ?? []).some((file) => file.name === "reveal-100.jpg")) return;
+    const { data: original, error } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).download(photoPath);
+    if (error || !original) return;
+    await uploadRevealVariants(userId, original);
+  } catch {
+    // Niet kritiek: de match ziet dan een plaatshouder tot de foto opnieuw wordt opgeslagen.
+  }
+}
+
 async function uploadProfilePhoto(userId, file) {
   const path = `${userId}/profile.${getProfilePhotoExtension(file)}`;
   const { error } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).upload(path, file, {
@@ -942,12 +1037,15 @@ async function uploadProfilePhoto(userId, file) {
     upsert: true,
   });
   if (error) throw error;
+  await uploadRevealVariants(userId, file);
   return path;
 }
 
 async function deleteProfilePhoto(photoPath) {
   if (!photoPath || /^https?:\/\//i.test(photoPath)) return;
-  const { error } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).remove([photoPath]);
+  const ownerId = photoPath.split("/")[0];
+  const paths = [photoPath, ...PHOTO_REVEAL_LEVELS.map((level) => revealVariantPath(ownerId, level))];
+  const { error } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).remove(paths);
   if (error) throw error;
 }
 
@@ -2336,6 +2434,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       const normalizedMine = normalizeProfile(myProfile);
       setProfile(normalizedMine);
       setNeedsProfile(!normalizedMine);
+      if (normalizedMine) void ensureRevealVariants(user.id, getProfilePhotoUrl(normalizedMine));
 
       const { data: profileRows, error: profilesError } = await supabase
         .from("profiles")
@@ -4381,6 +4480,11 @@ function MessagesView({
   const [callStep, setCallStep] = useState("ready");
   const [callError, setCallError] = useState("");
   const [incomingCall, setIncomingCall] = useState(null);
+  const [revealLevel, setRevealLevel] = useState(null);
+  const [meetIntent, setMeetIntent] = useState({ mine: false, theirs: false });
+  const [revealRefresh, setRevealRefresh] = useState(0);
+  const callRecordId = useRef(null);
+  const liveMatch = !demoMode && hasSupabaseConfig && supabase && match;
   const recipientId = match ? getOtherUserId(match, userId) : "";
   const voiceReady = demoMode || isVoiceCallingEnabled();
   const hasConversation = messages.length > 0;
@@ -4392,10 +4496,53 @@ function MessagesView({
     setCallError("");
     setIncomingCall(null);
     setGuardNotice("");
+    setRevealLevel(null);
+    setMeetIntent({ mine: false, theirs: false });
+    callRecordId.current = null;
     return () => {
       hangUp();
     };
   }, [match?.id]);
+
+  // De fase van het contact (en dus hoeveel van de foto zichtbaar is) komt
+  // van de server; de browser kan dat niet zelf ophogen.
+  useEffect(() => {
+    if (!liveMatch) return undefined;
+    let active = true;
+    (async () => {
+      const [{ data: level, error: levelError }, { data: intents }] = await Promise.all([
+        supabase.rpc("match_reveal_level", { target_match_id: match.id }),
+        supabase.from("meet_intents").select("user_id").eq("match_id", match.id),
+      ]);
+      if (!active) return;
+      setRevealLevel(levelError || !PHOTO_REVEAL_LEVELS.includes(level) ? 25 : level);
+      const rows = intents ?? [];
+      const mine = rows.some((row) => row.user_id === userId);
+      setMeetIntent({ mine, theirs: rows.some((row) => row.user_id !== userId) });
+      if (mine) setCallStep((current) => (["ready", "ended"].includes(current) ? "meet" : current));
+    })();
+    return () => {
+      active = false;
+    };
+  }, [liveMatch, match?.id, messages.length, revealRefresh, userId]);
+
+  const startCallRecord = async () => {
+    if (!liveMatch || callRecordId.current) return;
+    const { data } = await supabase
+      .from("calls")
+      .insert({ match_id: match.id, caller_id: userId })
+      .select("id")
+      .maybeSingle();
+    callRecordId.current = data?.id ?? null;
+  };
+
+  const finishCallRecord = async () => {
+    const id = callRecordId.current;
+    if (!id || !liveMatch) return;
+    callRecordId.current = null;
+    await supabase.from("calls").update({ ended_at: new Date().toISOString() }).eq("id", id);
+    setRevealRefresh((value) => value + 1);
+  };
 
   useEffect(() => {
     if (!match || demoMode || !voiceReady || !hasSupabaseConfig || !supabase) return undefined;
@@ -4517,6 +4664,7 @@ function MessagesView({
       hangUp();
       setCallStep("ended");
       onJourneyStep("call");
+      void finishCallRecord();
       if (demoMode && match && !demoMomentsFired.current.has(`${match.id}-call`)) {
         demoMomentsFired.current.add(`${match.id}-call`);
         onDemoMoment(
@@ -4540,9 +4688,11 @@ function MessagesView({
         onAccepted: () => {
           setCallStep("active");
           onJourneyStep("call");
+          void startCallRecord();
         },
         onDisconnected: () => {
           setCallStep((current) => (current === "meet" ? current : "ended"));
+          void finishCallRecord();
         },
       });
     } catch (err) {
@@ -4566,6 +4716,7 @@ function MessagesView({
         onDisconnected: () => {
           setIncomingCall(null);
           setCallStep((current) => (current === "meet" ? current : "ended"));
+          setRevealRefresh((value) => value + 1);
         },
         onError: (err) => {
           setIncomingCall(null);
@@ -4586,10 +4737,20 @@ function MessagesView({
   };
 
   const proposeMeet = () => {
-    if (callStep === "active") hangUp();
+    if (callStep === "active") {
+      hangUp();
+      void finishCallRecord();
+    }
     setCallStep("meet");
     setCallError("");
     onJourneyStep("meet");
+    if (liveMatch) {
+      setMeetIntent((current) => ({ ...current, mine: true }));
+      supabase
+        .from("meet_intents")
+        .upsert({ match_id: match.id, user_id: userId }, { onConflict: "match_id,user_id", ignoreDuplicates: true })
+        .then(() => setRevealRefresh((value) => value + 1));
+    }
     if (demoMode && match && !demoMomentsFired.current.has(`${match.id}-meet`)) {
       demoMomentsFired.current.add(`${match.id}-meet`);
       onDemoMoment(
@@ -4638,7 +4799,15 @@ function MessagesView({
         })}
       </ol>
 
-      {otherProfile && <PhotoRevealPanel profile={otherProfile} step={conversationStep} />}
+      {otherProfile && (
+        <PhotoRevealPanel
+          profile={otherProfile}
+          step={conversationStep}
+          level={liveMatch ? revealLevel : null}
+          ownerId={recipientId}
+          waitingForMeet={Boolean(liveMatch) && meetIntent.mine && !meetIntent.theirs}
+        />
+      )}
 
       <div className="messages-panel">
         {messages.length ? (
@@ -4779,12 +4948,28 @@ function MessagesView({
   );
 }
 
-function PhotoRevealPanel({ profile, step }) {
-  const photoPath = getProfilePhotoUrl(profile);
+function PhotoRevealPanel({ profile, step, level = null, ownerId = "", waitingForMeet = false }) {
+  // level is het niveau dat de server voor deze match heeft bepaald. In de demo
+  // (level === null) volgt de onthulling de stappen op het scherm.
+  const serverDriven = level !== null;
+  const hasPhoto = Boolean(getProfilePhotoUrl(profile));
+  const photoPath = serverDriven
+    ? hasPhoto && ownerId
+      ? revealVariantPath(ownerId, level)
+      : ""
+    : getProfilePhotoUrl(profile);
   const [photoUrl, setPhotoUrl] = useState("");
   const displayName = profile?.naam || profile?.voornaam || "Je match";
-  const reveal = getPhotoRevealState(step);
-  const hiddenPercentage = Math.max(0, 100 - reveal.percentage);
+  const levelIndex = PHOTO_REVEAL_STEPS.findIndex(([, , percentage]) => percentage === level);
+  const reveal = serverDriven
+    ? {
+        activeIndex: Math.max(0, levelIndex),
+        label: PHOTO_REVEAL_STEPS[Math.max(0, levelIndex)][1],
+        percentage: PHOTO_REVEAL_STEPS[Math.max(0, levelIndex)][2],
+      }
+    : getPhotoRevealState(step);
+  // Met een serverniveau is de foto zelf al vervaagd; de sluier is dan niet nodig.
+  const hiddenPercentage = serverDriven && photoUrl ? 0 : Math.max(0, 100 - reveal.percentage);
 
   useEffect(() => {
     let active = true;
@@ -4826,6 +5011,13 @@ function PhotoRevealPanel({ profile, step }) {
           Het beeld komt stap voor stap vrij. Eerst verhaal en gedrag, daarna pas genoeg zicht om
           met vertrouwen af te spreken.
         </p>
+        {serverDriven && !hasPhoto && <p>{displayName} heeft nog geen foto toegevoegd.</p>}
+        {waitingForMeet && (
+          <p>
+            Je hebt aangegeven te willen afspreken. De foto wordt volledig zichtbaar zodra {displayName} dat
+            ook doet.
+          </p>
+        )}
         <ol>
           {PHOTO_REVEAL_STEPS.map(([id, label, percentage], index) => (
             <li

@@ -27,6 +27,7 @@ Open de Supabase SQL Editor en controleer/draai in deze volgorde:
 3. `PROFILE_PHOTOS.sql` — private fotobucket.
 4. `SECURITY_HARDENING.sql` — **verplicht vóór launch**: dicht het fotolek en
    maakt een geldige uitnodigingscode verplicht bij profiel-aanmaak.
+   Draai direct daarna `PHOTO_REVEAL.sql` (foto-onthulling per fase).
 5. `LIVE_SETUP.sql` — adminrechten + eerste invitecode + controle.
 6. `LAUNCH_CLEANUP.sql` — testaccounts opruimen (stap 1 in dat bestand eerst
    reviewen voordat je hem draait).
