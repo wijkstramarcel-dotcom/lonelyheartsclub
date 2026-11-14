@@ -712,6 +712,9 @@ revoke all on function admin_create_invite_code(text, text, int, text, timestamp
 revoke all on function is_app_admin() from public;
 revoke all on function mask_admin_email(text) from public;
 revoke all on function admin_launch_status() from public;
+revoke execute on function admin_create_invite_code(text, text, int, text, timestamptz) from anon, authenticated;
+revoke execute on function admin_launch_status() from anon;
+revoke execute on function redeem_invite_code(text) from anon;
 grant execute on function current_user_has_invite() to authenticated;
 grant execute on function redeem_invite_code(text) to authenticated;
 grant execute on function is_app_admin() to authenticated;
@@ -725,6 +728,14 @@ returns boolean language sql stable security definer set search_path = public as
        or (b.blocker_id = second_user and b.blocked_id = first_user)
   );
 $$;
+
+create or replace function current_user_has_profile()
+returns boolean language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null
+    and exists (select 1 from profiles p where p.id = auth.uid());
+$$;
+
+grant execute on function current_user_has_profile() to authenticated;
 
 create or replace function close_matches_on_block()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -820,6 +831,7 @@ create policy "Profielen lezen"
     )
     or (
       auth.role() = 'authenticated'
+      and current_user_has_profile()
       and actief is true
       and not has_block_between(auth.uid(), profiles.id)
     )
@@ -846,6 +858,7 @@ create policy "Conversie event toevoegen"
       'waitlist_cta_click',
       'waitlist_view',
       'waitlist_submit',
+      'waitlist_share',
       'demo_open',
       'account_start'
     )
@@ -936,3 +949,8 @@ exception
   when undefined_object then null;
 end;
 $$;
+
+-- Triggerfuncties horen niet via de publieke API aanroepbaar te zijn.
+revoke execute on function close_matches_on_block() from public, anon, authenticated;
+revoke execute on function create_match_on_mutual_interest() from public, anon, authenticated;
+revoke execute on function lhc_enforce_message_safety() from public, anon, authenticated;
