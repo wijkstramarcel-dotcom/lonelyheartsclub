@@ -30,7 +30,7 @@ order by u.created_at;
 
 -- delete from auth.users
 -- where lower(email) not in (
---   lower('wijkstramarcel@hotmail.com')
+--   lower('beheer@voorbeeld.nl') -- vervang door het adres van de beheerder; niet committen
 --   -- , lower('ander-echt-lid@voorbeeld.nl')
 -- );
 
