@@ -118,6 +118,113 @@ const tabs = [
   { id: "profile", label: "Profiel" },
 ];
 
+const TAB_ICON_PATHS = {
+  discover: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm3.5-12.5-2 5-5 2 2-5 5-2Z",
+  matches: "M12 20.5 4.6 13.4a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9a4.6 4.6 0 0 1 6.5 6.5L12 20.5Z",
+  messages: "M4 5.5h16v11H9l-5 4v-15Z",
+  profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7.5 8.5a7.5 7.5 0 0 1 15 0",
+  admin: "M4 20V10m6 10V4m6 16v-7m4 7H2",
+};
+
+function TabIcon({ id }) {
+  return (
+    <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d={TAB_ICON_PATHS[id] || TAB_ICON_PATHS.discover} />
+    </svg>
+  );
+}
+
+const INSTALL_DISMISSED_KEY = "lhc-install-dismissed";
+
+function isStandaloneDisplay() {
+  try {
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  } catch {
+    return false;
+  }
+}
+
+function isIosSafari() {
+  const ua = window.navigator.userAgent || "";
+  const isIos = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && window.navigator.maxTouchPoints > 1);
+  return isIos && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+}
+
+// Banner waarmee leden de site als app op hun beginscherm zetten.
+// Toont alleen als de browser installeren ondersteunt en de app nog niet
+// geïnstalleerd is; op iPhone legt hij de handmatige stap uit.
+function InstallAppBanner() {
+  const [promptEvent, setPromptEvent] = useState(() => window.__lhcInstallPrompt || null);
+  const [showIosHint, setShowIosHint] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return window.localStorage.getItem(INSTALL_DISMISSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleAvailable = () => setPromptEvent(window.__lhcInstallPrompt || null);
+    const handleInstalled = () => {
+      window.__lhcInstallPrompt = null;
+      setPromptEvent(null);
+    };
+    window.addEventListener("lhc-install-available", handleAvailable);
+    window.addEventListener("appinstalled", handleInstalled);
+    return () => {
+      window.removeEventListener("lhc-install-available", handleAvailable);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
+
+  const ios = !promptEvent && isIosSafari();
+  if (dismissed || isStandaloneDisplay() || (!promptEvent && !ios)) return null;
+
+  const dismiss = () => {
+    setDismissed(true);
+    try {
+      window.localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
+    } catch {
+      // Opslag niet beschikbaar: de banner komt dan bij een volgend bezoek terug.
+    }
+  };
+
+  const install = async () => {
+    if (!promptEvent) {
+      setShowIosHint(true);
+      return;
+    }
+    promptEvent.prompt();
+    try {
+      await promptEvent.userChoice;
+    } finally {
+      window.__lhcInstallPrompt = null;
+      setPromptEvent(null);
+    }
+  };
+
+  return (
+    <aside className="install-banner" aria-label="Installeer de app">
+      <img src="/icons/icon-192.png" alt="" width="44" height="44" />
+      <div>
+        <strong>Zet Lonely Hearts Club op je beginscherm</strong>
+        <span>
+          {showIosHint
+            ? "Tik onderin op Delen en kies 'Zet op beginscherm'."
+            : "Open de app met één tik, zonder adresbalk."}
+        </span>
+      </div>
+      <button className="primary-button" type="button" onClick={install}>
+        Installeer
+      </button>
+      <button className="icon-button" type="button" onClick={dismiss} aria-label="Niet nu">
+        ×
+      </button>
+    </aside>
+  );
+}
+
 const ADMIN_TAB = { id: "admin", label: "Live status" };
 
 const PRODUCT_FLOW_STEPS = [
@@ -1639,7 +1746,7 @@ function PrivacyDialog({ onClose }) {
     <div className="dialog-backdrop" role="presentation">
       <section className="privacy-dialog" role="dialog" aria-modal="true" aria-labelledby="privacy-title" ref={dialogRef} tabIndex={-1}>
         <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
-          x
+          ×
         </button>
         <p className="eyebrow">Privacy & gegevens</p>
         <h2 id="privacy-title">Jij houdt grip op je datinggegevens.</h2>
@@ -1902,7 +2009,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy, onWaitlist }) {
     <div className="dialog-backdrop" role="presentation">
       <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title" ref={dialogRef} tabIndex={-1}>
         <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
-          x
+          ×
         </button>
         <img src="/lhc-seal.svg" alt="" className="dialog-logo" />
         <h2 id="auth-title">Inloggen of account maken</h2>
@@ -2112,7 +2219,7 @@ function PasswordResetDialog({ onClose }) {
     <div className="dialog-backdrop" role="presentation">
       <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="password-reset-title" ref={dialogRef} tabIndex={-1}>
         <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
-          x
+          ×
         </button>
         <img src="/lhc-seal.svg" alt="" className="dialog-logo" />
         <h2 id="password-reset-title">Nieuw wachtwoord instellen</h2>
@@ -2626,28 +2733,34 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
             <button
               key={tab.id}
               className={activeTab === tab.id ? "active" : ""}
+              aria-current={activeTab === tab.id ? "page" : undefined}
               onClick={() => {
                 setActiveTab(tab.id);
                 if (demoMode && ["discover", "matches", "messages"].includes(tab.id)) {
                   setJourneyStep(tab.id);
                 }
+                window.scrollTo({ top: 0 });
               }}
             >
-              {tab.label}
+              <TabIcon id={tab.id} />
+              <span>{tab.label}</span>
             </button>
           ))}
         </nav>
 
-        <button className="text-button align-left sidebar-link" type="button" onClick={onPrivacy}>
-          Privacy & gegevens
-        </button>
+        <div className="sidebar-actions">
+          <button className="text-button align-left sidebar-link" type="button" onClick={onPrivacy}>
+            Privacy & gegevens
+          </button>
 
-        <button className="secondary-button wide" onClick={onLogout}>
-          {demoMode ? "Demo sluiten" : "Uitloggen"}
-        </button>
+          <button className="secondary-button wide" onClick={onLogout}>
+            {demoMode ? "Demo sluiten" : "Uitloggen"}
+          </button>
+        </div>
       </aside>
 
       <section className="app-main">
+        <InstallAppBanner />
         <AppHeader profile={profile} notice={notice} onRefresh={loadData} loading={loading} />
 
         {demoMode && (

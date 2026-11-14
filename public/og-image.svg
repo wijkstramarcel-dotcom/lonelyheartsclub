@@ -10,7 +10,7 @@
       <stop offset="0%" stop-color="#2f655d" stop-opacity=".32"/>
       <stop offset="100%" stop-color="#2f655d" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="heart" x1="444" x2="756" y1="144" y2="468">
+    <linearGradient id="heart" gradientUnits="userSpaceOnUse" x1="500" x2="700" y1="170" y2="370">
       <stop offset="0%" stop-color="#f1c75b"/>
       <stop offset="55%" stop-color="#b14e30"/>
       <stop offset="100%" stop-color="#2f655d"/>
@@ -21,8 +21,10 @@
   <rect width="1200" height="630" fill="url(#glow2)"/>
   <circle cx="600" cy="270" r="134" fill="#1d1a16" opacity=".96"/>
   <circle cx="600" cy="270" r="112" fill="none" stroke="#f1c75b" stroke-width="5" stroke-dasharray="7 14"/>
+  <g transform="translate(600 272) scale(.78) translate(-600 -270)">
   <path fill="url(#heart)" d="M600 362 518 284c-34-32-39-78-11-105 26-25 67-19 93 14 26-33 67-39 93-14 28 27 23 73-11 105L600 362Z"/>
   <path fill="none" stroke="#fffdfa" stroke-linecap="round" stroke-width="12" d="M506 282c22-25 44-25 66 0s44 25 66 0 44-25 66 0"/>
+  </g>
   <text x="600" y="78" text-anchor="middle" fill="#9a4329" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="900" letter-spacing="6">PRIVACY-FIRST DATING IN NEDERLAND</text>
   <text x="600" y="500" text-anchor="middle" fill="#1d1a16" font-family="Georgia, serif" font-size="76" font-weight="900">Lonely Hearts Club</text>
   <text x="600" y="562" text-anchor="middle" fill="#413832" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">Match, chat en bel anoniem voordat je afspreekt</text>

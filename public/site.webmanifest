@@ -1,18 +1,21 @@
 {
+  "id": "/",
   "name": "Lonely Hearts Club",
-  "short_name": "LHC",
+  "short_name": "Lonely Hearts",
   "description": "Privacyvriendelijk daten in Nederland: eerst matchen op verhaal, daarna chatten, anoniem bellen en pas afspreken als het veilig voelt.",
-  "start_url": "/",
+  "lang": "nl-NL",
+  "dir": "ltr",
+  "start_url": "/?source=app",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f8f4ed",
   "theme_color": "#b14e30",
+  "categories": ["social", "lifestyle"],
   "icons": [
-    {
-      "src": "/lhc-seal.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/lhc-seal.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

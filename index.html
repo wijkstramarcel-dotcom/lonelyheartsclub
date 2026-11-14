@@ -2,7 +2,7 @@
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="google-site-verification" content="MevA8l5qoYpKjAse4s8v12bNx1i4aMqTV6dxQKGfYHs" />
     <title>Lonely Hearts Club - Privacyvriendelijk daten in Nederland</title>
     <meta name="description" content="Lonely Hearts Club is een Nederlandse datingapp in opbouw: eerst matchen op verhaal, daarna chatten, anoniem bellen en pas afspreken als het veilig voelt. Schrijf je in voor de wachtlijst." />
@@ -18,6 +18,7 @@
     <link rel="alternate" hreflang="nl-NL" href="https://www.lonelyheartsclub.nl/" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="icon" href="/lhc-seal.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href="/lhc-seal.svg" as="image" type="image/svg+xml" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="nl_NL" />
@@ -25,15 +26,15 @@
     <meta property="og:title" content="Lonely Hearts Club - Privacyvriendelijk daten in Nederland" />
     <meta property="og:description" content="Minder swipe-ruis. Eerst verhaal, dan chat, daarna anoniem bellen en pas afspreken als het veilig voelt." />
     <meta property="og:url" content="https://www.lonelyheartsclub.nl/" />
-    <meta property="og:image" content="https://www.lonelyheartsclub.nl/og-image.svg" />
-    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image" content="https://www.lonelyheartsclub.nl/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Lonely Hearts Club - privacyvriendelijk daten met match, chat en anoniem bellen" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Lonely Hearts Club - Privacyvriendelijk daten in Nederland" />
     <meta name="twitter:description" content="Voor singles die minder willen swipen en eerst veilig willen matchen, chatten en anoniem bellen." />
-    <meta name="twitter:image" content="https://www.lonelyheartsclub.nl/og-image.svg" />
+    <meta name="twitter:image" content="https://www.lonelyheartsclub.nl/og-image.png" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -55,7 +56,7 @@
             "@id": "https://www.lonelyheartsclub.nl/#organization",
             "name": "Lonely Hearts Club",
             "url": "https://www.lonelyheartsclub.nl/",
-            "logo": "https://www.lonelyheartsclub.nl/lhc-seal.svg"
+            "logo": "https://www.lonelyheartsclub.nl/icons/icon-512.png"
           },
           {
             "@type": "WebApplication",
@@ -128,12 +129,33 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
-    <noscript>
-      <main style="font-family: Georgia, serif; padding: 32px; color: #fff8e7; background: #1a0828; min-height: 100vh;">
-        <h1>Lonely Hearts Club</h1>
-        <p>Dating begint met een stem, niet met een foto. Zet JavaScript aan om de app te gebruiken.</p>
+    <div id="root">
+      <!-- Statische inhoud voor zoekmachines en voor het eerste beeld; React vervangt dit zodra de app geladen is. -->
+      <main style="max-width: 760px; margin: 0 auto; padding: 48px 24px; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1d1a16; line-height: 1.65;">
+        <p style="color: #9a4329; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: 12px;">Nederland · privacyvriendelijk daten</p>
+        <h1 style="font-family: Georgia, 'Times New Roman', serif; font-size: 48px; line-height: 1.05; margin: 8px 0 16px;">Lonely Hearts Club</h1>
+        <p style="font-size: 19px; color: #5d5147;">Je ontdekt eerst iemands verhaal. Bij wederzijdse interesse chat je, daarna bel je anoniem en pas daarna spreek je af als het echt goed voelt.</p>
+        <p><a href="#voorinschrijven" style="color: #9a4329; font-weight: 800;">Schrijf je in voor de wachtlijst</a></p>
+        <h2 style="font-family: Georgia, 'Times New Roman', serif;">Zo werkt daten bij Lonely Hearts Club</h2>
+        <ol>
+          <li><strong>Match zoeken.</strong> Ontdek leden op verhaal, intentie en voorkeuren, zonder foto als eerste oordeel.</li>
+          <li><strong>Interesse tonen.</strong> Pas bij wederzijdse interesse ontstaat een match en gaat de chat open.</li>
+          <li><strong>Chatten.</strong> Voel of er ritme, aandacht en nieuwsgierigheid in het gesprek zit.</li>
+          <li><strong>Anoniem bellen.</strong> Bel afgeschermd voordat je telefoonnummers of privégegevens deelt.</li>
+          <li><strong>Afspreken.</strong> Spreek pas af als het gesprek veilig en goed voelt.</li>
+        </ol>
+        <h2 style="font-family: Georgia, 'Times New Roman', serif;">Voor wie</h2>
+        <p>Voor singles in Nederland die genoeg hebben van eindeloos swipen en bewuster willen daten: minder swipe-druk, meer aandacht voor verhaal, intentie, chat en een veilig belmoment.</p>
+        <h2 style="font-family: Georgia, 'Times New Roman', serif;">Verder lezen</h2>
+        <ul>
+          <li><a href="/daten-zonder-swipen/">Daten zonder swipen: zo werkt het</a></li>
+          <li><a href="/privacyvriendelijk-daten/">Privacyvriendelijk daten: veilig online een relatie zoeken</a></li>
+          <li><a href="/swipemoeheid/">Swipemoeheid: waarom datingapps uitputten en wat helpt</a></li>
+        </ul>
       </main>
+    </div>
+    <noscript>
+      <p style="max-width: 760px; margin: 0 auto; padding: 0 24px 48px; font-family: Inter, system-ui, sans-serif; color: #5d5147;">Zet JavaScript aan om je in te schrijven en de app te gebruiken.</p>
     </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>

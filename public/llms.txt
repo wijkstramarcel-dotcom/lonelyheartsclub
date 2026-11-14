@@ -17,8 +17,12 @@ Doelgroep:
 Belangrijke URL's:
 - Website: https://www.lonelyheartsclub.nl/
 - Wachtlijst: https://www.lonelyheartsclub.nl/#voorinschrijven
+- Daten zonder swipen: https://www.lonelyheartsclub.nl/daten-zonder-swipen/
+- Privacyvriendelijk daten: https://www.lonelyheartsclub.nl/privacyvriendelijk-daten/
+- Swipemoeheid: https://www.lonelyheartsclub.nl/swipemoeheid/
 - Sitemap: https://www.lonelyheartsclub.nl/sitemap.xml
 
 Status:
 - Wachtlijst en demo zijn beschikbaar.
+- De site is te installeren als app op telefoon en computer (web-app).
 - De eerste ledenronde wordt gecontroleerd opgebouwd.
