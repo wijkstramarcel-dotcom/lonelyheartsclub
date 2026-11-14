@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.twilio-voice]
 verify_jwt = false
+
+[functions.notify-activity]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = true
