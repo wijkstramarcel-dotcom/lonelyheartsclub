@@ -15,7 +15,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           supabase: ['@supabase/supabase-js'],
-          twilio: ['@twilio/voice-sdk'],
           react: ['react', 'react-dom'],
         },
       },

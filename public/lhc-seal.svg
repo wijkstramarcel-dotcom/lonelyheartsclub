@@ -1,22 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-  <title id="title">Lonely Hearts Club seal</title>
-  <desc id="desc">A bright heart and voice-wave seal for Lonely Hearts Club.</desc>
+  <title id="title">Lonely Hearts Club</title>
+  <desc id="desc">Een hart met een stemgolf: het beeldmerk van Lonely Hearts Club.</desc>
   <defs>
-    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
-      <stop offset="0%" stop-color="#7b2d8b"/>
-      <stop offset="55%" stop-color="#1a0828"/>
-      <stop offset="100%" stop-color="#07030d"/>
-    </radialGradient>
-    <linearGradient id="heart" x1="40" x2="216" y1="54" y2="216">
-      <stop offset="0%" stop-color="#ffd700"/>
-      <stop offset="45%" stop-color="#e8126a"/>
-      <stop offset="100%" stop-color="#00c8d4"/>
+    <linearGradient id="heart" gradientUnits="userSpaceOnUse" x1="56" x2="200" y1="62" y2="204">
+      <stop offset="0%" stop-color="#f1c75b"/>
+      <stop offset="55%" stop-color="#b14e30"/>
+      <stop offset="100%" stop-color="#2f655d"/>
     </linearGradient>
   </defs>
-  <circle cx="128" cy="128" r="121" fill="url(#bg)" stroke="#ffd700" stroke-width="8"/>
-  <circle cx="128" cy="128" r="101" fill="none" stroke="#00c8d4" stroke-width="3" stroke-dasharray="3 10" opacity=".85"/>
-  <path fill="url(#heart)" d="M128 197 67 139c-25-24-29-58-8-78 19-18 49-14 69 11 20-25 50-29 69-11 21 20 17 54-8 78l-61 58Z"/>
-  <path fill="none" stroke="#fff8e7" stroke-linecap="round" stroke-width="8" d="M64 132c14-16 28-16 42 0s28 16 42 0 28-16 44 0"/>
-  <path fill="none" stroke="#ffd700" stroke-linecap="round" stroke-width="5" d="M83 92c8-7 17-9 27-5M173 92c-8-7-17-9-27-5"/>
-  <text x="128" y="233" text-anchor="middle" fill="#ffd700" font-family="Georgia, serif" font-size="16" font-weight="700" letter-spacing="4">LHC</text>
+  <circle cx="128" cy="128" r="124" fill="#1d1a16"/>
+  <circle cx="128" cy="128" r="106" fill="none" stroke="#f1c75b" stroke-width="4" stroke-dasharray="6 12" opacity=".9"/>
+  <g transform="translate(128 130) scale(.84) translate(-128 -132)">
+    <path fill="url(#heart)" d="M128 206 62 143c-27-26-31-63-9-85 21-20 54-15 75 11 21-26 54-31 75-11 22 22 18 59-9 85l-66 63Z"/>
+    <path fill="none" stroke="#fffdfa" stroke-linecap="round" stroke-width="10" d="M58 136c16-18 32-18 48 0s32 18 48 0 32-18 44 0"/>
+  </g>
 </svg>

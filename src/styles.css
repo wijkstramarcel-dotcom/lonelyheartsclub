@@ -1270,9 +1270,68 @@ textarea {
   background: #1d1a16;
 }
 
-.sidebar-link {
+.app-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tab-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar-actions {
   margin-top: auto;
+  display: grid;
+  gap: 16px;
+}
+
+.sidebar-link {
   text-align: left;
+}
+
+.install-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(177, 78, 48, 0.22);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 253, 250, 0.9);
+}
+
+.install-banner img {
+  border-radius: 10px;
+}
+
+.install-banner strong,
+.install-banner span {
+  display: block;
+}
+
+.install-banner span {
+  margin-top: 2px;
+  color: #5d5147;
+  font-size: 13px;
+}
+
+.install-banner .primary-button {
+  width: auto;
+  padding: 10px 14px;
+}
+
+.icon-button {
+  font-size: 20px;
+  line-height: 1;
 }
 
 .app-main {
@@ -2746,19 +2805,80 @@ textarea {
     padding-top: 12px;
   }
 
+  /* Mobiel: compacte bovenbalk en een vaste tabbalk onderin, zoals in een app. */
   .app-sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 20;
     height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
     border-right: 0;
     border-bottom: 1px solid rgba(29, 26, 22, 0.1);
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(255, 253, 250, 0.97);
+    /* Geen backdrop-filter hier: dat zou de vaste tabbalk aan deze balk vastmaken. */
+    backdrop-filter: none;
   }
 
-  .sidebar-link {
+  .app-brand {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .app-brand img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-brand strong {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 15px;
+  }
+
+  .sidebar-actions {
     margin-top: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: none;
+  }
+
+  .sidebar-actions .sidebar-link {
+    font-size: 13px;
+  }
+
+  .sidebar-actions .secondary-button.wide {
+    width: auto;
+    padding: 8px 12px;
+    font-size: 13px;
   }
 
   .app-tabs {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-template-columns: none;
+    gap: 2px;
+    border-top: 1px solid rgba(29, 26, 22, 0.12);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(255, 253, 250, 0.96);
+    backdrop-filter: blur(18px);
+  }
+
+  .app-main {
+    padding-top: 22px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
 
   .profile-match-preview dl,
@@ -2767,9 +2887,23 @@ textarea {
   }
 
   .app-tabs button {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-height: 52px;
+    padding: 6px 4px;
     text-align: center;
-    padding: 10px 8px;
-    font-size: 13px;
+    font-size: 11px;
+  }
+
+  .app-tabs button.active {
+    color: #b14e30;
+    background: rgba(177, 78, 48, 0.1);
+  }
+
+  .tab-icon {
+    width: 22px;
+    height: 22px;
   }
 
   .app-header,
@@ -2925,8 +3059,18 @@ textarea {
     width: 100%;
   }
 
-  .app-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .sidebar-actions .sidebar-link {
+    display: none;
+  }
+
+  .install-banner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .install-banner .primary-button {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
   }
 
   .member-card {

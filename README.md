@@ -162,6 +162,17 @@ group by 1, 2
 order by 1 desc, 2;
 ```
 
+## Installeerbare app (PWA)
+
+De site is een installeerbare web-app: `public/site.webmanifest`, de iconen in
+`public/icons/` en de service worker `public/sw.js`. Leden zien in de app een
+banner om hem op hun beginscherm te zetten. De service worker bewaart alleen
+de onveranderlijke `/assets/`-bestanden en toont `offline.html` zonder
+verbinding; pagina's en API-verkeer komen altijd van het netwerk.
+
+Voor de App Store of Play Store is een aparte wrapper (bijvoorbeeld Capacitor)
+en een ontwikkelaarsaccount bij Apple en Google nodig.
+
 ## Deploy
 
 Vercel en Netlify config staan klaar.
