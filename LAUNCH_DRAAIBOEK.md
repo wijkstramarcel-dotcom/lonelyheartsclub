@@ -5,7 +5,7 @@
 Gebruik een tweede e-mailadres (niet je hotmail-admin-adres), bijv. een Gmail.
 
 1. Ga naar https://www.lonelyheartsclub.nl → **Inloggen** → kies **Uitnodiging**
-2. Vul in: je test-e-mailadres, een wachtwoord, en code `LHC-EERSTE-RONDE-001`
+2. Vul in: je test-e-mailadres, een wachtwoord, en je actuele uitnodigingscode
 3. Verstuur → open de bevestigingsmail in je inbox → klik de link
 4. Terug op de site: maak je profiel aan (de uitnodiging wordt daarbij geactiveerd)
 5. Check daarna als admin op `/?admin=1` of de teller `active_invite_codes` het gebruik toont
@@ -28,7 +28,7 @@ Onderwerp: **Je bent als eerste welkom bij Lonely Hearts Club**
 >
 > Zo doe je mee:
 > 1. Ga naar https://www.lonelyheartsclub.nl en klik op **Inloggen**
-> 2. Kies **Uitnodiging** en gebruik deze code: **LHC-EERSTE-RONDE-001**
+> 2. Kies **Uitnodiging** en gebruik deze code: **<JOUW-UITNODIGINGSCODE>**
 > 3. Maak je profiel: geen perfecte foto's nodig, wél je echte verhaal
 >
 > We starten bewust klein, zodat elke match aandacht krijgt. Ken je iemand
@@ -69,17 +69,14 @@ Tot die test geslaagd is: voice uit laten (nu correct uit).
 Zonder notificaties komt niemand terug: een lid dat offline is hoort nooit
 van een nieuwe match. Dit systeem staat klaar en activeer je zo:
 
+De Edge Function `notify-activity` en de database-triggers uit
+`NOTIFICATIONS.sql` gebruiken geen gedeeld geheim meer. Wat nog nodig is:
+
 1. Maak een gratis account op https://resend.com (3.000 mails/maand gratis)
    en verifieer daar het domein lonelyheartsclub.nl → kopieer de API key
-2. Installeer de Supabase CLI (of gebruik het dashboard) en deploy:
-   ```
-   supabase functions deploy notify-activity --no-verify-jwt
-   supabase secrets set RESEND_API_KEY=re_...
-   supabase secrets set NOTIFY_WEBHOOK_SECRET=<verzin een lang geheim>
-   supabase secrets set MAIL_FROM="Lonely Hearts Club <hello@lonelyheartsclub.nl>"
-   ```
-3. Open `NOTIFICATIONS.sql`, vervang `<JOUW-GEHEIM>` door hetzelfde geheim,
-   en draai het in de Supabase SQL Editor
+2. Zet in Supabase → Edge Functions → Secrets:
+   - `RESEND_API_KEY` = de key uit stap 1
+   - `MAIL_FROM` = `Lonely Hearts Club <hello@lonelyheartsclub.nl>`
 
 Wat leden dan krijgen:
 - **Nieuwe match** → beide leden direct een mail (zonder foto — bewust:

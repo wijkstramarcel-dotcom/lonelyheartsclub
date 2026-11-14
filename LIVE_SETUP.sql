@@ -18,7 +18,7 @@ where lower(email) in (
 on conflict (user_id) do nothing;
 
 select admin_create_invite_code(
-  raw_code := 'LHC-EERSTE-RONDE-001',
+  raw_code := 'LHC-KIES-ZELF-EEN-CODE', -- vervang; zet echte codes niet in de repo
   label := 'Eerste ledenronde',
   max_uses := 25,
   reserved_email := null,
