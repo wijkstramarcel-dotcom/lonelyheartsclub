@@ -1604,10 +1604,40 @@ function SiteFooter({ onPrivacy }) {
   );
 }
 
+// Dialogen: Escape sluit, focus gaat naar de dialoog en keert bij sluiten
+// terug naar het element dat hem opende (toetsenbord en schermlezers).
+function useDialogA11y(onClose) {
+  const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement;
+    dialogRef.current?.focus({ preventScroll: true });
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onCloseRef.current?.();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+        previouslyFocused.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
+  return dialogRef;
+}
+
 function PrivacyDialog({ onClose }) {
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div className="dialog-backdrop" role="presentation">
-      <section className="privacy-dialog" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+      <section className="privacy-dialog" role="dialog" aria-modal="true" aria-labelledby="privacy-title" ref={dialogRef} tabIndex={-1}>
         <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
           x
         </button>
@@ -1622,8 +1652,10 @@ function PrivacyDialog({ onClose }) {
           <article>
             <h3>Wat we opslaan</h3>
             <p>
-              Je e-mailadres, profielgegevens, leeftijd, geslacht, zoekvoorkeur, passies, likes, matches,
-              berichten, technische accountgegevens en cookievrije conversie-events.
+              Je e-mailadres (ook als je alleen op de wachtlijst staat), profielgegevens, een eventuele
+              profielfoto, leeftijd, geslacht, zoekvoorkeur, passies, likes, matches, berichten,
+              blokkades en meldingen, het gebruik van je uitnodigingscode, tijdstip en duur van
+              belmomenten (geen opnames), technische accountgegevens en cookievrije conversie-events.
             </p>
           </article>
           <article>
@@ -1643,15 +1675,17 @@ function PrivacyDialog({ onClose }) {
           <article>
             <h3>Verwerkers</h3>
             <p>
-              De app gebruikt Supabase voor accounts en database, Vercel voor hosting en alleen bij
-              ingeschakelde belfunctionaliteit Twilio voor gespreksverbindingen.
+              De app gebruikt Supabase voor accounts, database en account-e-mails, Vercel voor hosting,
+              Resend voor e-mailmeldingen over een nieuwe match of nieuw bericht (zonder de inhoud) en
+              alleen bij ingeschakelde belfunctionaliteit Twilio voor gespreksverbindingen.
             </p>
           </article>
           <article>
             <h3>Je rechten</h3>
             <p>
               Je kunt vragen om inzage, correctie, export, beperking of verwijdering van je gegevens. Je kunt
-              toestemming later intrekken.
+              toestemming later intrekken. Ben je het niet eens met hoe we met je gegevens omgaan, dan kun
+              je een klacht indienen bij de Autoriteit Persoonsgegevens.
             </p>
           </article>
           <article>
@@ -1678,8 +1712,9 @@ function PrivacyDialog({ onClose }) {
         </div>
 
         <p className="privacy-note">
-          Op dit moment gebruikt de site geen marketingcookies vanuit de app-code. Als analytics of advertentiecookies
-          later worden toegevoegd, moet daarvoor apart toestemming worden gevraagd.
+          Op dit moment gebruikt de site geen marketingcookies vanuit de app-code. Om je ingelogd te houden en je
+          keuzes te onthouden bewaart de app alleen functionele gegevens in de opslag van je eigen browser. Als
+          analytics of advertentiecookies later worden toegevoegd, moet daarvoor apart toestemming worden gevraagd.
         </p>
       </section>
     </div>
@@ -1687,6 +1722,7 @@ function PrivacyDialog({ onClose }) {
 }
 
 function AuthDialog({ onClose, onDemo, onPrivacy, onWaitlist }) {
+  const dialogRef = useDialogA11y(onClose);
   const [mode, setMode] = useState("link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -1864,7 +1900,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy, onWaitlist }) {
 
   return (
     <div className="dialog-backdrop" role="presentation">
-      <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title" ref={dialogRef} tabIndex={-1}>
         <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
           x
         </button>
@@ -2028,6 +2064,7 @@ function AuthDialog({ onClose, onDemo, onPrivacy, onWaitlist }) {
 }
 
 function PasswordResetDialog({ onClose }) {
+  const dialogRef = useDialogA11y(onClose);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState("");
@@ -2073,7 +2110,7 @@ function PasswordResetDialog({ onClose }) {
 
   return (
     <div className="dialog-backdrop" role="presentation">
-      <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="password-reset-title">
+      <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="password-reset-title" ref={dialogRef} tabIndex={-1}>
         <button className="icon-button close-button" onClick={onClose} aria-label="Sluiten">
           x
         </button>

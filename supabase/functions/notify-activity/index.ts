@@ -2,20 +2,29 @@
 // Wordt aangeroepen door database-triggers (zie NOTIFICATIONS.sql).
 //
 // Deploy: supabase functions deploy notify-activity --no-verify-jwt
-// Secrets instellen:
-//   supabase secrets set RESEND_API_KEY=re_...
-//   supabase secrets set NOTIFY_WEBHOOK_SECRET=<lang willekeurig geheim>
-//   supabase secrets set MAIL_FROM="Lonely Hearts Club <hello@lonelyheartsclub.nl>"
+// Secrets instellen (alleen deze twee, in het Supabase-dashboard):
+//   RESEND_API_KEY=re_...
+//   MAIL_FROM="Lonely Hearts Club <hello@lonelyheartsclub.nl>"
 //
 // Ontwerpkeuzes:
 // - Geen foto's of berichtinhoud in de mail (privacy + merk: eerst verhaal, dan beeld).
 // - Berichtmails zijn gedempt: max 1 mail per gesprek per 30 minuten.
+// - Geen gedeeld geheim nodig: de trigger stuurt alleen tabel + id. De function
+//   leest het record zelf uit de database, accepteert alleen records van de
+//   laatste paar minuten en legt elke melding vast in notification_log, zodat
+//   een herhaalde of vervalste aanroep nooit een (tweede) mail oplevert.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SITE_URL = "https://www.lonelyheartsclub.nl";
 const MESSAGE_THROTTLE_MINUTES = 30;
+const MAX_RECORD_AGE_MINUTES = 5;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TABLE_COLUMNS: Record<string, string> = {
+  matches: "id, user_a, user_b, created_at",
+  messages: "id, match_id, sender_id, created_at",
+};
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -142,26 +151,53 @@ async function handleNewMessage(record: {
   await sendMail(email, mail.subject, mail.text);
 }
 
+// Haalt het record zelf op en claimt de melding. Geeft null terug als het
+// record niet bestaat, te oud is of al eerder is gemeld.
+async function claimRecord(table: string, id: string) {
+  const { data: record, error } = await supabaseAdmin
+    .from(table)
+    .select(TABLE_COLUMNS[table])
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !record) return null;
+
+  const createdAt = new Date((record as { created_at: string }).created_at).getTime();
+  if (!Number.isFinite(createdAt) || Date.now() - createdAt > MAX_RECORD_AGE_MINUTES * 60_000) {
+    return null;
+  }
+
+  const { error: claimError } = await supabaseAdmin
+    .from("notification_log")
+    .insert({ kind: table, record_id: id });
+  if (claimError) return null; // al gemeld (primary key) of tabel ontbreekt
+
+  return record;
+}
+
 serve(async (request) => {
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  const secret = Deno.env.get("NOTIFY_WEBHOOK_SECRET") ?? "";
-  if (!secret || request.headers.get("x-notify-secret") !== secret) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
   try {
     const payload = await request.json();
-    if (payload?.type !== "INSERT" || !payload?.record) {
+    const table = String(payload?.table ?? "");
+    const id = String(payload?.id ?? "");
+    if (!(table in TABLE_COLUMNS) || !UUID_PATTERN.test(id)) {
       return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 });
     }
 
-    if (payload.table === "matches") {
-      await handleNewMatch(payload.record);
-    } else if (payload.table === "messages") {
-      await handleNewMessage(payload.record);
+    const record = await claimRecord(table, id);
+    if (!record) {
+      return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 });
+    }
+
+    if (table === "matches") {
+      // deno-lint-ignore no-explicit-any
+      await handleNewMatch(record as any);
+    } else {
+      // deno-lint-ignore no-explicit-any
+      await handleNewMessage(record as any);
     }
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });

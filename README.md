@@ -38,10 +38,6 @@ Redirect URLs: https://www.lonelyheartsclub.nl/auth/callback
 10. Run daarna `SECURITY_HARDENING.sql`: profiel aanmaken vereist een echte uitnodiging en profielfoto's zijn alleen leesbaar voor de eigenaar en matches.
 11. Run daarna `LIVE_SETUP.sql` voor adminrechten, eerste invitecode en een korte controle.
 
-> Verouderd (niet meer draaien, vervangen door `SECURITY_HARDENING.sql`):
-> `PROFILE_RLS_REPAIR.sql`, `PROFILE_ACCESS_FIX.sql` en `PROFILE_INSERT_POLICY_OPEN_OWN.sql`
-> versoepelden de profiel-insert-policy tijdens de testfase en zouden de
-> uitnodigingscheck weer uitschakelen.
 12. Of voeg minimaal één adminaccount handmatig toe:
 
 ```sql
@@ -70,7 +66,7 @@ alleen gehasht opgeslagen in Supabase. Maak codes aan via de SQL Editor:
 
 ```sql
 select admin_create_invite_code(
-  raw_code := 'LHC-EERSTE-RONDE-001',
+  raw_code := 'LHC-KIES-ZELF-EEN-CODE',
   label := 'Eerste ledenronde',
   max_uses := 1,
   reserved_email := null,
@@ -79,7 +75,7 @@ select admin_create_invite_code(
 ```
 
 Gebruik `reserved_email` als een code maar voor één specifiek e-mailadres mag werken. Deel de ruwe
-code alleen met de persoon die je wilt toelaten.
+code alleen met de persoon die je wilt toelaten en zet echte codes nooit in deze (publieke) repo.
 
 ## Twilio instellen
 

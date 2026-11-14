@@ -62,7 +62,7 @@ Gebruik deze checklist voordat echte gebruikers worden uitgenodigd.
 - [ ] Audio werkt beide kanten op.
 - [ ] Telefoonnummers worden nergens getoond.
 - [ ] Ontvanger ziet een inkomende oproep met `Neem op` en `Weiger`.
-- [x] `VITE_ENABLE_VOICE_CALLS=true` in Vercel Production en redeploy.
+- [ ] `VITE_ENABLE_VOICE_CALLS=true` in Vercel Production en redeploy (op 2026-11-14 teruggezet naar `false` tot de beltest hierboven geslaagd is).
 
 ## 6. Privacy en vertrouwen
 

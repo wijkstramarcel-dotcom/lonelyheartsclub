@@ -136,6 +136,18 @@ revoke execute on function admin_launch_status() from public, anon;
 revoke execute on function redeem_invite_code(text) from public, anon;
 
 -- ─────────────────────────────────────────────────────────────
+-- 7. Supabase-adviezen: vast zoekpad voor hulpfuncties en een dubbele
+--    wachtlijst-policy uit de testfase opruimen
+-- ─────────────────────────────────────────────────────────────
+
+alter function public.touch_updated_at() set search_path = public;
+alter function public.normalize_invite_code(text) set search_path = public;
+alter function public.mask_admin_email(text) set search_path = public;
+alter function public.lhc_chat_safety_violation(text) set search_path = public;
+
+drop policy if exists "Waitlist open" on public.waitlist;
+
+-- ─────────────────────────────────────────────────────────────
 -- Controle
 -- ─────────────────────────────────────────────────────────────
 

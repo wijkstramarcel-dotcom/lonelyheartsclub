@@ -7,14 +7,16 @@ dashboard-werk dat alleen de beheerder kan doen. Totaal: ± 45 minuten.
 
 Volgorde aanhouden; elke stap verwijst naar het bestaande detail-document.
 
-> **Status 2026-11-14** — uitgevoerd op het live Supabase-project:
-> `SECURITY_HARDENING.sql` (inclusief de nieuwe secties 5 en 6) en de nieuwe
-> `twilio-voice` function. Het project stond gepauzeerd en is hervat.
-> De code `LHC-EERSTE-RONDE-001` is sinds 1 augustus verlopen en staat in deze
-> publieke repo; gebruik hem niet opnieuw. Maak nieuwe codes aan in de SQL
-> Editor en zet ze niet in de repo.
-> Nog open: stap 2 (Resend), stap 4 (registratietest), stap 5 (notificaties),
-> stap 6 (beltest) en het opruimen van testaccounts.
+> **Status 2026-11-14** — uitgevoerd op het live project:
+> - Supabase-project hervat (stond gepauzeerd) en `SECURITY_HARDENING.sql` toegepast.
+> - `twilio-voice` (alleen bellen met match) en `notify-activity` uitgerold.
+> - Testaccounts verwijderd; nieuwe uitnodigingscode aangemaakt (niet in deze repo).
+> - `VITE_ENABLE_VOICE_CALLS` staat op `false` tot de beltest geslaagd is.
+> - De code `LHC-EERSTE-RONDE-001` is verlopen en stond in deze publieke repo;
+>   niet opnieuw gebruiken.
+>
+> Nog open: stap 2 (Resend), stap 4 (registratietest), stap 5 (alleen de
+> Resend-secrets), stap 6 (beltest) en stap 7 (uitnodigen).
 
 ## Stap 1 — Supabase controleren (± 10 min)
 
@@ -58,13 +60,13 @@ Na wijzigingen: redeploy.
 ## Stap 4 — Zelf de registratie testen (± 5 min)
 
 Volg punt 1 van `LAUNCH_DRAAIBOEK.md`: registreer met een tweede e-mailadres
-en code `LHC-EERSTE-RONDE-001`, bevestig de mail, maak een profiel en check
+en je actuele uitnodigingscode, bevestig de mail, maak een profiel en check
 als admin op `/?admin=1` of de invite-teller meetelt.
 
 ## Stap 5 — E-mailnotificaties activeren (± 10 min)
 
-Volg punt 5 van `LAUNCH_DRAAIBOEK.md`: `notify-activity` function deployen,
-Resend/webhook-secrets zetten en `NOTIFICATIONS.sql` draaien. Zonder dit hoort
+Volg punt 5 van `LAUNCH_DRAAIBOEK.md`: alleen `RESEND_API_KEY` en `MAIL_FROM`
+als secret zetten; de function en triggers staan klaar. Zonder dit hoort
 een offline lid nooit van een nieuwe match.
 
 ## Stap 6 — Beltest met twee accounts, dan voice aan
