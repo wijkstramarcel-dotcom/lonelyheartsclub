@@ -36,6 +36,7 @@ Redirect URLs: https://www.lonelyheartsclub.nl/auth/callback
 8. Run daarna `CHAT_SAFETY.sql` om de server-side chatblokkade te installeren of te controleren.
 9. Run daarna `PROFILE_PHOTOS.sql` om de private profielfoto-bucket en policies te installeren.
 10. Run daarna `SECURITY_HARDENING.sql`: profiel aanmaken vereist een echte uitnodiging en profielfoto's zijn alleen leesbaar voor de eigenaar en matches.
+    Run direct daarna `PHOTO_REVEAL.sql`: die geeft matches per fase toegang tot een vagere of scherpere versie van de foto.
 11. Run daarna `LIVE_SETUP.sql` voor adminrechten, eerste invitecode en een korte controle.
 
 12. Of voeg minimaal één adminaccount handmatig toe:
