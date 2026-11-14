@@ -3515,9 +3515,50 @@ function ProfileView({ profile, user, onSaved, demoMode, onPrivacy, onToggleActi
   );
 }
 
+const ACCOUNT_DELETE_CONFIRMATION = "VERWIJDER";
+
 function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
   const [updating, setUpdating] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const active = profile?.actief !== false;
+
+  const deleteAccount = async () => {
+    setDeleteError("");
+    if (!hasSupabaseConfig || !supabase) {
+      setDeleteError("In de demo is er geen account om te verwijderen.");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        setDeleteError("In de demo is er geen account om te verwijderen.");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: { confirm: ACCOUNT_DELETE_CONFIRMATION },
+      });
+      if (error || !data?.ok) {
+        let message = data?.error || "";
+        if (!message && error?.context && typeof error.context.json === "function") {
+          message = (await error.context.json().catch(() => null))?.error || "";
+        }
+        setDeleteError(
+          message || `Verwijderen lukte niet. Probeer het opnieuw of mail ${CONTACT_EMAIL}.`,
+        );
+        return;
+      }
+      await supabase.auth.signOut().catch(() => {});
+      window.location.assign("/");
+    } catch {
+      setDeleteError(`Verwijderen lukte niet. Probeer het opnieuw of mail ${CONTACT_EMAIL}.`);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const toggle = async () => {
     setUpdating(true);
@@ -3534,8 +3575,8 @@ function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
         <p className="eyebrow">Privacycontrole</p>
         <h3>Jij bepaalt of je profiel zichtbaar is.</h3>
         <p>
-          Pauzeren verbergt je profiel voor andere leden zonder je account direct te verwijderen. Voor inzage,
-          export of definitieve verwijdering stuur je een privacyverzoek.
+          Pauzeren verbergt je profiel voor andere leden zonder je account te verwijderen. Je kunt je account
+          hier ook direct en definitief verwijderen. Voor inzage of export stuur je een privacyverzoek.
         </p>
       </div>
       <div className="profile-status-card">
@@ -3545,8 +3586,54 @@ function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
         <button className="secondary-button wide" type="button" disabled={updating} onClick={toggle}>
           {updating ? "Aanpassen" : active ? "Pauzeer profiel" : "Maak profiel weer actief"}
         </button>
-        <a className="secondary-button wide danger" href={privacyRequestMailto(user, "Verwijderverzoek")}>
-          Verwijdering aanvragen
+        {deleteOpen ? (
+          <div className="account-delete-panel" role="group" aria-label="Account verwijderen">
+            <strong>Account definitief verwijderen</strong>
+            <p>
+              Je profiel, foto, likes, matches en berichten worden direct verwijderd. Dit kan niet ongedaan
+              worden gemaakt.
+            </p>
+            <label>
+              Typ {ACCOUNT_DELETE_CONFIRMATION} om te bevestigen
+              <input
+                value={deleteText}
+                onChange={(event) => setDeleteText(event.target.value)}
+                autoComplete="off"
+                autoCapitalize="characters"
+              />
+            </label>
+            {deleteError && (
+              <p className="form-message error" role="alert">
+                {deleteError}
+              </p>
+            )}
+            <button
+              className="secondary-button wide danger"
+              type="button"
+              disabled={deleting || deleteText.trim().toUpperCase() !== ACCOUNT_DELETE_CONFIRMATION}
+              onClick={deleteAccount}
+            >
+              {deleting ? "Verwijderen" : "Verwijder mijn account"}
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                setDeleteOpen(false);
+                setDeleteText("");
+                setDeleteError("");
+              }}
+            >
+              Annuleren
+            </button>
+          </div>
+        ) : (
+          <button className="secondary-button wide danger" type="button" onClick={() => setDeleteOpen(true)}>
+            Account verwijderen
+          </button>
+        )}
+        <a className="text-button" href={privacyRequestMailto(user, "Privacyverzoek")}>
+          Inzage of export aanvragen
         </a>
         <button className="text-button" type="button" onClick={onPrivacy}>
           Bekijk je privacyrechten
