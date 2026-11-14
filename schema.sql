@@ -712,6 +712,9 @@ revoke all on function admin_create_invite_code(text, text, int, text, timestamp
 revoke all on function is_app_admin() from public;
 revoke all on function mask_admin_email(text) from public;
 revoke all on function admin_launch_status() from public;
+revoke execute on function admin_create_invite_code(text, text, int, text, timestamptz) from anon, authenticated;
+revoke execute on function admin_launch_status() from anon;
+revoke execute on function redeem_invite_code(text) from anon;
 grant execute on function current_user_has_invite() to authenticated;
 grant execute on function redeem_invite_code(text) to authenticated;
 grant execute on function is_app_admin() to authenticated;
@@ -946,3 +949,8 @@ exception
   when undefined_object then null;
 end;
 $$;
+
+-- Triggerfuncties horen niet via de publieke API aanroepbaar te zijn.
+revoke execute on function close_matches_on_block() from public, anon, authenticated;
+revoke execute on function create_match_on_mutual_interest() from public, anon, authenticated;
+revoke execute on function lhc_enforce_message_safety() from public, anon, authenticated;

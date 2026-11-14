@@ -121,6 +121,21 @@ create policy "Conversie event toevoegen"
   );
 
 -- ─────────────────────────────────────────────────────────────
+-- 6. Interne functies niet via de publieke API aanroepbaar
+--    Supabase geeft anon/authenticated standaard EXECUTE; "revoke from
+--    public" haalt dat niet weg. Zonder deze regels kon iedereen (ook
+--    zonder account) via /rest/v1/rpc/admin_create_invite_code zelf een
+--    uitnodigingscode aanmaken.
+-- ─────────────────────────────────────────────────────────────
+
+revoke execute on function admin_create_invite_code(text, text, int, text, timestamptz) from public, anon, authenticated;
+revoke execute on function close_matches_on_block() from public, anon, authenticated;
+revoke execute on function create_match_on_mutual_interest() from public, anon, authenticated;
+revoke execute on function lhc_enforce_message_safety() from public, anon, authenticated;
+revoke execute on function admin_launch_status() from public, anon;
+revoke execute on function redeem_invite_code(text) from public, anon;
+
+-- ─────────────────────────────────────────────────────────────
 -- Controle
 -- ─────────────────────────────────────────────────────────────
 

@@ -7,6 +7,15 @@ dashboard-werk dat alleen de beheerder kan doen. Totaal: ± 45 minuten.
 
 Volgorde aanhouden; elke stap verwijst naar het bestaande detail-document.
 
+> **Status 2026-11-14** — uitgevoerd op het live Supabase-project:
+> `SECURITY_HARDENING.sql` (inclusief de nieuwe secties 5 en 6) en de nieuwe
+> `twilio-voice` function. Het project stond gepauzeerd en is hervat.
+> De code `LHC-EERSTE-RONDE-001` is sinds 1 augustus verlopen en staat in deze
+> publieke repo; gebruik hem niet opnieuw. Maak nieuwe codes aan in de SQL
+> Editor en zet ze niet in de repo.
+> Nog open: stap 2 (Resend), stap 4 (registratietest), stap 5 (notificaties),
+> stap 6 (beltest) en het opruimen van testaccounts.
+
 ## Stap 1 — Supabase controleren (± 10 min)
 
 Open de Supabase SQL Editor en controleer/draai in deze volgorde:
