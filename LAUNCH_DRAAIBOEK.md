@@ -2,7 +2,7 @@
 
 ## 1. Zelf de registratie testen (± 5 min, met je eigen inbox)
 
-Gebruik een tweede e-mailadres (niet je hotmail-admin-adres), bijv. een Gmail.
+Gebruik een tweede e-mailadres (niet je admin-adres), bijv. een Gmail.
 
 1. Ga naar https://www.lonelyheartsclub.nl → **Inloggen** → kies **Uitnodiging**
 2. Vul in: je test-e-mailadres, een wachtwoord, en je actuele uitnodigingscode
@@ -37,8 +37,7 @@ Onderwerp: **Je bent als eerste welkom bij Lonely Hearts Club**
 >
 > Veel plezier — en mail gerust terug als iets niet lekker werkt.
 >
-> Marcel
-> Lonely Hearts Club
+> Team Lonely Hearts Club
 
 (Wachtlijst-adressen vind je in Supabase → Table Editor → `waitlist`.)
 

@@ -13,7 +13,7 @@ insert into app_admins (user_id)
 select id
 from auth.users
 where lower(email) in (
-  lower('wijkstramarcel@hotmail.com')
+  lower('beheer@voorbeeld.nl') -- vervang door het adres van de beheerder; niet committen
 )
 on conflict (user_id) do nothing;
 
