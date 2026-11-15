@@ -413,6 +413,49 @@ const CHAT_BLOCKED_WORDS = [
   "neuk je",
 ];
 
+// Vragen die leden elkaar kunnen stellen, per fase van het contact. Er zijn
+// bewust geen vergrendelde profielvelden: elkaar leren kennen gebeurt in het
+// gesprek, deze vragen helpen alleen om het op gang te houden.
+const PHASE_QUESTIONS = {
+  chat: {
+    title: "Vraag het gewoon",
+    hint: "Elkaar leren kennen gebeurt in het gesprek. Een paar vragen voor deze fase:",
+    questions: [
+      "Waar kun jij de tijd bij vergeten?",
+      "Wat zou je een vrije zaterdag het liefst doen?",
+      "Wat heeft je de laatste tijd echt aan het lachen gemaakt?",
+      "Wat vind jij belangrijk in hoe mensen met elkaar omgaan?",
+      "Waar ben je stiekem best trots op?",
+      "Wat maakt voor jou een gesprek goed?",
+      "Ben je meer van plannen maken of van zien waar de dag heen gaat?",
+      "Welke plek voelt voor jou als thuis?",
+    ],
+  },
+  call: {
+    title: "Na het belmoment",
+    hint: "Jullie hebben elkaars stem gehoord. Vragen die nu passen:",
+    questions: [
+      "Wat viel je op toen we elkaar spraken?",
+      "Hoe ziet een gewone doordeweekse dag er bij jou uit?",
+      "Wat zoek je op dit moment eigenlijk in contact met iemand?",
+      "Waar word jij rustig van na een drukke week?",
+      "Wat zou je nog over mij willen weten?",
+      "In welke omgeving voel jij je het meest jezelf?",
+    ],
+  },
+  meet: {
+    title: "Richting een afspraak",
+    hint: "Praktisch en veilig afstemmen helpt jullie allebei:",
+    questions: [
+      "Waar spreek jij het liefst af voor een eerste keer?",
+      "Koffie, wandelen of iets anders: wat past bij jou?",
+      "Welk moment van de week komt jou goed uit?",
+      "Zullen we op een openbare plek afspreken waar we allebei makkelijk komen?",
+      "Is er iets waar ik rekening mee kan houden bij een eerste afspraak?",
+    ],
+  },
+};
+
 const PHOTO_REVEAL_STEPS = [
   ["match", "Match", 25],
   ["messages", "Chat", 50],
@@ -4483,6 +4526,7 @@ function MessagesView({
   const [revealLevel, setRevealLevel] = useState(null);
   const [meetIntent, setMeetIntent] = useState({ mine: false, theirs: false });
   const [revealRefresh, setRevealRefresh] = useState(0);
+  const [questionOffset, setQuestionOffset] = useState(0);
   const callRecordId = useRef(null);
   const liveMatch = !demoMode && hasSupabaseConfig && supabase && match;
   const recipientId = match ? getOtherUserId(match, userId) : "";
@@ -4618,6 +4662,16 @@ function MessagesView({
         : hasConversation
           ? "messages"
           : "match";
+  const questionPhase =
+    conversationStep === "meet" || revealLevel === 100
+      ? "meet"
+      : conversationStep === "call" || (revealLevel ?? 0) >= 75
+        ? "call"
+        : "chat";
+  const phaseQuestions = PHASE_QUESTIONS[questionPhase];
+  const visibleQuestions = [0, 1, 2].map(
+    (index) => phaseQuestions.questions[(questionOffset + index) % phaseQuestions.questions.length],
+  );
   const callBadge =
     conversationStep === "meet"
       ? "Stap 5: afspraak"
@@ -4847,6 +4901,29 @@ function MessagesView({
             {replySuggestions.map((message) => (
               <button className="secondary-button" key={message} type="button" onClick={() => setDraft(message)}>
                 {message}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {hasUserReply && (
+        <section className="reply-prompt phase-questions" aria-label="Vragen voor deze fase">
+          <div>
+            <strong>{phaseQuestions.title}</strong>
+            <span>{phaseQuestions.hint}</span>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => setQuestionOffset((value) => value + 3)}
+            >
+              Andere vragen
+            </button>
+          </div>
+          <div className="starter-actions">
+            {visibleQuestions.map((question) => (
+              <button className="secondary-button" key={question} type="button" onClick={() => setDraft(question)}>
+                {question}
               </button>
             ))}
           </div>
