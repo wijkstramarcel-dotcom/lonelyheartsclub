@@ -456,6 +456,13 @@ const PHASE_QUESTIONS = {
   },
 };
 
+const PHOTO_REVEAL_NEXT = {
+  25: "Scherper zodra jullie allebei een bericht hebben gestuurd.",
+  50: "Scherper na een anoniem belmoment.",
+  75: "Volledig zichtbaar als jullie allebei willen afspreken.",
+  100: "De foto is nu volledig zichtbaar.",
+};
+
 const PHOTO_REVEAL_STEPS = [
   ["match", "Match", 25],
   ["messages", "Chat", 50],
@@ -1366,8 +1373,6 @@ function LandingPage({ authOpen, authReturnNotice, setAuthOpen, onDemo, onPrivac
 
       <PreRegisterSection onPrivacy={onPrivacy} onCreateAccount={openAccount} />
 
-      <LaunchMarketingSection />
-
       <section className="section-band" id="waarom">
         <div className="section-inner">
           <p className="eyebrow">Dating zonder swipe-ruis</p>
@@ -1396,68 +1401,6 @@ function LandingPage({ authOpen, authReturnNotice, setAuthOpen, onDemo, onPrivac
             </article>
           </div>
         </div>
-      </section>
-
-      <section className="section-inner trust-section">
-        <div className="section-heading">
-          <p className="eyebrow">Waarom anders</p>
-          <h2>Niet sneller swipen, maar beter beginnen.</h2>
-        </div>
-        <div className="trust-grid">
-          {TRUST_PILLARS.map(([title, text]) => (
-            <article key={title}>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section-band">
-        <div className="section-inner">
-          <div className="section-heading">
-            <p className="eyebrow">Wat we meenemen</p>
-            <h2>De beste les van moderne dating: minder ruis, meer vertrouwen.</h2>
-          </div>
-          <div className="story-grid">
-            {LEARNING_ITEMS.map(([title, text]) => (
-              <article key={title}>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section-band audience-section">
-        <div className="section-inner audience-layout">
-          <div>
-            <p className="eyebrow">Voor wie</p>
-            <h2>Voor mensen die niet harder willen swipen.</h2>
-            <p>
-              Lonely Hearts Club is geen race naar zoveel mogelijk profielen. Het is bedoeld voor singles
-              die eerst willen merken hoe iemand denkt, praat en aandacht geeft.
-            </p>
-          </div>
-          <ul className="audience-list">
-            {AUDIENCE_ITEMS.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <section className="section-inner referral-story" aria-label="Waarom delen">
-        <p className="eyebrow">Vertel het door</p>
-        <h2>Ken je iemand die klaar is met swipen?</h2>
-        <p>
-          Stuur Lonely Hearts Club vooral naar singles die liever rustig beginnen: eerst een goed profiel,
-          dan een echt gesprek, daarna een anonieme stem en pas later een afspraak.
-        </p>
-        <a className="secondary-button" href="#voorinschrijven" onClick={trackWaitlistCta}>
-          Naar de wachtlijst
-        </a>
       </section>
 
       <section className="section-band" id="hoe">
@@ -2595,7 +2538,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     const notifyNewMatch = (payload) => {
       const row = payload?.new;
       if (!row || (row.user_a !== user.id && row.user_b !== user.id)) return;
-      setNotice("Nieuwe match! Iemand toonde ook interesse in jou. Bekijk je matches.");
+      setNotice("Nieuwe match! Bekijk je matches.");
       loadData();
     };
 
@@ -2623,7 +2566,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     setNeedsProfile(false);
     setActiveTab("discover");
     loadData().then(() => {
-      setNotice("Profiel opgeslagen. Je ziet nu alleen leden die wederzijds bij je voorkeur passen.");
+      setNotice("Profiel opgeslagen.");
     });
   };
 
@@ -2656,7 +2599,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     }
 
     setProfile(normalizeProfile(data ?? nextProfile));
-    setNotice(nextActive ? "Je profiel is weer actief." : "Je profiel is gepauzeerd en wordt niet getoond aan anderen.");
+    setNotice(nextActive ? "Je profiel is weer actief." : "Je profiel is gepauzeerd.");
   };
 
   const likeProfile = async (targetProfile) => {
@@ -2686,7 +2629,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
       setSelectedMatchId(matchId);
       setActiveTab("messages");
       setJourneyStep("messages");
-      setNotice(`Match met ${targetProfile.naam} gestart. Reageer op het bericht en ga daarna door naar anoniem bellen.`);
+      setNotice(`Match met ${targetProfile.naam}. Reageer op het eerste bericht.`);
       return;
     }
 
@@ -2706,7 +2649,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     }
 
     setInterestedIds((current) => new Set([...current, targetProfile.id]));
-    setNotice(`Interesse verstuurd naar ${targetProfile.naam}. Bij wederzijdse interesse verschijnt de match hier.`);
+    setNotice(`Interesse verstuurd naar ${targetProfile.naam}.`);
     await loadData();
   };
 
@@ -2739,7 +2682,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
     }
 
     setBlockedIds((current) => new Set([...current, targetProfile.id]));
-    setNotice(`${targetProfile.naam} is verborgen. Je ziet dit profiel niet meer in Ontdek of Matches.`);
+    setNotice(`${targetProfile.naam} is verborgen.`);
   };
 
   const reportProfile = async (targetProfile, reason, details = "") => {
@@ -2831,7 +2774,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
         [selectedMatch.id]: [...(current[selectedMatch.id] ?? []), message, reply],
       }));
       setJourneyStep("call");
-      setNotice("Chat werkt. Volgende stap: start het anonieme belmoment vanuit dit gesprek.");
+      setNotice("");
       return true;
     }
 
@@ -2921,7 +2864,7 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
           />
         )}
 
-        {activeTab !== "admin" && (
+        {profile?.actief === false && activeTab !== "profile" && activeTab !== "admin" && (
           <NextStepPanel
             activeTab={activeTab}
             demoMode={demoMode}
@@ -3015,19 +2958,24 @@ function ProductApp({ user, initialProfile = null, demoMode = false, onLogout, o
   );
 }
 
-function AppHeader({ profile, notice, onRefresh, loading }) {
+function AppHeader({ notice, onRefresh, loading }) {
   return (
     <header className="app-header">
-      <div>
-        <p className="eyebrow">Dashboard</p>
-        <h1>Welkom{profile?.voornaam ? `, ${profile.voornaam}` : ""}</h1>
-      </div>
-      <div className="header-actions">
-        {notice && <span className="notice-pill">{notice}</span>}
-        <button className="secondary-button" onClick={onRefresh} disabled={loading}>
-          {loading ? "Laden" : "Verversen"}
-        </button>
-      </div>
+      <span className="notice-pill" role="status" hidden={!notice}>
+        {notice}
+      </span>
+      <button
+        className="icon-button refresh-button"
+        type="button"
+        onClick={onRefresh}
+        disabled={loading}
+        aria-label="Verversen"
+        title="Verversen"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" />
+        </svg>
+      </button>
     </header>
   );
 }
@@ -3448,36 +3396,20 @@ function DemoJourney({
   );
 
   return (
-    <section className="demo-journey" aria-label="Demo route">
-      <div>
-        <p className="eyebrow">Demo-route</p>
-        <h2>Test de echte route in een paar minuten.</h2>
-        <p>Begin met een passend profiel, reageer in de chat, open daarna het anonieme belmoment en rond af met een afspraakvoorstel.</p>
-      </div>
-      <div className="journey-side">
-        <div className="journey-steps">
-          {flow.map(([id, label], index) => (
-            <span
-              key={id}
-              className={classNames(index === activeIndex && "active", index < activeIndex && "complete")}
-            >
-              {index + 1}. {label}
-            </span>
-          ))}
-        </div>
-        <div className="journey-actions">
-          {suggestedCount > 0 && matchCount === 0 && (
-            <button className="secondary-button" type="button" onClick={onCreateDemoMatch}>
-              Start match met {suggestedProfileName}
-            </button>
-          )}
-          {matchCount > 0 && (
-            <button className="secondary-button" type="button" onClick={onOpenChat}>
-              Open gesprek
-            </button>
-          )}
-        </div>
-      </div>
+    <section className="demo-strip" aria-label="Demo route">
+      <ol className="demo-dots" aria-hidden="true">
+        {flow.map(([id], index) => (
+          <li key={id} className={classNames(index === activeIndex && "active", index < activeIndex && "complete")} />
+        ))}
+      </ol>
+      <span className="demo-strip-label">
+        Demo · stap {activeIndex + 1} van {flow.length}: {flow[activeIndex][1]}
+      </span>
+      {matchCount > 0 && activeStep !== "messages" && activeStep !== "call" && activeStep !== "meet" && (
+        <button className="secondary-button" type="button" onClick={onOpenChat}>
+          Open gesprek
+        </button>
+      )}
     </section>
   );
 }
@@ -3642,9 +3574,8 @@ function Onboarding({ user, onSaved, demoMode, onLogout, onPrivacy }) {
 function ProfileView({ profile, user, onSaved, demoMode, onPrivacy, onToggleActive }) {
   return (
     <section className="content-section">
-      <div className="section-heading">
-        <p className="eyebrow">Profiel</p>
-        <h2>Houd je verhaal actueel.</h2>
+      <div className="deck-header">
+        <h2>Profiel</h2>
       </div>
       <ProfileForm user={user} profile={profile} onSaved={onSaved} demoMode={demoMode} onPrivacy={onPrivacy} />
       <ProfilePrivacyControls
@@ -3714,12 +3645,8 @@ function ProfilePrivacyControls({ profile, user, onPrivacy, onToggleActive }) {
   return (
     <section className="profile-privacy-controls" aria-label="Profielprivacy en gegevens">
       <div>
-        <p className="eyebrow">Privacycontrole</p>
-        <h3>Jij bepaalt of je profiel zichtbaar is.</h3>
-        <p>
-          Pauzeren verbergt je profiel voor andere leden zonder je account te verwijderen. Je kunt je account
-          hier ook direct en definitief verwijderen. Voor inzage of export stuur je een privacyverzoek.
-        </p>
+        <h3>Zichtbaarheid en account</h3>
+        <p>Pauzeren verbergt je profiel zonder je account te verwijderen.</p>
       </div>
       <div className="profile-status-card">
         <span className={classNames("profile-status", active ? "active" : "paused")}>
@@ -4012,21 +3939,6 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
 
   return (
     <form className="profile-form" onSubmit={save}>
-      <div className="profile-match-preview">
-        <strong>Jouw matchfilter</strong>
-        <span>{matchFilter.summary}</span>
-        <dl>
-          <div>
-            <dt>Ik ben</dt>
-            <dd>{matchFilter.gender}</dd>
-          </div>
-          <div>
-            <dt>Ik zoek</dt>
-            <dd>{matchFilter.seeking}</dd>
-          </div>
-        </dl>
-      </div>
-
       <ProfileQualityPanel score={qualityScore} items={qualityItems} />
 
       <section className="profile-photo-field" aria-label="Profielfoto">
@@ -4038,11 +3950,8 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
           )}
         </div>
         <div className="profile-photo-copy">
-          <strong>Profielfoto voor later in de route</strong>
-          <span>
-            Je foto wordt niet gebruikt als eerste oordeel. In een match komt hij stap voor stap vrij:
-            na match, chat, bellen en pas volledig bij afspreken.
-          </span>
+          <strong>Profielfoto</strong>
+          <span>Wordt pas stap voor stap zichtbaar voor een match.</span>
           <label className="file-button">
             Kies foto
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoChange} />
@@ -4186,18 +4095,16 @@ function ProfileForm({ user, profile = null, onSaved, demoMode = false, onPrivac
 }
 
 function ProfileQualityPanel({ score, items }) {
+  const open = items.filter(([, done]) => !done);
   return (
-    <section className="profile-quality-panel" aria-label="Profielkwaliteit">
-      <div className="profile-quality-header">
-        <div>
-          <strong>Profielkwaliteit</strong>
-          <span>Hoe sterker je profiel, hoe beter de match en het eerste gesprek.</span>
+    <details className="profile-quality-panel" aria-label="Profielkwaliteit">
+      <summary>
+        <span>Profiel {score}% compleet</span>
+        <small>{open.length ? `Nog te doen: ${open.map(([label]) => label.toLowerCase()).join(", ")}` : "Alles ingevuld"}</small>
+        <div className="profile-quality-meter" aria-hidden="true">
+          <span style={{ width: `${score}%` }} />
         </div>
-        <b>{score}%</b>
-      </div>
-      <div className="profile-quality-meter" aria-hidden="true">
-        <span style={{ width: `${score}%` }} />
-      </div>
+      </summary>
       <ul>
         {items.map(([label, done, text]) => (
           <li className={done ? "complete" : ""} key={label}>
@@ -4209,7 +4116,7 @@ function ProfileQualityPanel({ score, items }) {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 
@@ -4269,26 +4176,83 @@ function DiscoverView({
   }
 
   return (
-    <section className="content-section">
-      <div className="section-heading">
-        <p className="eyebrow">Ontdek</p>
-        <h2>Slim geselecteerd op verhaal en intentie.</h2>
+    <DiscoverDeck
+      profiles={profiles}
+      interestedIds={interestedIds}
+      reportedIds={reportedIds}
+      onLike={onLike}
+      onBlock={onBlock}
+      onReport={onReport}
+      viewerProfile={viewerProfile}
+      hiddenByPreferenceCount={hiddenByPreferenceCount}
+      showGrowPanel={!demoMode && profiles.length < 4}
+    />
+  );
+}
+
+// Eén profiel tegelijk, met het verhaal voorop en twee duidelijke keuzes:
+// het vaste patroon van dating-apps, maar hier zonder foto als eerste oordeel.
+function DiscoverDeck({
+  profiles,
+  interestedIds,
+  reportedIds,
+  onLike,
+  onBlock,
+  onReport,
+  viewerProfile,
+  hiddenByPreferenceCount,
+  showGrowPanel,
+}) {
+  const [index, setIndex] = useState(0);
+  const position = profiles.length ? index % profiles.length : 0;
+  const profile = profiles[position];
+  const liked = interestedIds.has(profile.id);
+  const filter = describeMatchFilter(viewerProfile);
+
+  return (
+    <section className="content-section discover-deck">
+      <div className="deck-header">
+        <h2>Ontdek</h2>
+        <span className="deck-count">
+          {position + 1} van {profiles.length}
+        </span>
+        <details className="deck-filter">
+          <summary>Jouw voorkeur</summary>
+          <p>
+            {filter.gender} · {filter.seeking}. Je ziet alleen leden bij wie het wederzijds past
+            {hiddenByPreferenceCount > 0 ? `; ${hiddenByPreferenceCount} profielen zijn daarom verborgen` : ""}.
+          </p>
+        </details>
       </div>
-      <MatchFilterNote profile={viewerProfile} hiddenByPreferenceCount={hiddenByPreferenceCount} />
-      {!demoMode && profiles.length < 4 && <GrowClubPanel compact />}
-      <div className="profile-grid">
-        {profiles.map((profile) => (
-          <ProfileCard
-            key={profile.id}
-            profile={profile}
-            liked={interestedIds.has(profile.id)}
-            reported={reportedIds.has(profile.id)}
-            onLike={() => onLike(profile)}
-            onBlock={() => onBlock(profile)}
-            onReport={(reason, details) => onReport(profile, reason, details)}
-          />
-        ))}
+
+      <ProfileCard
+        key={profile.id}
+        profile={profile}
+        reported={reportedIds.has(profile.id)}
+        onBlock={() => onBlock(profile)}
+        onReport={(reason, details) => onReport(profile, reason, details)}
+      />
+
+      <div className="deck-actions">
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => setIndex((value) => value + 1)}
+          disabled={profiles.length < 2}
+        >
+          Volgende
+        </button>
+        <button
+          className={classNames("primary-button like-button", liked && "liked")}
+          type="button"
+          disabled={liked}
+          onClick={() => onLike(profile)}
+        >
+          {liked ? "Interesse verstuurd" : "Toon interesse"}
+        </button>
       </div>
+
+      {showGrowPanel && <GrowClubPanel compact />}
     </section>
   );
 }
@@ -4347,26 +4311,35 @@ function MatchFilterNote({ profile, hiddenByPreferenceCount = 0 }) {
   );
 }
 
-function ProfileCard({ profile, liked, reported, onLike, onBlock, onReport }) {
+function ProfileCard({ profile, reported, onBlock, onReport }) {
   const displayName = profile.naam || profile.voornaam || "Lid";
   const matchScore = profile.matchScore;
 
   return (
-    <article className="member-card">
-      <div className="member-avatar" aria-hidden="true">
-        {displayName.slice(0, 1).toUpperCase()}
-      </div>
-      <div className="member-main">
+    <article className="story-card">
+      <header className="story-card-header">
+        <div className="member-avatar" aria-hidden="true">
+          {displayName.slice(0, 1).toUpperCase()}
+        </div>
         <div className="member-title">
           <h3>{displayName}</h3>
           {profile.leeftijd && <span>{profile.leeftijd}</span>}
         </div>
         {matchScore?.score > 0 && (
-          <div className="match-score-strip" aria-label={`Matchscore ${matchScore.score} procent`}>
-            <span>{matchScore.level}</span>
-            <strong>{matchScore.score}%</strong>
-          </div>
+          <span className="match-pill" aria-label={`Matchscore ${matchScore.score} procent`}>
+            {matchScore.score}% match
+          </span>
         )}
+      </header>
+
+      <blockquote className="story-quote">
+        {profile.verhaal || "Dit lid vult binnenkort een verhaal in."}
+      </blockquote>
+
+      <TagList tags={profile.tags} />
+
+      <details className="story-more">
+        <summary>Meer over deze match</summary>
         {matchScore?.reasons?.length > 0 && (
           <div className="match-reasons" aria-label="Waarom deze match wordt voorgesteld">
             {matchScore.reasons.slice(0, 3).map((reason) => (
@@ -4376,7 +4349,6 @@ function ProfileCard({ profile, liked, reported, onLike, onBlock, onReport }) {
         )}
         {matchScore?.compass?.length > 0 && (
           <div className="match-compass" aria-label="Matchkompas">
-            <strong>Matchkompas</strong>
             {matchScore.compass.map((item) => (
               <div className="match-compass-row" key={item.label}>
                 <span>{item.label}</span>
@@ -4387,18 +4359,8 @@ function ProfileCard({ profile, liked, reported, onLike, onBlock, onReport }) {
             ))}
           </div>
         )}
-        <p>{profile.verhaal || "Dit lid vult binnenkort een verhaal in."}</p>
-        <TagList tags={profile.tags} />
-      </div>
-      <button className={classNames("like-button", liked && "liked")} onClick={onLike} disabled={liked}>
-        {liked ? "Interesse verstuurd" : "Toon interesse"}
-      </button>
-      <SafetyActions
-        context="card"
-        reported={reported}
-        onBlock={onBlock}
-        onReport={onReport}
-      />
+        <SafetyActions context="card" reported={reported} onBlock={onBlock} onReport={onReport} />
+      </details>
     </article>
   );
 }
@@ -4674,15 +4636,15 @@ function MessagesView({
   );
   const callBadge =
     conversationStep === "meet"
-      ? "Stap 5: afspraak"
+      ? "Afspreken"
       : conversationStep === "call"
-        ? "Stap 4: anoniem bellen"
+        ? "Anoniem bellen"
         : conversationStep === "messages"
-          ? "Stap 3: chatten"
-          : "Stap 2: eerste bericht";
+          ? "Chatten"
+          : "Nieuwe match";
   const callButtonLabel =
     !voiceReady
-      ? "Belprovider nog niet actief"
+      ? "Bel anoniem"
       : callStep === "connecting"
       ? "Verbinden"
       : callStep === "incoming"
@@ -4693,7 +4655,7 @@ function MessagesView({
           ? "Bel opnieuw"
           : callStep === "ended"
             ? "Bel opnieuw"
-            : "Start anoniem bellen";
+            : "Bel anoniem";
   const canStartCall =
     voiceReady &&
     hasUserReply &&
@@ -4813,45 +4775,47 @@ function MessagesView({
     }
   };
 
+  const suggestions = !hasConversation ? starterMessages : !hasUserReply ? replySuggestions : visibleQuestions;
+  const callStatus = callError
+    ? callError
+    : callStep === "connecting"
+      ? "Verbinden zonder nummers te delen"
+      : callStep === "incoming"
+        ? "Inkomende oproep"
+        : callStep === "active"
+          ? "In gesprek"
+          : callStep === "meet"
+            ? "Je wilt afspreken"
+            : callStep === "ended"
+              ? "Gesprek afgerond"
+              : !hasUserReply
+                ? "Reageer eerst in de chat"
+                : !voiceReady
+                  ? "Bellen is nog niet actief"
+                  : "";
+  const displayName = otherProfile?.naam ?? "Je match";
+
   return (
-    <section className="message-layout">
-      <div className="message-header">
-        <div>
-          <p className="eyebrow">Berichten</p>
-          <h2>{otherProfile?.naam ?? "Je match"}</h2>
+    <section className="message-layout chat-screen">
+      <div className="chat-topbar">
+        <div className="member-avatar" aria-hidden="true">
+          {displayName.slice(0, 1).toUpperCase()}
         </div>
-        <div className="message-header-actions">
-          <span className="call-badge">{callBadge}</span>
-          {otherProfile && (
+        <div className="chat-topbar-title">
+          <h2>{displayName}</h2>
+          <span>{callBadge}</span>
+        </div>
+        {otherProfile && (
+          <details className="chat-menu">
+            <summary aria-label="Meer opties">⋯</summary>
             <SafetyActions
               reported={reportedIds.has(otherProfile.id)}
               onBlock={() => onBlock(otherProfile)}
               onReport={(reason, details) => onReport(otherProfile, reason, details)}
             />
-          )}
-        </div>
+          </details>
+        )}
       </div>
-
-      <ol className="conversation-steps" aria-label="Gespreksroute">
-        {[
-          ["match", "Match"],
-          ["messages", "Chat"],
-          ["call", "Bellen"],
-          ["meet", "Afspraak"],
-        ].map(([id, label]) => {
-          const order = ["match", "messages", "call", "meet"];
-          const activeIndex = order.indexOf(conversationStep);
-          const index = order.indexOf(id);
-          return (
-            <li
-              key={id}
-              className={classNames(index === activeIndex && "active", index < activeIndex && "complete")}
-            >
-              {label}
-            </li>
-          );
-        })}
-      </ol>
 
       {otherProfile && (
         <PhotoRevealPanel
@@ -4875,135 +4839,55 @@ function MessagesView({
             </div>
           ))
         ) : (
-          <EmptyState
-            compact
-            title="Nog geen berichten"
-            text="Stuur een korte opening die over iemands verhaal gaat."
+          <p className="messages-empty">Stuur een korte opening over het verhaal van {displayName}.</p>
+        )}
+      </div>
+
+      <div className="chip-scroller" aria-label={hasUserReply ? phaseQuestions.title : "Berichtvoorstellen"}>
+        {suggestions.map((text) => (
+          <button className="suggestion-chip" key={text} type="button" onClick={() => setDraft(text)}>
+            {text}
+          </button>
+        ))}
+        {hasUserReply && (
+          <button
+            className="suggestion-chip more"
+            type="button"
+            onClick={() => setQuestionOffset((value) => value + 3)}
           >
-            <div className="starter-actions" aria-label="Berichtvoorstellen">
-              {starterMessages.map((message) => (
-                <button className="secondary-button" key={message} type="button" onClick={() => setDraft(message)}>
-                  {message}
-                </button>
-              ))}
-            </div>
-          </EmptyState>
+            Andere vragen
+          </button>
         )}
       </div>
 
-      {hasConversation && !hasUserReply && (
-        <section className="reply-prompt" aria-label="Reactievoorstellen">
-          <div>
-            <strong>Reageer om de volgende stap te openen</strong>
-            <span>Na jouw eerste bericht kan het anonieme belmoment gestart worden.</span>
-          </div>
-          <div className="starter-actions">
-            {replySuggestions.map((message) => (
-              <button className="secondary-button" key={message} type="button" onClick={() => setDraft(message)}>
-                {message}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {hasUserReply && (
-        <section className="reply-prompt phase-questions" aria-label="Vragen voor deze fase">
-          <div>
-            <strong>{phaseQuestions.title}</strong>
-            <span>{phaseQuestions.hint}</span>
-            <button
-              className="text-button"
-              type="button"
-              onClick={() => setQuestionOffset((value) => value + 3)}
-            >
-              Andere vragen
+      <div className="call-strip">
+        {incomingCall ? (
+          <>
+            <button className="primary-button" type="button" onClick={acceptIncoming}>
+              Neem op
             </button>
-          </div>
-          <div className="starter-actions">
-            {visibleQuestions.map((question) => (
-              <button className="secondary-button" key={question} type="button" onClick={() => setDraft(question)}>
-                {question}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <div className="call-panel">
-        <div>
-          <p className="eyebrow">Volgende stap</p>
-          <h3>Anoniem bellen voordat je afspreekt.</h3>
-          <p>
-            Telefoonnummers blijven afgeschermd. Eerst chatten, dan kort anoniem bellen, en pas daarna
-            eventueel een afspraak voorstellen.
-          </p>
-        </div>
-        <div className="call-actions">
-          {incomingCall ? (
-            <>
-              <button className="primary-button" type="button" onClick={acceptIncoming}>
-                Neem op
-              </button>
-              <button className="secondary-button" type="button" onClick={declineIncoming}>
-                Weiger
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="primary-button" type="button" disabled={!canStartCall} onClick={handleCall}>
-                {callButtonLabel}
-              </button>
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={!canProposeMeet}
-                onClick={proposeMeet}
-              >
-                Afspraak voorstellen
-              </button>
-            </>
-          )}
-        </div>
-        {!hasUserReply && (
-          <p className="call-note">
-            Reageer eerst in de chat. Anoniem bellen hoort pas na een eerste uitwisseling open te gaan.
+            <button className="secondary-button" type="button" onClick={declineIncoming}>
+              Weiger
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="secondary-button" type="button" disabled={!canStartCall} onClick={handleCall}>
+              {callButtonLabel}
+            </button>
+            <button className="secondary-button" type="button" disabled={!canProposeMeet} onClick={proposeMeet}>
+              Afspreken
+            </button>
+          </>
+        )}
+        {callStatus && (
+          <p className={classNames("call-note", callError && "error")} role="status">
+            {callStatus}
           </p>
         )}
-        {!voiceReady && hasUserReply && (
-          <p className="call-note">
-            Anoniem bellen is technisch voorbereid, maar nog niet live geactiveerd. Eerst moeten de
-            belprovider, Supabase Functions en microfoon-test gecontroleerd zijn.
-          </p>
-        )}
-        {callStep === "connecting" && (
-          <p className="call-note">Belverbinding wordt voorbereid zonder telefoonnummers te delen.</p>
-        )}
-        {callStep === "incoming" && (
-          <p className="call-note success">Inkomende oproep. Neem alleen op als je klaar bent voor het gesprek.</p>
-        )}
-        {callStep === "active" && (
-          <p className="call-note success">Gesprek actief. Houd het kort, veilig en gericht op vertrouwen.</p>
-        )}
-        {callStep === "ended" && (
-          <p className="call-note success">Gesprek afgerond. Stel alleen een afspraak voor als het goed voelde.</p>
-        )}
-        {callStep === "meet" && (
-          <p className="call-note success">
-            Afspraakvoorstel klaar: kies pas een plek en moment als het gesprek goed voelde.
-          </p>
-        )}
-        {callError && <p className="call-note error">{callError}</p>}
       </div>
 
-      <form className="message-form" onSubmit={submit}>
-        <div className="chat-guard-note">
-          <strong>Chat Guard actief</strong>
-          <span>
-            Geen telefoonnummers, e-mailadressen, social handles, links of respectloze berichten. Gebruik
-            anoniem bellen voordat je privégegevens deelt.
-          </span>
-        </div>
+      <form className="message-form chat-input" onSubmit={submit}>
         {(guardNotice || draftInspection.blocked) && (
           <p className="form-message error chat-guard-alert">
             {guardNotice || draftInspection.message}
@@ -5016,9 +4900,12 @@ function MessagesView({
             setGuardNotice("");
           }}
           placeholder="Schrijf een bericht..."
+          aria-label="Bericht"
         />
-        <button className="primary-button" type="submit">
-          Stuur
+        <button className="primary-button send-button" type="submit" aria-label="Stuur">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 12 20 4l-5 16-3-7-8-1Z" />
+          </svg>
         </button>
       </form>
     </section>
@@ -5082,30 +4969,19 @@ function PhotoRevealPanel({ profile, step, level = null, ownerId = "", waitingFo
         <span className="photo-reveal-veil" aria-hidden="true" />
       </div>
       <div className="photo-reveal-copy">
-        <p className="eyebrow">Foto-onthulling</p>
-        <h3>{reveal.percentage}% zichtbaar na {reveal.label.toLowerCase()}</h3>
-        <p>
-          Het beeld komt stap voor stap vrij. Eerst verhaal en gedrag, daarna pas genoeg zicht om
-          met vertrouwen af te spreken.
-        </p>
-        {serverDriven && !hasPhoto && <p>{displayName} heeft nog geen foto toegevoegd.</p>}
-        {waitingForMeet && (
-          <p>
-            Je hebt aangegeven te willen afspreken. De foto wordt volledig zichtbaar zodra {displayName} dat
-            ook doet.
-          </p>
-        )}
-        <ol>
-          {PHOTO_REVEAL_STEPS.map(([id, label, percentage], index) => (
-            <li
-              key={id}
-              className={classNames(index < reveal.activeIndex && "complete", index === reveal.activeIndex && "active")}
-            >
-              <span>{label}</span>
-              <strong>{percentage}%</strong>
-            </li>
+        <strong>{reveal.percentage}% van de foto zichtbaar</strong>
+        <ol aria-hidden="true">
+          {PHOTO_REVEAL_STEPS.map(([id], index) => (
+            <li key={id} className={classNames(index <= reveal.activeIndex && "complete")} />
           ))}
         </ol>
+        <span>
+          {serverDriven && !hasPhoto
+            ? `${displayName} heeft nog geen foto toegevoegd.`
+            : waitingForMeet
+              ? `Volledig zichtbaar zodra ${displayName} ook wil afspreken.`
+              : PHOTO_REVEAL_NEXT[reveal.percentage]}
+        </span>
       </div>
     </section>
   );
